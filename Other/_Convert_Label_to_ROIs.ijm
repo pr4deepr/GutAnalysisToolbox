@@ -10,7 +10,6 @@
 
 //can also use this from runMacro command. 
 //Use runMacro("Directory where macro installed//Convert_Label_to_ROIs.ijm","image_name");
-runMacro(fiji_dir+"\\scripts\\GAT\\_label_to_roi.ijm","name,st,use,as,be");	
 macro "label_map_to_roi"
 {
 	

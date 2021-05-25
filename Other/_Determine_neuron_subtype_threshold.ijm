@@ -18,6 +18,13 @@ gat_dir=fiji_dir+"scripts\\GAT\\Other";
 nos_processing_dir=gat_dir+"\\NOS_processing"
 if(!File.exists(nos_processing_dir)) exit("Cannot find NOS processing macro. Returning: "+nos_processing_dir);
 
+//check_plugin_installation
+check_plugin=gat_dir+"\\check_plugin"
+if(!File.exists(check_plugin)) exit("Cannot find check plugin macro. Returning: "+check_plugin);
+
+runMacro(check_plugin);
+
+
 
 if(image_already_open==true)
 {

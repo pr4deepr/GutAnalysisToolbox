@@ -17,39 +17,26 @@
 
 //run("Close All");
 //check if plugins are installed
-print("******Checking if plugins are installed.*******");
-checks=newArray("DeepImageJ Run","Shape Smoothing","Area Opening","Command From Macro");//,"LabelMap to ROI Manager (2D)"
-check_plugin(checks);
-print("******Check complete.*******");
+//for running other macros
+//consider moving this into plugins folder so can use getDirectory("plugins")
+fiji_dir=getDirectory("imagej");
+gat_dir=fiji_dir+"scripts\\GAT\\Other";
 
-//takes an array of commands as strings and checks if plugins are installed
-function check_plugin(plugin_command)
-{
-	List.setCommands;
-	error=0;
-	for (i = 0; i < plugin_command.length; i++) 
-	{
-		if (List.get(plugin_command[i])!="") 
-		{
-			if(plugin_command[i]=="Command From Macro") {msg="StarDist";}
-			else {msg=plugin_command[i];}
-			print(msg+"... OK!");
-		}
-		else 
-		{ 
-			if(plugin_command[i]=="Shape Smoothing"){msg="Enable the Biomedgroup update site";}
-			else if (plugin_command[i]=="Area Opening") {msg="Activate the IJPB-plugins update site";}
-			//else if (plugin_command[i]=="LabelMap to ROI Manager (2D)") {msg="Enable the  update site for SCF";}
-			else if (plugin_command[i]=="Command From Macro") {msg="Enable the update site for StarDist";}
-			else if (plugin_command[i]=="DeepImageJ Run") {msg="Add the update site for DeepImageJ: https://sites.imagej.net/DeepImageJ/";}
-			else {msg=plugin_command[i];}
-			print("Error: Install plugin: "+msg);
-			error=1;
-		}
+//nos_processing_macro
+nos_processing_dir=gat_dir+"\\NOS_processing";
+if(!File.exists(nos_processing_dir)) exit("Cannot find NOS processing macro. Returning: "+nos_processing_dir);
 
-	}
-	if(error==1) exit("Plugins not found. Check Log file for details");
-}
+//check_plugin_installation
+check_plugin=gat_dir+"\\check_plugin";
+if(!File.exists(check_plugin)) exit("Cannot find check plugin macro. Returning: "+check_plugin);
+runMacro(check_plugin);
+
+
+//check if label to roi is installed
+label_roi_dir=gat_dir+"\\_Convert_Label_to_ROIs.ijm";
+if(!File.exists(label_roi_dir)) exit("Cannot find label to roi script. Returning: "+label_roi_dir);
+
+
 
 //rename ROIs
 function rename_roi(start_index,end_index,celltype)
@@ -64,10 +51,6 @@ function rename_roi(start_index,end_index,celltype)
 }
 
 
-//for running other macros
-fiji_dir=getDirectory("imagej");
-label_roi_dir=fiji_dir+"scripts\\GAT\\Other\\_Convert_Label_to_ROIs.ijm"
-if(!File.exists(label_roi_dir)) exit("Cannot find label to roi script. Returning: "+label_roi_dir);
 
 
  
@@ -77,6 +60,7 @@ print("FILE SEPARATOR for the OS is: "+fs);
 #@ File (style="open", label="<html>Choose the image to segment.<br>Enter NA if image is open.<html>") path
 #@ boolean image_already_open
 #@ String(value="<html>If image is already open, tick above box.<html>", visibility="MESSAGE") hint1
+#@ File (style="open", label="<html>Choose the StarDist model file if segmenting neurons.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") neuron_model_path 
 #@ boolean Calculate_nNOS_neurons
 #@ String(value="<html>Tick above box if you want to calculate % of nNOS neurons.<html>", visibility="MESSAGE") hint2
 cell_type="Neuron";
@@ -100,6 +84,7 @@ else
 	open(path);
 	file_name=File.nameWithoutExtension; //get file name without extension (.lif)
 }
+
 run("Select None");
 run("Remove Overlay");
 getPixelSize(unit, pixelWidth, pixelHeight);
@@ -223,6 +208,7 @@ if(scale_factor!=1)
 }
 
 
+
 // run StarDist segmentation till user is happy with the segmentation results
 choice=0;
 do{
@@ -305,3 +291,126 @@ run("Close");
 exit("Neuron analysis complete");
 
 
+
+function segment_cells(max_projection, img_seg,model_file,modify_stardist,n_tiles,width,height)
+{
+	//need to have the file separator as \\\\ in the file path when passing to StarDist Command from Macro. 
+	//regex uses \ as an escape character, so \\ gives one backslash \, \\\\ gives \\.
+	//Windows file separator \ is actually \\ as one backslash is an escape character
+	//StarDist command takes the escape character as well, so pass 16 backlash to get 4xbackslash in the StarDIst macro command (which is then converted into 2)
+	model_file=replace(model_file, "\\\\","\\\\\\\\\\\\\\\\");
+	choice=0;
+	roiManager("reset");
+	do{
+	if(modify_stardist==false)
+	{
+	//model_file="D:\\\\Google Drive\\\\ImageJ+Python scripts\\\\Gut analysis toolbox\\\\models\\\\2d_enteric_neuron_aug (1)\\\\TF_SavedModel.zip";
+		selectWindow(img_seg);
+		run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'0.5', 'nmsThresh':'0.45', 'outputType':'Label Image', 'modelFile':'"+model_file+"', 'nTiles':'2', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
+		wait(50);
+		temp=getTitle();
+		run("Duplicate...", "title=label_image");
+		label_image=getTitle();
+		run("Remove Overlay");
+		close(temp);
+		roiManager("reset"); 
+		selectWindow(label_image);
+		wait(20);
+		//remove all labels touching the borders
+		run("Remove Border Labels", "left right top bottom");
+		wait(10);
+		rename("Label-killBorders"); //renaming as the remove border labels gives names with numbers in brackets
+		//revert labelled image back to original size
+		if(scale_factor!=1)
+		{
+			selectWindow("Label-killBorders");
+			//run("Duplicate...", "title=label_original");
+			run("Scale...", "x=- y=- width="+width+" height="+height+" interpolation=None create title=label_original");
+			close("Label-killBorders");
+		}
+		else
+		{
+			selectWindow("Label-killBorders");
+			rename("label_original");
+		}
+		wait(10);
+		//rename("label_original");
+		resetMinAndMax();
+		//convert the labels to ROIs
+		runMacro(label_roi_dir,"label_original");
+		wait(20);
+		close(label_image);
+		selectWindow(max_projection);
+		roiManager("show all");
+		waitForUser("Check segmentation");
+		choice=getBoolean("Are you happy with segmentation? If not, adjust probability and/or overlap in StarDist", "Yes", "No, try again");
+		if(choice==0) 
+		{
+			roiManager("reset"); 
+			close("label_original");
+		}
+
+	}
+	else {
+		
+			waitForUser("Segmenting "+cell_type+" now. Select appropriate model file in next prompt");
+			print("Select Label Image option as output type in the StarDist 2D window");
+			run("StarDist 2D");
+			wait(50);
+			temp=getTitle();
+			run("Duplicate...", "title=label_image");
+			label_image=getTitle();
+			run("Remove Overlay");
+			close(temp);
+			if(isOpen(label_image))
+				{
+					roiManager("reset"); // In case "Both Option" was selected in StarDist 2D, i.e, get both Label and ROIs
+					//remove border labels only works on 8 bit
+					selectWindow(label_image);
+					wait(20);
+					//remove all labels touching the borders
+					run("Remove Border Labels", "left right top bottom");
+					wait(10);
+					rename("Label-killBorders"); //renaming as the remove border labels gives names with numbers in brackets
+					
+					if(scale_factor!=1)
+					{
+					selectWindow("Label-killBorders");
+					//run("Duplicate...", "title=label_original");
+					run("Scale...", "x=- y=- width="+width+" height="+height+" interpolation=None create title=label_original");
+					close("Label-killBorders");
+					}
+					else
+					{
+					selectWindow("Label-killBorders");
+					rename("label_original");
+					}
+					selectWindow("label_original");
+					resetMinAndMax();
+					
+				}
+			else 
+			 {
+				waitForUser("Error! Please select Label Image in the StarDist 2D interface instead of ROI Manager");
+				roiManager("reset");
+			 }
+					//convert the labels to ROIs
+				runMacro(label_roi_dir,"label_original");
+				wait(20);
+				close(label_image);
+				selectWindow(max_projection);
+				roiManager("show all");
+				waitForUser("Check segmentation");
+				choice=getBoolean("Are you happy with segmentation? If not, adjust probability and/or overlap in StarDist", "Yes", "No, try again");
+				if(choice==0) 
+				{
+					roiManager("reset"); 
+					close("label_original");
+				}
+	
+			}
+
+	  } while(choice==0)
+	}	
+		
+}

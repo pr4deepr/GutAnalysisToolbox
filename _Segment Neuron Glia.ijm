@@ -20,15 +20,17 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //check if plugins are installed
-print("******Checking if plugins are installed.*******");
-checks=newArray("DeepImageJ Run","Shape Smoothing","Area Opening","Command From Macro");
-check_plugin(checks);
-//check_plugin("DeepImageJ Run");
-//check_plugin("Shape Smoothing");
-//check_plugin("Area Opening");
-//check_plugin("LabelMap to ROI Manager (2D)");
-//check_plugin("Command From Macro");
-print("******Check complete.*******");
+//for running other macros
+//consider moving this into plugins folder so can use getDirectory("plugins")
+fiji_dir=getDirectory("imagej");
+gat_dir=fiji_dir+"scripts\\GAT\\Other";
+
+//check_plugin_installation
+check_plugin=gat_dir+"\\check_plugin"
+if(!File.exists(check_plugin)) exit("Cannot find check plugin macro. Returning: "+check_plugin);
+
+runMacro(check_plugin);
+
 
 
 fs = File.separator; //get the file separator for the computer (depending on operating system)
@@ -596,7 +598,6 @@ function segment_cells(max_projection, channel, cell_type,results_dir,ganglia_cl
 		run("Duplicate...", "title=img_resize duplicate");
 		max_project_resize="img_resize";
 	}
-	//waitForUser("SDFJDH");
 	roiManager("reset");
 	
 	//Segment Neurons

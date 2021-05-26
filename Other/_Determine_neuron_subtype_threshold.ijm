@@ -141,11 +141,17 @@ print("\\Clear");
 print("The threshold method that works: "+threshold_method);
 print("NOS value to use: "+nos_value);
 Table.create("Parameters");
+Table.set("File name", 0, file_name);
+
 Table.set("Threshold Method", 0, threshold_method);
 Table.set("NOS area fraction of Hu to be NOS+ve", 0, nos_value);
+Table.set("Total neurons ", 0, neuron_count);
+Table.set("NOS number ", 0, nos);
+Table.set("NOS/Hu ratio", 0, nos/cell_count);
+
 Table.update;
 Table.save(save_dir+"parameters_threshold_NOS_"+file_name+".csv");
-
+roiManager("UseNames", "false");
 selectWindow("Results");
 run("Close");
 close("nos_analysis");

@@ -15,28 +15,30 @@
 // 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-//run("Close All");
-//check if plugins are installed
-//for running other macros
+var fs=File.separator;
+
+
 //consider moving this into plugins folder so can use getDirectory("plugins")
 fiji_dir=getDirectory("imagej");
-gat_dir=fiji_dir+"scripts\\GAT\\Other";
+gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Other";
 
 //nos_processing_macro
-nos_processing_dir=gat_dir+"\\NOS_processing";
+nos_processing_dir=gat_dir+fs+"NOS_processing";
 if(!File.exists(nos_processing_dir)) exit("Cannot find NOS processing macro. Returning: "+nos_processing_dir);
 
 //check_plugin_installation
-check_plugin=gat_dir+"\\check_plugin";
+check_plugin=gat_dir+fs+"check_plugin";
 if(!File.exists(check_plugin)) exit("Cannot find check plugin macro. Returning: "+check_plugin);
 runMacro(check_plugin);
 
 
 //check if label to roi is installed
-label_roi_dir=gat_dir+"\\_Convert_Label_to_ROIs.ijm";
+label_roi_dir=gat_dir+fs+"_Convert_Label_to_ROIs.ijm";
 if(!File.exists(label_roi_dir)) exit("Cannot find label to roi script. Returning: "+label_roi_dir);
 
-
+//check if label to roi is installed
+roi_to_label=gat_dir+fs+"_Convert_ROI_to_Labels.ijm";
+if(!File.exists(roi_to_label)) exit("Cannot find roi to label script. Returning: "+roi_to_label);
 
 //rename ROIs
 function rename_roi(start_index,end_index,celltype)
@@ -69,6 +71,7 @@ cell_type="Neuron";
 #@ boolean Modify_StarDist_Values (description="Tick to modify the values within the StarDist plugin if the default segmentation does not work well.")
 #@ String(value="<html>Default Probability is 0.5 and nmsThresh is 0.4. Tick above to change these values if<br/>the default segmentation does not work well.<html>",visibility="MESSAGE") hint3
 
+training_pixel_size=0.378;
 
 get_nos=Calculate_nNOS_neurons;
 
@@ -80,8 +83,10 @@ if(image_already_open==true)
 }
 else
 {
-	if(!endsWith(path, ".tif"))	exit("Not recognised. Please select a tif file...");
-	open(path);
+	if(endsWith(path, ".czi")|| endsWith(path, ".lif")) run("Bio-Formats", "open=["+path+"] color_mode=Composite rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT");
+	else if (endsWith(path, ".tif")|| endsWith(path, ".tiff")) open(path);
+	else exit("Not recognised.  Tif, Lif and CZI files supported.");
+	
 	file_name=File.nameWithoutExtension; //get file name without extension (.lif)
 }
 
@@ -90,14 +95,14 @@ run("Remove Overlay");
 getPixelSize(unit, pixelWidth, pixelHeight);
 
 //Training images were pixelsize of ~0.378, so scaling images based on this
-scale_factor=pixelWidth/0.378;
-if(scale_factor<1.001) scale_factor=1;
+scale_factor=pixelWidth/training_pixel_size;
+if(scale_factor<1.001 && scale_factor>1) scale_factor=1;
 
 dir=File.directory;
 print("Analysing: "+file_name);
 analysis_dir= dir+"Analysis"+fs;
 if (!File.exists(analysis_dir)) File.makeDirectory(analysis_dir);
-print("Files willl be saved at: "+analysis_dir); 
+print("Files will be saved at: "+analysis_dir); 
 print("Analysing: "+file_name);
 //Create results directory with file name in "analysis"
 results_dir=analysis_dir+file_name+fs; //directory to save images
@@ -116,6 +121,8 @@ Table.create(table_name);//Final Results Table
 row=0; //row counter for the table
 image_counter=0;
 
+waitForUser("Note the channels for Hu and NOS");
+
 if(sizeC>1)
 {
 	if(Normalise_to_ganglia==true && get_nos==true)
@@ -132,8 +139,8 @@ if(sizeC>1)
 	else if (Normalise_to_ganglia==true)
 	{
 		Dialog.create("Choose channels for "+cell_type);
-  		Dialog.addNumber("Enter "+cell_type+" channel", 4);
-  		Dialog.addNumber("Enter channel for segmenting ganglia", 4);
+  		Dialog.addNumber("Enter "+cell_type+" channel", 3);
+  		Dialog.addNumber("Enter channel for segmenting ganglia", 2);
   		Dialog.show(); 
 		cell_channel= Dialog.getNumber();
 		ganglia_channel=Dialog.getNumber();		
@@ -142,8 +149,8 @@ if(sizeC>1)
 	else if(get_nos==true)
 	{
 		Dialog.create("Choose channels for "+cell_type);
-  		Dialog.addNumber("Enter "+cell_type+" channel", 4);
-  		Dialog.addNumber("Enter NOS channel", 4);
+  		Dialog.addNumber("Enter "+cell_type+" channel", 3);
+  		Dialog.addNumber("Enter NOS channel", 2);
   		Dialog.show(); 
 		cell_channel= Dialog.getNumber();
 		nos_channel=Dialog.getNumber();
@@ -151,7 +158,7 @@ if(sizeC>1)
 	else 
 	{
 		Dialog.create("Choose channel for "+cell_type);
-  		Dialog.addNumber("Enter "+cell_type+" channel", 4);
+  		Dialog.addNumber("Enter "+cell_type+" channel", 3);
   	    Dialog.show(); 
 		cell_channel= Dialog.getNumber();
 	}
@@ -162,7 +169,7 @@ if(sizeZ>1)
 		print(series_name+" is a stack");
 		roiManager("reset");
 		waitForUser("Note the start and end of the stack.\nPress OK when done");
-		Dialog.create("Choose channels");
+		Dialog.create("Choose slices");
   		Dialog.addNumber("Start slice", 1);
   		Dialog.addNumber("End slice", sizeZ);
   		Dialog.show(); 
@@ -194,6 +201,7 @@ if(sizeC>1)
 run("Duplicate...", "title="+cell_type+"_segmentation");
 seg_image=getTitle();
 roiManager("reset");
+n_tiles=2;
 
 //scale image if scaling factor is not equal to 1
 if(scale_factor!=1)
@@ -205,73 +213,30 @@ if(scale_factor!=1)
 	close(seg_image);
 	selectWindow("img_resize");
 	seg_image=getTitle();
+	if(new_width>1200) n_tiles=4;
+	else if(new_width>4000) n_tiles=8;
 }
 
 
 
-// run StarDist segmentation till user is happy with the segmentation results
-choice=0;
-do{
-		selectWindow(seg_image);
-		
-		print("Select Label Image in the StarDist 2D window");
-		run("StarDist 2D");
-		wait(50);
-		temp=getTitle();
-		run("Duplicate...", "title=label_image");
-		label_image=getTitle();
-		close(temp);
-		if(isOpen(label_image))
-		{
-			roiManager("reset"); // In case "Both Option" was selected in StarDist 2D, i.e, get both Label and ROIs
-			 //remove border labels only works on 8 bit
-				selectWindow(label_image);
-				wait(20);
-				//run("3D Exclude Borders", " ");
-				//remove all labels touching the borders
-				run("Remove Border Labels", "left right top bottom");
-				wait(20);
-				rename("Label-killBorders");
-				resetMinAndMax();
-				if(scale_factor!=1)
-					{
-						selectWindow("Label-killBorders");
-						//run("Duplicate...", "title=label_original");
-						run("Scale...", "x=- y=- width="+width+" height="+height+" interpolation=None create title=label_original");
-						close("Label-killBorders");
-					}
-					else
-					{
-						selectWindow("Label-killBorders");
-						rename("label_original");
-					}
-				
-				//runs macro which convert the labels to ROIs (In folder Other->_Convert_Label_to_ROIs.ijm
-				runMacro(label_roi_dir,"label_original");
-				//label_map_to_roi("label_original");
-				
-				wait(20);
-				close(label_image);
-				selectWindow(max_projection);
-				roiManager("show all");
-				waitForUser("Check segmentation");
-				choice=getBoolean("Are you happy with segmentation? If not, adjust probability and/or overlap in StarDist", "Yes", "No, try again");
-				if(choice==0) {
-					roiManager("reset"); 
-					close("label_original");
-					}
-		}
-		else 
-		 {
-			waitForUser("Error! Please select Label Image in the StarDist 2D interface instead of ROI Manager");
-			roiManager("reset");
-		 }
-  } while(choice==0)
+
+
+//segment neurons
+segment_cells(max_projection, seg_image,neuron_model_path,Modify_StarDist_Values,n_tiles,width,height);
+
 
 //manually correct or verify if needed
 waitForUser("Correct "+cell_type+" ROIs if needed");
 cell_count=roiManager("count");
 roiManager("deselect");
+
+selectWindow(max_projection);
+runMacro(roi_to_label);
+wait(5);
+neuron_label_image=getTitle();
+selectWindow(neuron_label_image);
+saveAs("Tiff", results_dir+"Neuron_label_"+max_save_name);
+
 print("No of "+cell_type+" in "+max_projection+" : "+cell_count);
 roiManager("deselect");
 roi_location=results_dir+cell_type+"_ROIs_"+file_name+".zip";
@@ -281,6 +246,41 @@ selectWindow(table_name);
 Table.set("File name",row,file_name);
 Table.set("Total "+cell_type, row, cell_count);
 Table.update;
+
+if(get_nos==true)
+{
+	selectWindow(max_projection);
+	Stack.setChannel(nos_channel);
+	
+	run("Duplicate...", "title="+cell_type+"_segmentation");
+	nos_image=getTitle();
+
+	//scale image if scaling factor is not equal to 1
+	if(scale_factor!=1)
+	{	
+		selectWindow(nos_image);
+		run("Scale...", "x=- y=- width="+new_width+" height="+new_height+" interpolation=None create title=nos_resize");
+		close(nos_image);
+		selectWindow("nos_resize");
+		nos_resize=getTitle();
+	}
+	else
+	{
+		selectWindow(nos_image);
+		rename("nos_resize");
+		nos_resize=getTitle();
+	}
+
+	
+	roiManager("reset");
+	nos=segment_nos(max_projection,nos_resize,training_pixel_size,roi_location,nos_processing_dir,width,height,scale_factor);
+	Table.set("NOS "+cell_type, row, nos);
+	Table.set("NOS/Hu "+cell_type, row, nos/cell_count);
+	close(nos_resize);
+}
+
+
+
 Table.save(results_dir+cell_type+"_"+file_name+".csv");
 
 //save max projection if its scaled image, can use this for further processing later
@@ -306,7 +306,7 @@ function segment_cells(max_projection, img_seg,model_file,modify_stardist,n_tile
 	{
 	//model_file="D:\\\\Google Drive\\\\ImageJ+Python scripts\\\\Gut analysis toolbox\\\\models\\\\2d_enteric_neuron_aug (1)\\\\TF_SavedModel.zip";
 		selectWindow(img_seg);
-		run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'0.5', 'nmsThresh':'0.45', 'outputType':'Label Image', 'modelFile':'"+model_file+"', 'nTiles':'2', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
+		run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'0.5', 'nmsThresh':'0.45', 'outputType':'Label Image', 'modelFile':'"+model_file+"', 'nTiles':'"+n_tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
 		wait(50);
 		temp=getTitle();
 		run("Duplicate...", "title=label_image");
@@ -338,7 +338,7 @@ function segment_cells(max_projection, img_seg,model_file,modify_stardist,n_tile
 		resetMinAndMax();
 		//convert the labels to ROIs
 		runMacro(label_roi_dir,"label_original");
-		wait(20);
+		wait(10);
 		close(label_image);
 		selectWindow(max_projection);
 		roiManager("show all");
@@ -387,30 +387,205 @@ function segment_cells(max_projection, img_seg,model_file,modify_stardist,n_tile
 					}
 					selectWindow("label_original");
 					resetMinAndMax();
+							//convert the labels to ROIs
+					runMacro(label_roi_dir,"label_original");
+					wait(20);
+					close(label_image);
+					selectWindow(max_projection);
+					roiManager("show all");
+					waitForUser("Check segmentation");
+					choice=getBoolean("Are you happy with segmentation? If not, adjust probability and/or overlap in StarDist", "Yes", "No, try again");
+					if(choice==0) 
+					{
+						roiManager("reset"); 
+						close("label_original");
+					}
 					
 				}
-			else 
-			 {
-				waitForUser("Error! Please select Label Image in the StarDist 2D interface instead of ROI Manager");
-				roiManager("reset");
-			 }
-					//convert the labels to ROIs
-				runMacro(label_roi_dir,"label_original");
-				wait(20);
-				close(label_image);
-				selectWindow(max_projection);
-				roiManager("show all");
-				waitForUser("Check segmentation");
-				choice=getBoolean("Are you happy with segmentation? If not, adjust probability and/or overlap in StarDist", "Yes", "No, try again");
-				if(choice==0) 
-				{
-					roiManager("reset"); 
-					close("label_original");
-				}
+				else 
+				 {
+					waitForUser("Error! Please select Label Image in the StarDist 2D interface instead of ROI Manager");
+					roiManager("reset");
+				 }
 	
 			}
 
 	  } while(choice==0)
-	}	
+
+	close("label_original");
+}
+
+//segment_nos(nos_image,training_pixel_size,roi_location,nos_processing_dir)
+function segment_nos(max_projection,nos_image,training_pixel_size,roi_neurons,nos_processing_dir,width,height,scale_factor)
+{
+		threshold_methods=getList("threshold.methods");
+		Dialog.create("NOS parameters");
+		Dialog.addChoice("Choose Threshold determined from before", threshold_methods);
+		Dialog.addNumber("Area fraction NOS within Hu -> NOS neuron", 40);
+		Dialog.show();
+		nos_threshold_method=Dialog.getChoice();
+		nos_value=Dialog.getNumber();
+
+		arg_string=nos_image+","+d2s(training_pixel_size,3); //pass image name and decimal size
+		//use NOS_processing macro
+		runMacro(nos_processing_dir,arg_string);
 		
+		wait(5);
+		nos_diff_gauss=getTitle();//output from macro above
+		selectWindow(nos_diff_gauss);
+		
+		run("Duplicate...", "title=nos_filtered");
+		selectWindow("nos_filtered");
+		setAutoThreshold(nos_threshold_method+" dark no-reset");
+		setOption("BlackBackground", true);
+		run("Convert to Mask");
+		run("Area Opening", "pixel=100");
+
+		temp=getTitle();
+		selectWindow(temp);
+		if(scale_factor!=1)
+		{//scale back to original size
+			run("Scale...", "x=- y=- width="+width+" height="+height+" interpolation=None create title=nos_analysis");		
+			close(temp);
+		}
+		else 
+		{
+			selectWindow(temp);
+			rename("nos_analysis");
+		}
+		
+		run("Set Measurements...", "area_fraction redirect=None decimal=3");
+		run("Clear Results"); 
+		roiManager("reset");
+		
+		//get neuron ROIs again
+		roiManager("open", roi_neurons);
+		wait(5);
+		neuron_count=roiManager("count");
+		//selectWindow(nos_diff_gauss);
+
+		nos=0;
+		setOption("ExpandableArrays", true);
+		nos_array=newArray();
+	
+		//setting ROIs to use names
+		roiManager("UseNames", "true");
+		
+		//count NOS neurons
+		for(i=0;i<neuron_count;i++)
+		{
+			selectWindow("nos_analysis");
+			roiManager("Select",i);
+			roiManager("Measure");
+			perc_area=getResult("%Area", 0); //Results are cleared every loop, so only read area in first row
+			print("Percent Area of "+Roi.getName+" cell is "+perc_area);
+			run("Clear Results"); 
+			if(perc_area>=nos_value) //Provide separate macros to assess this value; default 40
+			{
+				nos_name="NOS_"+(nos+1);
+				roiManager("Rename",nos_name);
+				print("Neuron "+(i+1)+" is NOS");
+				nos_array[nos]=i;
+				nos+=1;
+			}
+		}
+		//wait(100);
+		run("Clear Results"); 
+		//option to correct if a Neuron or add a NOS neuron has been erroneously identified as NOS
+		nos=0; //used as a counter below
+		do
+		{
+			roiManager("deselect");
+			selectWindow(max_projection);
+			roiManager("Show All with labels");
+			Stack.setDisplayMode("composite");
+			run("Channels Tool...");
+			Stack.setChannel(nos_channel);
+			run("Grays");
+
+			//need to make adding neurons more intuitive or efficient
+			waitForUser("Verify NOS ROIs. If they are not NOS neurons, select the ROI in ROI Manager and press OK. It will be reclassified.\nHowever, if everything looks good, do not select an ROI, just press OK. Press Deselect if you have selected an ROI");
+			not_NOS=roiManager("index");
+		  	if(not_NOS==-1)
+			{
+				response=0; 
+			}
+			else 
+			{
+				nos_name="normal_"+nos;
+				roiManager("Rename",nos_name);
+				nos_array=Array.deleteValue(nos_array, not_NOS);
+				nos-=1;
+				response=getBoolean("Do you want to continue?");
+			//print(response);
+			}
+			roiManager("deselect");
+		} while(response==1);
+
+		roiManager("deselect");
+		waitForUser("If you want to add NOS ROIs, select the corresponding ROI/s and press OK\n.However, if everything looks good, press Deselect and just press OK.");
+		
+		response=0;
+		do{
+		nos_select=roiManager("index");
+		  	if(nos_select==-1)
+			{
+				response=0; 
+			}
+			else 
+			{ 
+				nos_name="NOS_"+round(random*10000);
+				roiManager("Rename",nos_name);
+				//nos_array=Array.deleteValue(nos_array, not_NOS);
+				//nos-=1;
+				response=getBoolean("Do you want to continue?");
+			//print(response);
+			}
+			roiManager("deselect");
+		} while(response==1);
+	
+		roiManager("deselect");
+		//nos array is updated to contain only nos neurons
+		//nos=nos_array.length;
+		//find ROIs that have name NOS
+		nos=find_ROI_name("NOS");
+
+
+		close("nos_analysis");
+		close("nos_filtered");
+			
+		return nos;
+}
+
+//Based on macro by Olivier Burri https://forum.image.sc/t/selecting-roi-based-on-name/3809
+//finds rois that contain a string; converts it to lowercase, so its case-insensitive
+function find_ROI_name(roiName)
+{
+
+	roiName=toLowerCase(roiName);
+	nR = roiManager("Count"); 
+	roiIdx = newArray(nR); 
+	k=0; 
+	clippedIdx = newArray(0); 
+	
+	regex=".*"+roiName+".*";
+	
+	for (i=0; i<nR; i++) 
+	{ 
+		roiManager("Select", i); 
+		rName = toLowerCase(Roi.getName()); 
+		if (matches(rName, regex)) 
+		{ 
+			roiIdx[k] = i; 
+			k++; 
+			print(i);
+		} 
+	} 
+	if (k>0) 
+	{ 
+		clippedIdx = Array.trim(roiIdx,k); 
+		//roiManager("select", clippedIdx);
+	} 
+	//else roiManager("deselect");
+	return k;
 }

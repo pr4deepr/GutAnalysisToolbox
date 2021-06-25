@@ -20,24 +20,24 @@ var fs=File.separator;
 
 //consider moving this into plugins folder so can use getDirectory("plugins")
 fiji_dir=getDirectory("imagej");
-gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Other";
+gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Other"+fs+"commands";
 
 //nos_processing_macro
-nos_processing_dir=gat_dir+fs+"NOS_processing";
+nos_processing_dir=gat_dir+fs+"NOS_processing.ijm";
 if(!File.exists(nos_processing_dir)) exit("Cannot find NOS processing macro. Returning: "+nos_processing_dir);
 
 //check_plugin_installation
-check_plugin=gat_dir+fs+"check_plugin";
+check_plugin=gat_dir+fs+"check_plugin.ijm";
 if(!File.exists(check_plugin)) exit("Cannot find check plugin macro. Returning: "+check_plugin);
 runMacro(check_plugin);
 
 
 //check if label to roi is installed
-label_roi_dir=gat_dir+fs+"_Convert_Label_to_ROIs.ijm";
+label_roi_dir=gat_dir+fs+"Convert_Label_to_ROIs.ijm";
 if(!File.exists(label_roi_dir)) exit("Cannot find label to roi script. Returning: "+label_roi_dir);
 
 //check if label to roi is installed
-roi_to_label=gat_dir+fs+"_Convert_ROI_to_Labels.ijm";
+roi_to_label=gat_dir+fs+"Convert_ROI_to_Labels.ijm";
 if(!File.exists(roi_to_label)) exit("Cannot find roi to label script. Returning: "+roi_to_label);
 
 //rename ROIs
@@ -90,8 +90,11 @@ else
 	file_name=File.nameWithoutExtension; //get file name without extension (.lif)
 }
 
+
+
 run("Select None");
 run("Remove Overlay");
+
 getPixelSize(unit, pixelWidth, pixelHeight);
 
 //Training images were pixelsize of ~0.378, so scaling images based on this
@@ -121,7 +124,7 @@ Table.create(table_name);//Final Results Table
 row=0; //row counter for the table
 image_counter=0;
 
-waitForUser("Note the channels for Hu and NOS");
+waitForUser("Note the channels for Hu, and NOS if needed");
 
 if(sizeC>1)
 {
@@ -143,17 +146,27 @@ if(sizeC>1)
   		Dialog.addNumber("Enter channel for segmenting ganglia", 2);
   		Dialog.show(); 
 		cell_channel= Dialog.getNumber();
-		ganglia_channel=Dialog.getNumber();		
+		ganglia_channel=Dialog.getNumber();
+		Stack.setChannel(cell_channel);
+		resetMinAndMax();
+		Stack.setChannel(ganglia_channel);
+		resetMinAndMax();		
 	}
 	
 	else if(get_nos==true)
 	{
+
 		Dialog.create("Choose channels for "+cell_type);
   		Dialog.addNumber("Enter "+cell_type+" channel", 3);
   		Dialog.addNumber("Enter NOS channel", 2);
   		Dialog.show(); 
 		cell_channel= Dialog.getNumber();
 		nos_channel=Dialog.getNumber();
+		Stack.setChannel(cell_channel);
+		resetMinAndMax();
+		Stack.setChannel(nos_channel);
+		resetMinAndMax();		
+		
 	}
 	else 
 	{
@@ -161,8 +174,12 @@ if(sizeC>1)
   		Dialog.addNumber("Enter "+cell_type+" channel", 3);
   	    Dialog.show(); 
 		cell_channel= Dialog.getNumber();
+		Stack.setChannel(cell_channel);
+		resetMinAndMax();
 	}
 }
+
+
 
 if(sizeZ>1)
 {
@@ -219,12 +236,12 @@ if(scale_factor!=1)
 
 
 
-
-
+selectWindow("Log");
+print("*********Segmenting Neurons using StarDist********");
 //segment neurons
 segment_cells(max_projection, seg_image,neuron_model_path,Modify_StarDist_Values,n_tiles,width,height);
 
-
+close(seg_image);
 //manually correct or verify if needed
 waitForUser("Correct "+cell_type+" ROIs if needed");
 cell_count=roiManager("count");
@@ -237,6 +254,12 @@ neuron_label_image=getTitle();
 selectWindow(neuron_label_image);
 saveAs("Tiff", results_dir+"Neuron_label_"+max_save_name);
 
+//using this image window to get ROI names for results table
+rename("Neuron");
+neuron_label=getTitle();
+
+//run("Close");
+
 print("No of "+cell_type+" in "+max_projection+" : "+cell_count);
 roiManager("deselect");
 roi_location=results_dir+cell_type+"_ROIs_"+file_name+".zip";
@@ -244,8 +267,9 @@ roiManager("save",roi_location );
 
 selectWindow(table_name);
 Table.set("File name",row,file_name);
-Table.set("Total "+cell_type, row, cell_count);
+if(get_nos==false) Table.set("Total "+cell_type, row, cell_count); //set total count of neurons after nos analysis if nos selected
 Table.update;
+
 
 if(get_nos==true)
 {
@@ -273,21 +297,48 @@ if(get_nos==true)
 
 	
 	roiManager("reset");
+
 	nos=segment_nos(max_projection,nos_resize,training_pixel_size,roi_location,nos_processing_dir,width,height,scale_factor);
+	cell_count=roiManager("count"); // in case any neurons added after nos analysis
+	Table.set("Total "+cell_type, row, cell_count);
 	Table.set("NOS "+cell_type, row, nos);
 	Table.set("NOS/Hu "+cell_type, row, nos/cell_count);
 	close(nos_resize);
 }
 
 
+run("Clear Results");
 
+//measure area and display the name of the roi as well
+run("Set Measurements...", "area display redirect=None decimal=3");
+selectWindow(neuron_label);
+
+roiManager("deselect");
+roiManager("Measure");
+selectWindow("Results");
+//neuron_area=newArray();
+//neuron_names=newArray();
+//setOption("ExpandableArrays", true);
+
+neuron_names=Table.getColumn("Label"); //getResult("Label"); 
+neuron_area=Table.getColumn("Area");//getResult("Area");
+//.print(neuron_names);
+//Array.print(neuron_area);
+run("Close");
+
+selectWindow(table_name);
+Table.setColumn("Neurons", neuron_names);
+Table.setColumn("Area of Neurons (um2)", neuron_area);
+Table.update;
+selectWindow(table_name);
 Table.save(results_dir+cell_type+"_"+file_name+".csv");
 
 //save max projection if its scaled image, can use this for further processing later
 selectWindow(max_projection);
 saveAs("Tiff", results_dir+max_save_name);
+//run("Close");
 
-run("Close");
+close("*");
 exit("Neuron analysis complete");
 
 
@@ -427,6 +478,8 @@ function segment_nos(max_projection,nos_image,training_pixel_size,roi_neurons,no
 		nos_value=Dialog.getNumber();
 
 		arg_string=nos_image+","+d2s(training_pixel_size,3); //pass image name and decimal size
+
+		selectWindow(nos_image);
 		//use NOS_processing macro
 		runMacro(nos_processing_dir,arg_string);
 		
@@ -470,7 +523,9 @@ function segment_nos(max_projection,nos_image,training_pixel_size,roi_neurons,no
 	
 		//setting ROIs to use names
 		roiManager("UseNames", "true");
-		
+
+		selectWindow("Log");
+		print("*********Detecting NOS neurons********");
 		//count NOS neurons
 		for(i=0;i<neuron_count;i++)
 		{
@@ -478,13 +533,13 @@ function segment_nos(max_projection,nos_image,training_pixel_size,roi_neurons,no
 			roiManager("Select",i);
 			roiManager("Measure");
 			perc_area=getResult("%Area", 0); //Results are cleared every loop, so only read area in first row
-			print("Percent Area of "+Roi.getName+" cell is "+perc_area);
+			//print("Percent Area of "+Roi.getName+" cell is "+perc_area);
 			run("Clear Results"); 
 			if(perc_area>=nos_value) //Provide separate macros to assess this value; default 40
 			{
 				nos_name="NOS_"+(nos+1);
 				roiManager("Rename",nos_name);
-				print("Neuron "+(i+1)+" is NOS");
+				//print("Neuron "+(i+1)+" is NOS");
 				nos_array[nos]=i;
 				nos+=1;
 			}
@@ -502,7 +557,8 @@ function segment_nos(max_projection,nos_image,training_pixel_size,roi_neurons,no
 			run("Channels Tool...");
 			Stack.setChannel(nos_channel);
 			run("Grays");
-
+			//bring ROI Manager to the front
+			selectWindow("ROI Manager");
 			//need to make adding neurons more intuitive or efficient
 			waitForUser("Verify NOS ROIs. If they are not NOS neurons, select the ROI in ROI Manager and press OK. It will be reclassified.\nHowever, if everything looks good, do not select an ROI, just press OK. Press Deselect if you have selected an ROI");
 			not_NOS=roiManager("index");
@@ -523,8 +579,12 @@ function segment_nos(max_projection,nos_image,training_pixel_size,roi_neurons,no
 		} while(response==1);
 
 		roiManager("deselect");
-		waitForUser("If you want to add NOS ROIs, select the corresponding ROI/s and press OK\n.However, if everything looks good, press Deselect and just press OK.");
-		
+		//bring ROI Manager to the front
+		selectWindow("ROI Manager");
+		waitForUser("If you want to reclassify a neuron as NOS, select the corresponding ROI/s and press OK\n.You can also add a NOS neuron by drawing around the cell, adding to ROI Manager and clicking OK.\nHowever, if everything looks good, press Deselect and just press OK.");
+		cell_count_updated=roiManager("count");
+		// if nos neuron added, select that cell
+		if(cell_count_updated>neuron_count) roiManager("select", (cell_count_updated-1));
 		response=0;
 		do{
 		nos_select=roiManager("index");

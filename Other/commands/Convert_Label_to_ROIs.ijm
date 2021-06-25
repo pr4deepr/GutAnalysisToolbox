@@ -108,4 +108,6 @@ macro "label_map_to_roi"
 		}
 	}
 close("Results");
+close(reindex);
+
 }

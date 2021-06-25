@@ -1,8 +1,9 @@
-//Add option to save cell coordinates and draw ganglia outline???
-
 //Macro for calcium imaging analysis
 //can be used for any tissue or even cells. 
 //Option for normalising to baseline depending on user-specified baseline frames
+
+//TODO: Add option to save cell coordinates and get ganglia outline
+
 
 var fs = File.separator;//Returns the file name separator character ("/" or "\").
 
@@ -45,7 +46,7 @@ print ("\\Clear");
 
 //open calcium imaging stack
 #@ String(value="<html> <b> Calcium Imaging Analysis<b> </html>", visibility="MESSAGE") hint
-#@ File (style="open", label="Open the aligned calcium imaging file or Max Stack") calcium_path
+#@ File (style="open", label="Open the aligned calcium imaging stack") calcium_path
 #@ String(value="<html>F_F0 is the stack normalised to baseline.<br/> If chosen, the mean intensity values extracted <br/>will be normalised to user-specified baseline frames<br/> (before activity or adding any drugs)</html>", visibility="MESSAGE") as
 #@ Boolean (value=true, persist=false) Use_F_F0
 #@ String(value="<html>If you are not sure, leave it checked</html>", visibility="MESSAGE") hint2

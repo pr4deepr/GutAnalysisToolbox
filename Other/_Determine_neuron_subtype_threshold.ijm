@@ -8,18 +8,19 @@
 //scale_factor=Scale_Factor;
 //if(scale_factor==0) scale_factor=1;
 
+var fs=File.separator;
 
 //for running other macros
 //consider moving this into plugins folder so can use getDirectory("plugins")
 fiji_dir=getDirectory("imagej");
-gat_dir=fiji_dir+"scripts\\GAT\\Other";
+gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Other"+fs+"commands";
 
 //nos_processing_macro
-nos_processing_dir=gat_dir+"\\NOS_processing"
+nos_processing_dir=gat_dir+fs+"NOS_processing.ijm";
 if(!File.exists(nos_processing_dir)) exit("Cannot find NOS processing macro. Returning: "+nos_processing_dir);
 
 //check_plugin_installation
-check_plugin=gat_dir+"\\check_plugin"
+check_plugin=gat_dir+fs+"check_plugin.ijm";
 if(!File.exists(check_plugin)) exit("Cannot find check plugin macro. Returning: "+check_plugin);
 
 runMacro(check_plugin);
@@ -89,6 +90,7 @@ do{
 	
 	selectWindow("nos_analysis");
 	roiManager("open", roi_location);
+	cell_count=roiManager("count");
 	rename_roi();
 	roiManager("deselect");
 	roiManager("Measure");
@@ -156,6 +158,7 @@ selectWindow("Results");
 run("Close");
 close("nos_analysis");
 close("nos_filtered");
+close("*");
 
 //rename ROIs
 function rename_roi()

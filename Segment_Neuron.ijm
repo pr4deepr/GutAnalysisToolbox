@@ -234,7 +234,7 @@ if(scale_factor!=1)
 	else if(new_width>4000) n_tiles=8;
 }
 
-
+roiManager("UseNames", "false");
 
 selectWindow("Log");
 print("*********Segmenting Neurons using StarDist********");
@@ -276,59 +276,45 @@ if(get_nos==true)
 	selectWindow(max_projection);
 	Stack.setChannel(nos_channel);
 	
-	run("Duplicate...", "title="+cell_type+"_segmentation");
+	run("Duplicate...", "title=NOS_segmentation");
 	nos_image=getTitle();
 
-	//scale image if scaling factor is not equal to 1
-	if(scale_factor!=1)
-	{	
-		selectWindow(nos_image);
-		run("Scale...", "x=- y=- width="+new_width+" height="+new_height+" interpolation=None create title=nos_resize");
-		close(nos_image);
-		selectWindow("nos_resize");
-		nos_resize=getTitle();
-	}
-	else
-	{
-		selectWindow(nos_image);
-		rename("nos_resize");
-		nos_resize=getTitle();
-	}
-
-	
+	selectWindow(max_projection);
+	run("Select None");
+	run("Remove Overlay");
+	Stack.setChannel(cell_channel);
+	run("Duplicate...", "title="+cell_type+"_segmentation");
+	hu_image=getTitle();
 	roiManager("reset");
-
-	nos=segment_nos(max_projection,nos_resize,training_pixel_size,roi_location,nos_processing_dir,width,height,scale_factor);
+	nos=segment_nos(hu_image,nos_image,training_pixel_size,roi_location,nos_processing_dir);
 	cell_count=roiManager("count"); // in case any neurons added after nos analysis
 	Table.set("Total "+cell_type, row, cell_count);
 	Table.set("NOS "+cell_type, row, nos);
 	Table.set("NOS/Hu "+cell_type, row, nos/cell_count);
-	close(nos_resize);
 }
 
 
 run("Clear Results");
 
 //measure area and display the name of the roi as well
-run("Set Measurements...", "area display redirect=None decimal=3");
-selectWindow(neuron_label);
+//run("Set Measurements...", "area display redirect=None decimal=3");
+//selectWindow(neuron_label);
 
-roiManager("deselect");
-roiManager("Measure");
-selectWindow("Results");
+//roiManager("deselect");
+//roiManager("Measure");
+//selectWindow("Results");
 //neuron_area=newArray();
 //neuron_names=newArray();
 //setOption("ExpandableArrays", true);
 
-neuron_names=Table.getColumn("Label"); //getResult("Label"); 
-neuron_area=Table.getColumn("Area");//getResult("Area");
-//.print(neuron_names);
-//Array.print(neuron_area);
-run("Close");
+//neuron_names=Table.getColumn("Label"); //getResult("Label"); 
+//neuron_area=Table.getColumn("Area");//getResult("Area");
+
+//run("Close");
 
 selectWindow(table_name);
-Table.setColumn("Neurons", neuron_names);
-Table.setColumn("Area of Neurons (um2)", neuron_area);
+//Table.setColumn("Neurons", neuron_names);
+//Table.setColumn("Area of Neurons (um2)", neuron_area);
 Table.update;
 selectWindow(table_name);
 Table.save(results_dir+cell_type+"_"+file_name+".csv");
@@ -338,6 +324,8 @@ selectWindow(max_projection);
 saveAs("Tiff", results_dir+max_save_name);
 //run("Close");
 
+
+roiManager("UseNames", "false");
 close("*");
 exit("Neuron analysis complete");
 
@@ -467,76 +455,53 @@ function segment_cells(max_projection, img_seg,model_file,modify_stardist,n_tile
 }
 
 //segment_nos(nos_image,training_pixel_size,roi_location,nos_processing_dir)
-function segment_nos(max_projection,nos_image,training_pixel_size,roi_neurons,nos_processing_dir,width,height,scale_factor)
+function segment_nos(hu_image,nos_image,training_pixel_size,roi_neurons,nos_processing_dir)
 {
-		threshold_methods=getList("threshold.methods");
-		Dialog.create("NOS parameters");
-		Dialog.addChoice("Choose Threshold determined from before", threshold_methods);
-		Dialog.addNumber("Area fraction NOS within Hu -> NOS neuron", 40);
-		Dialog.show();
-		nos_threshold_method=Dialog.getChoice();
-		nos_value=Dialog.getNumber();
-
-		arg_string=nos_image+","+d2s(training_pixel_size,3); //pass image name and decimal size
-
-		selectWindow(nos_image);
+		//threshold_methods=getList("threshold.methods");
+		//Dialog.create("NOS parameters");
+		//Dialog.addChoice("Choose Threshold determined from before", threshold_methods);
+		////Dialog.addNumber("Area fraction NOS within Hu -> NOS neuron", 40);
+		//Dialog.show();
+		//nos_threshold_method=Dialog.getChoice();
+		//nos_value=Dialog.getNumber();
+		nos_value=getNumber("Enter a value for NOS correlation coefficient. Default is 80.", 80);
+		//arg_string=nos_image+","+d2s(training_pixel_size,3); //pass image name and decimal size
+		arg_string=nos_image+","+hu_image+","+d2s(training_pixel_size,3);
+		//selectWindow(nos_image);
 		//use NOS_processing macro
 		runMacro(nos_processing_dir,arg_string);
+		wait(10);
+		correlation_map=getTitle();//output from macro above
 		
-		wait(5);
-		nos_diff_gauss=getTitle();//output from macro above
-		selectWindow(nos_diff_gauss);
-		
-		run("Duplicate...", "title=nos_filtered");
-		selectWindow("nos_filtered");
-		setAutoThreshold(nos_threshold_method+" dark no-reset");
-		setOption("BlackBackground", true);
-		run("Convert to Mask");
-		run("Area Opening", "pixel=100");
-
-		temp=getTitle();
-		selectWindow(temp);
-		if(scale_factor!=1)
-		{//scale back to original size
-			run("Scale...", "x=- y=- width="+width+" height="+height+" interpolation=None create title=nos_analysis");		
-			close(temp);
-		}
-		else 
-		{
-			selectWindow(temp);
-			rename("nos_analysis");
-		}
-		
-		run("Set Measurements...", "area_fraction redirect=None decimal=3");
-		run("Clear Results"); 
-		roiManager("reset");
-		
+		run("Enhance Contrast", "saturated=0.35");
+		waitForUser;
 		//get neuron ROIs again
 		roiManager("open", roi_neurons);
+		roiManager("show none");
 		wait(5);
 		neuron_count=roiManager("count");
 		//selectWindow(nos_diff_gauss);
-
 		nos=0;
 		setOption("ExpandableArrays", true);
 		nos_array=newArray();
-	
 		//setting ROIs to use names
 		roiManager("UseNames", "true");
-
+		//roiManager("UseNames", "false");
 		selectWindow("Log");
 		print("*********Detecting NOS neurons********");
+		run("Set Measurements...", "mean redirect=None decimal=2");
 		//count NOS neurons
 		for(i=0;i<neuron_count;i++)
 		{
-			selectWindow("nos_analysis");
+			selectWindow(correlation_map);		
 			roiManager("Select",i);
 			roiManager("Measure");
-			perc_area=getResult("%Area", 0); //Results are cleared every loop, so only read area in first row
-			//print("Percent Area of "+Roi.getName+" cell is "+perc_area);
+			corr_coeff=getResult("Mean", 0); //Results are cleared every loop, so only read area in first row
+			print(corr_coeff);
 			run("Clear Results"); 
-			if(perc_area>=nos_value) //Provide separate macros to assess this value; default 40
+			if(corr_coeff>=nos_value) //Provide separate macros to assess this value; default 80
 			{
+				print("Renaming");
 				nos_name="NOS_"+(nos+1);
 				roiManager("Rename",nos_name);
 				//print("Neuron "+(i+1)+" is NOS");
@@ -547,7 +512,9 @@ function segment_nos(max_projection,nos_image,training_pixel_size,roi_neurons,no
 		//wait(100);
 		run("Clear Results"); 
 		//option to correct if a Neuron or add a NOS neuron has been erroneously identified as NOS
-		nos=0; //used as a counter below
+		//nos=0; //used as a counter below
+		selectWindow(max_projection);
+		response=1;
 		do
 		{
 			roiManager("deselect");
@@ -560,60 +527,74 @@ function segment_nos(max_projection,nos_image,training_pixel_size,roi_neurons,no
 			//bring ROI Manager to the front
 			selectWindow("ROI Manager");
 			//need to make adding neurons more intuitive or efficient
-			waitForUser("Verify NOS ROIs. If they are not NOS neurons, select the ROI in ROI Manager and press OK. It will be reclassified.\nHowever, if everything looks good, do not select an ROI, just press OK. Press Deselect if you have selected an ROI");
-			not_NOS=roiManager("index");
-		  	if(not_NOS==-1)
+			waitForUser("Verify NOS ROIs and changes can be made in next prompt");
+			items = newArray("Correct to NOS positive", "Convert to NOS negative", "Exit/Done");
+			Dialog.create("Correct NOS classification");
+			Dialog.addRadioButtonGroup("Choose to", items, 3, 1, "Exit/Done");
+			Dialog.show();
+			choice=Dialog.getRadioButton();
+			if(choice=="Convert to NOS negative")
 			{
-				response=0; 
+				waitForUser("You have chosen to correct erroneously labelled NOS neurons. Select the ROI in ROI Manager or multiple ROIs by pressing Ctrl and selecting ROIs. Press OK when done.\nHowever, if everything looks good, do not select an ROI, just press OK. Press Deselect if you have selected an ROI by mistake");
+				not_NOS=split(call("ij.plugin.frame.RoiManager.getIndexesAsString")); //get multiple rois if selected
+			  	if(not_NOS.length==0)
+				{
+					print("Nothing selected");
+				}
+				else 
+				{
+					
+					for(r=0;r<not_NOS.length;r++)
+					{
+						roiManager("select", not_NOS[r]);
+						not_name="normal_"+random;
+						roiManager("Rename",not_name);
+						nos-=1;
+					}
+				roiManager("deselect");
+				}
 			}
-			else 
-			{
-				nos_name="normal_"+nos;
-				roiManager("Rename",nos_name);
-				nos_array=Array.deleteValue(nos_array, not_NOS);
-				nos-=1;
-				response=getBoolean("Do you want to continue?");
-			//print(response);
-			}
-			roiManager("deselect");
-		} while(response==1);
-
-		roiManager("deselect");
-		//bring ROI Manager to the front
-		selectWindow("ROI Manager");
-		waitForUser("If you want to reclassify a neuron as NOS, select the corresponding ROI/s and press OK\n.You can also add a NOS neuron by drawing around the cell, adding to ROI Manager and clicking OK.\nHowever, if everything looks good, press Deselect and just press OK.");
-		cell_count_updated=roiManager("count");
-		// if nos neuron added, select that cell
-		if(cell_count_updated>neuron_count) roiManager("select", (cell_count_updated-1));
-		response=0;
-		do{
-		nos_select=roiManager("index");
-		  	if(nos_select==-1)
-			{
-				response=0; 
-			}
-			else 
-			{ 
-				nos_name="NOS_"+round(random*10000);
-				roiManager("Rename",nos_name);
-				//nos_array=Array.deleteValue(nos_array, not_NOS);
-				//nos-=1;
-				response=getBoolean("Do you want to continue?");
-			//print(response);
-			}
-			roiManager("deselect");
-		} while(response==1);
-	
-		roiManager("deselect");
-		//nos array is updated to contain only nos neurons
-		//nos=nos_array.length;
-		//find ROIs that have name NOS
-		nos=find_ROI_name("NOS");
-
-
-		close("nos_analysis");
-		close("nos_filtered");
 			
+		else if (choice=="Correct to NOS positive")
+		{
+	
+			roiManager("deselect");
+			//bring ROI Manager to the front
+			selectWindow("ROI Manager");
+			waitForUser("You have chosen to reclassify neurons as  NOS neurons. Select the corresponding ROI/s and press OK\n.You can also add a NOS neuron by drawing around the cell, adding to ROI Manager and clicking OK.\nHowever, if everything looks good, press Deselect and just press OK.");
+			cell_count_updated=roiManager("count");
+			// if nos neuron added, select that cell
+			if(cell_count_updated>neuron_count) roiManager("select", (cell_count_updated-1));
+			nos_select=split(call("ij.plugin.frame.RoiManager.getIndexesAsString")); //get multiple rois if selected
+			if(nos_select.length==0)
+				{
+					print("Nothing selected");
+				}
+				else 
+				{ 
+					
+					for(r=0;r<nos_select.length;r++)
+					{
+						nos+=1;
+						roiManager("select", nos_select[r]);
+						nos_name="NOS_"+nos;
+						roiManager("Rename",nos_name);
+						//nos_array=Array.deleteValue(nos_array, not_NOS); 
+				//print(response);
+					}
+				}
+			roiManager("deselect");
+
+		//find ROIs that have name NOS
+		
+		}
+		else if (choice=="Exit/Done")
+		{
+			response=0;
+		}
+		//response=getBoolean("Do you want to continue editing neurons?");
+		} while(response==1)
+		nos=find_ROI_name("NOS");
 		return nos;
 }
 

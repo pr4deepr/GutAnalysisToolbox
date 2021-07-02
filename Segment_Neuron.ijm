@@ -40,20 +40,15 @@ if(!File.exists(label_roi_dir)) exit("Cannot find label to roi script. Returning
 roi_to_label=gat_dir+fs+"Convert_ROI_to_Labels.ijm";
 if(!File.exists(roi_to_label)) exit("Cannot find roi to label script. Returning: "+roi_to_label);
 
-//rename ROIs
-function rename_roi(start_index,end_index,celltype)
+//rename ROIs as consecutive numbers
+function rename_roi()
 {
-	z=1;
-	for (i=start_index; i<end_index;i++)
+	for (i=0; i<roiManager("count");i++)
 		{ 
 		roiManager("Select", i);
-		roiManager("Rename", celltype+"_"+z);
-		z+=1;
+		roiManager("Rename", i+1);
 		}
 }
-
-
-
 
  
 fs = File.separator; //get the file separator for the computer (depending on operating system)
@@ -65,11 +60,17 @@ print("FILE SEPARATOR for the OS is: "+fs);
 #@ File (style="open", label="<html>Choose the StarDist model file if segmenting neurons.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") neuron_model_path 
 #@ boolean Calculate_nNOS_neurons
 #@ String(value="<html>Tick above box if you want to calculate % of nNOS neurons.<html>", visibility="MESSAGE") hint2
+#@ boolean Calculate_Other_Subtype
+#@ String(value="<html>Tick above box if you want to estimate proportion of another neuronal subtype.<html>", visibility="MESSAGE") hint3
+// String Marker_Name
+// tring(value="<html>Tick above box if you want to calculate another neuronal subtype .<html>", visibility="MESSAGE") hint32
+//String(choices={"Method 1","Method 2"}, style="radioButtonHorizontal") Marker_Method
 cell_type="Neuron";
 #@ boolean Normalise_to_ganglia (description="Use a pretrained deepImageJ model to predict ganglia outline")
 #@ String(value="<html>Selecting normalise to ganglia will normalise the cell counts to the area of the ganglia (um2)<br/>You can either draw the ganglia manually or use the Hu channel in combination with<br/> a marker labelling the ganglia (PGP9.5/GFAP/NOS)<html>",visibility="MESSAGE") hint4
 #@ boolean Modify_StarDist_Values (description="Tick to modify the values within the StarDist plugin if the default segmentation does not work well.")
-#@ String(value="<html>Default Probability is 0.5 and nmsThresh is 0.4. Tick above to change these values if<br/>the default segmentation does not work well.<html>",visibility="MESSAGE") hint3
+#@ String(value="<html>Default Probability is 0.5 and nmsThresh is 0.4. Tick above to change these values if<br/>the default segmentation does not work well.<html>",visibility="MESSAGE") hint5
+marker_type_2=Calculate_Other_Subtype;
 
 training_pixel_size=0.378;
 
@@ -89,6 +90,7 @@ else
 	
 	file_name=File.nameWithoutExtension; //get file name without extension (.lif)
 }
+
 
 
 
@@ -128,6 +130,19 @@ waitForUser("Note the channels for Hu, and NOS if needed");
 
 if(sizeC>1)
 {
+	//if(Normalise_to_ganglia==true && get_nos==true && marker_type_2==true)
+	//{
+	//	Dialog.create("Choose channels for "+cell_type);
+  	//	Dialog.addNumber("Enter "+cell_type+" channel", 4);
+  	//	Dialog.addNumber("Enter NOS channel", 4);
+ // 		Dialog.addNumber("Enter channel for segmenting ganglia", 4);
+  //		//Dialog.addNumber("Enter channel for "+Marker_Name, 4);
+  //		Dialog.show(); 
+//		cell_channel= Dialog.getNumber();
+	//	nos_channel=Dialog.getNumber();	
+		//ganglia_channel=Dialog.getNumber();	
+		//marker_channel=Dialog.getNumber();	
+	//}
 	if(Normalise_to_ganglia==true && get_nos==true)
 	{
 		Dialog.create("Choose channels for "+cell_type);
@@ -139,6 +154,28 @@ if(sizeC>1)
 		nos_channel=Dialog.getNumber();	
 		ganglia_channel=Dialog.getNumber();	
 	}
+//	else if (Normalise_to_ganglia==true && marker_type_2==true)
+//	{
+//		Dialog.create("Choose channels for "+cell_type);
+//  		Dialog.addNumber("Enter "+cell_type+" channel", 4);
+//  		Dialog.addNumber("Enter channel for segmenting ganglia", 4);
+//  		Dialog.addNumber("Enter channel for "+Marker_Name, 4);
+//  		Dialog.show(); 
+//		cell_channel= Dialog.getNumber();
+//		ganglia_channel=Dialog.getNumber();	
+//		marker_channel=Dialog.getNumber();		
+//	}
+//	else if (get_nos==true && marker_type_2==true)
+//	{
+//		Dialog.create("Choose channels for "+cell_type);
+//  		Dialog.addNumber("Enter "+cell_type+" channel", 4);
+//  		Dialog.addNumber("Enter NOS channel", 4);
+//  		Dialog.addNumber("Enter channel for "+Marker_Name, 4);
+//  		Dialog.show(); 
+//		cell_channel= Dialog.getNumber();
+//		nos_channel=Dialog.getNumber();	
+//		marker_channel=Dialog.getNumber();		
+//	}
 	else if (Normalise_to_ganglia==true)
 	{
 		Dialog.create("Choose channels for "+cell_type);
@@ -152,7 +189,7 @@ if(sizeC>1)
 		Stack.setChannel(ganglia_channel);
 		resetMinAndMax();		
 	}
-	
+
 	else if(get_nos==true)
 	{
 
@@ -168,6 +205,23 @@ if(sizeC>1)
 		resetMinAndMax();		
 		
 	}
+	
+//	else if(marker_type_2==true)
+//	{
+//
+//		Dialog.create("Choose channels for "+cell_type);
+////  		Dialog.addNumber("Enter "+cell_type+" channel", 3);
+//  		Dialog.addNumber("Enter channel for "+Marker_Name, 4);
+//  		Dialog.show(); 
+//		cell_channel= Dialog.getNumber();
+//		marker_channel=Dialog.getNumber();		
+////		Stack.setChannel(cell_channel);
+//		resetMinAndMax();
+//		Stack.setChannel(marker_channel);
+//		resetMinAndMax();		
+		
+//	}
+	
 	else 
 	{
 		Dialog.create("Choose channel for "+cell_type);
@@ -215,6 +269,7 @@ if(sizeC>1)
 	Stack.setChannel(cell_channel);
 }
 
+roiManager("show none");
 run("Duplicate...", "title="+cell_type+"_segmentation");
 seg_image=getTitle();
 roiManager("reset");
@@ -245,6 +300,7 @@ close(seg_image);
 //manually correct or verify if needed
 waitForUser("Correct "+cell_type+" ROIs if needed");
 cell_count=roiManager("count");
+rename_roi();
 roiManager("deselect");
 
 selectWindow(max_projection);
@@ -270,11 +326,15 @@ Table.set("File name",row,file_name);
 if(get_nos==false) Table.set("Total "+cell_type, row, cell_count); //set total count of neurons after nos analysis if nos selected
 Table.update;
 
+//decide if we need to generate a matrix for +ve or negative neurons
+neuron_subtype_matrix=0;
 
 if(get_nos==true)
 {
 	selectWindow(max_projection);
 	Stack.setChannel(nos_channel);
+	run("Select None");
+	run("Remove Overlay");
 	
 	run("Duplicate...", "title=NOS_segmentation");
 	nos_image=getTitle();
@@ -286,36 +346,139 @@ if(get_nos==true)
 	run("Duplicate...", "title="+cell_type+"_segmentation");
 	hu_image=getTitle();
 	roiManager("reset");
-	nos=segment_nos(hu_image,nos_image,training_pixel_size,roi_location,nos_processing_dir);
+	nos=segment_neuron_subtype(hu_image,nos_image,training_pixel_size,roi_location,nos_processing_dir,"NOS","");
+
 	cell_count=roiManager("count"); // in case any neurons added after nos analysis
 	Table.set("Total "+cell_type, row, cell_count);
 	Table.set("NOS "+cell_type, row, nos);
 	Table.set("NOS/Hu "+cell_type, row, nos/cell_count);
+	Table.update;
+	roiManager("deselect");
+	roi_location=results_dir+cell_type+"_ROIs_"+file_name+".zip";
+	roiManager("save",roi_location );
+	regex=".*nos.*";
+	neuron_subtype_matrix+=1;
 }
 
+no_markers=0;
 
+if(marker_type_2==true) 
+{
+	no_markers=getNumber("How many markers would you like to analyse?", 1);
+	arr=Array.getSequence(sizeC);
+	//Array.print(arr);
+	arr=add_value_array(arr,1);
+	string=getString("Enter names of markers separated by comma (,)", "Names");
+	channel_names=split(string, ",");	
+	methods=newArray("Method 1","Method 2");
+	if(channel_names.length!=no_markers) exit("Channel names do not match the no of markers");
+	channel_options=newArray(sizeC);
+	method_choice=newArray(sizeC);
+	Dialog.create("Select Channels and Classification Method");
+	for(i=0;i<no_markers;i++)
+	{
+		//Dialog.addRadioButtonGroup(, arr, no_channels, 1, channel_options[0]);
+		Dialog.addChoice("Choose Channel for "+channel_names[i], arr, arr[0]);
+		Dialog.addChoice("Classification Method: ", methods, methods[0]);  
+		
+	}
+	Dialog.show();
+
+	
+	for(i=0;i<no_markers;i++)
+	{
+		channel_options[i]=Dialog.getChoice();
+		method_choice[i]=Dialog.getChoice();
+	}
+	if(get_nos==false) regex=".*";
+	for(i=0;i<no_markers;i++)
+	{
+		if(method_choice[i]=="Method 1") marker_processing_dir=nos_processing_dir;
+		else marker_processing_dir=gat_dir+fs+"Method_2.ijm";
+		if(!File.exists(marker_processing_dir)) exit("Cannot find "+channel_names[i]+" processing macro. Returning: "+marker_processing_dir);
+	
+		selectWindow(max_projection);
+		Stack.setChannel(channel_options[i]);
+		run("Select None");
+		run("Remove Overlay");
+		
+		run("Duplicate...", "title="+channel_names[i]+"_segmentation");
+		marker_image=getTitle();
+	
+		selectWindow(max_projection);
+		run("Select None");
+		run("Remove Overlay");
+		Stack.setChannel(cell_channel);
+		run("Duplicate...", "title="+cell_type+"_segmentation");
+		hu_image=getTitle();
+		roiManager("reset");
+		marker_count=segment_neuron_subtype(hu_image,marker_image,training_pixel_size,roi_location,marker_processing_dir,channel_names[i],regex);
+		cell_count=roiManager("count"); // in case any neurons added after nos analysis
+		Table.set("Total "+cell_type, row, cell_count);
+		Table.set(channel_names[i]+" "+cell_type, row, marker_count);
+		Table.set(channel_names[i]+"/Hu "+cell_type, row, marker_count/cell_count);
+		Table.update;
+		if(isOpen(marker_image)) close(marker_image);
+		roiManager("deselect");
+		roi_location=results_dir+cell_type+"_ROIs_"+file_name+".zip";
+		roiManager("save",roi_location );
+		regex=regex+toLowerCase(channel_names[i])+".*";
+		neuron_subtype_matrix+=1;
+	}
+	
+}
+
+//if(get_nos== true && marker_type_2==true) 
+//{
+//	roiName=Marker_Name+".*NOS";
+//	double_marker=find_ROI_name(roiName);
+//	Table.set(Marker_Name+" and NOS",row,double_marker);
+//	Table.set(Marker_Name+"+NOS/Hu",row,double_marker/cell_count);
+//	Table.update;
+//}
 run("Clear Results");
 
 //measure area and display the name of the roi as well
-//run("Set Measurements...", "area display redirect=None decimal=3");
-//selectWindow(neuron_label);
+run("Set Measurements...", "area display redirect=None decimal=3");
+selectWindow(neuron_label);
 
-//roiManager("deselect");
-//roiManager("Measure");
-//selectWindow("Results");
-//neuron_area=newArray();
-//neuron_names=newArray();
-//setOption("ExpandableArrays", true);
+roiManager("deselect");
+roiManager("Measure");
+selectWindow("Results");
+neuron_area=newArray();
+neuron_names=newArray();
+setOption("ExpandableArrays", true);
 
-//neuron_names=Table.getColumn("Label"); //getResult("Label"); 
-//neuron_area=Table.getColumn("Area");//getResult("Area");
+neuron_names=Table.getColumn("Label"); //getResult("Label"); 
+neuron_area=Table.getColumn("Area");//getResult("Area");
 
-//run("Close");
+run("Close");
 
 selectWindow(table_name);
-//Table.setColumn("Neurons", neuron_names);
-//Table.setColumn("Area of Neurons (um2)", neuron_area);
+Table.setColumn("Neurons", neuron_names);
+Table.setColumn("Area of Neurons (um2)", neuron_area);
 Table.update;
+
+//generate a matrix for subtype expression
+setOption("ExpandableArrays", true);
+if(neuron_subtype_matrix>=2)
+{
+	if(get_nos==true) 
+	{
+		channel_names[channel_names.length]="NOS"; //add NOS to the end
+		no_markers+=1; //if more than 1 marker, likely that no_markers is >1
+		print("NO markers matrix "+no_markers);
+	}
+	for (i = 0; i < no_markers; i++)
+	{
+		roi_name_table(channel_names[i],table_name);
+		
+	}
+}
+
+
+
+
 selectWindow(table_name);
 Table.save(results_dir+cell_type+"_"+file_name+".csv");
 
@@ -328,6 +491,8 @@ saveAs("Tiff", results_dir+max_save_name);
 roiManager("UseNames", "false");
 close("*");
 exit("Neuron analysis complete");
+
+close("Image correlation. Local region size = 3 pixels");
 
 
 
@@ -455,7 +620,7 @@ function segment_cells(max_projection, img_seg,model_file,modify_stardist,n_tile
 }
 
 //segment_nos(nos_image,training_pixel_size,roi_location,nos_processing_dir)
-function segment_nos(hu_image,nos_image,training_pixel_size,roi_neurons,nos_processing_dir)
+function segment_neuron_subtype(hu_image,nos_image,training_pixel_size,roi_neurons,nos_processing_dir,marker_name,regex)
 {
 		//threshold_methods=getList("threshold.methods");
 		//Dialog.create("NOS parameters");
@@ -464,7 +629,7 @@ function segment_nos(hu_image,nos_image,training_pixel_size,roi_neurons,nos_proc
 		//Dialog.show();
 		//nos_threshold_method=Dialog.getChoice();
 		//nos_value=Dialog.getNumber();
-		nos_value=getNumber("Enter a value for NOS correlation coefficient. Default is 80.", 80);
+		nos_value=getNumber("Enter a value for "+marker_name+" correlation coefficient.", 80);
 		//arg_string=nos_image+","+d2s(training_pixel_size,3); //pass image name and decimal size
 		arg_string=nos_image+","+hu_image+","+d2s(training_pixel_size,3);
 		//selectWindow(nos_image);
@@ -472,7 +637,7 @@ function segment_nos(hu_image,nos_image,training_pixel_size,roi_neurons,nos_proc
 		runMacro(nos_processing_dir,arg_string);
 		wait(10);
 		correlation_map=getTitle();//output from macro above
-		
+		roiManager("reset");
 		run("Enhance Contrast", "saturated=0.35");
 		waitForUser;
 		//get neuron ROIs again
@@ -488,9 +653,22 @@ function segment_nos(hu_image,nos_image,training_pixel_size,roi_neurons,nos_proc
 		roiManager("UseNames", "true");
 		//roiManager("UseNames", "false");
 		selectWindow("Log");
-		print("*********Detecting NOS neurons********");
+		print("*********Detecting "+marker_name+" neurons********");
 		run("Set Measurements...", "mean redirect=None decimal=2");
+		
+		mName = toLowerCase(marker_name);
+		//if(mName=="nos") regex=".*nos.*";
+		//else 
+		//regex=channel_regex;
 		//count NOS neurons
+		//regex=".*nos.*chat.*as.*"
+		temp=split(regex, ".*");
+		if(temp.length==0) replace_marker_name="";
+		else if(temp.length==1 ) replace_marker_name=temp[0];
+		else replace_marker_name=String.join(temp, "_");
+		
+		//replace_marker_name=toLowerCase(replace_marker_name);
+		print("REPLACE_"+replace_marker_name);
 		for(i=0;i<neuron_count;i++)
 		{
 			selectWindow(correlation_map);		
@@ -502,7 +680,10 @@ function segment_nos(hu_image,nos_image,training_pixel_size,roi_neurons,nos_proc
 			if(corr_coeff>=nos_value) //Provide separate macros to assess this value; default 80
 			{
 				print("Renaming");
-				nos_name="NOS_"+(nos+1);
+				//if it already is a NOS neuron; append nos to the end
+				rName = toLowerCase(Roi.getName()); 
+				if (matches(rName, regex)) nos_name=marker_name+"_"+replace_marker_name+"_"+(nos+1);
+				else nos_name=marker_name+"_"+(nos+1);
 				roiManager("Rename",nos_name);
 				//print("Neuron "+(i+1)+" is NOS");
 				nos_array[nos]=i;
@@ -522,20 +703,20 @@ function segment_nos(hu_image,nos_image,training_pixel_size,roi_neurons,nos_proc
 			roiManager("Show All with labels");
 			Stack.setDisplayMode("composite");
 			run("Channels Tool...");
-			Stack.setChannel(nos_channel);
+			//Stack.setChannel(nos_channel);
 			run("Grays");
 			//bring ROI Manager to the front
 			selectWindow("ROI Manager");
 			//need to make adding neurons more intuitive or efficient
-			waitForUser("Verify NOS ROIs and changes can be made in next prompt");
-			items = newArray("Correct to NOS positive", "Convert to NOS negative", "Exit/Done");
-			Dialog.create("Correct NOS classification");
+			waitForUser("Verify "+marker_name+" ROIs and changes can be made in next prompt");
+			items = newArray("Correct to "+marker_name+" positive", "Convert to "+marker_name+" negative", "Exit/Done");
+			Dialog.create("Correct "+marker_name+" classification");
 			Dialog.addRadioButtonGroup("Choose to", items, 3, 1, "Exit/Done");
 			Dialog.show();
 			choice=Dialog.getRadioButton();
-			if(choice=="Convert to NOS negative")
+			if(choice=="Convert to "+marker_name+" negative")
 			{
-				waitForUser("You have chosen to correct erroneously labelled NOS neurons. Select the ROI in ROI Manager or multiple ROIs by pressing Ctrl and selecting ROIs. Press OK when done.\nHowever, if everything looks good, do not select an ROI, just press OK. Press Deselect if you have selected an ROI by mistake");
+				waitForUser("You have chosen to correct erroneously labelled "+marker_name+" neurons. Select the ROI in ROI Manager or multiple ROIs by pressing Ctrl and selecting ROIs. Press OK when done.\nHowever, if everything looks good, do not select an ROI, just press OK. Press Deselect if you have selected an ROI by mistake");
 				not_NOS=split(call("ij.plugin.frame.RoiManager.getIndexesAsString")); //get multiple rois if selected
 			  	if(not_NOS.length==0)
 				{
@@ -547,7 +728,10 @@ function segment_nos(hu_image,nos_image,training_pixel_size,roi_neurons,nos_proc
 					for(r=0;r<not_NOS.length;r++)
 					{
 						roiManager("select", not_NOS[r]);
-						not_name="normal_"+random;
+						rName = toLowerCase(Roi.getName());
+						last_roi=roiManager("count")+1;
+						if(!matches(mName, regex) && matches(rName, regex)) not_name=replace_marker_name+"_"+last_roi;
+						else not_name="normal_"+random;
 						roiManager("Rename",not_name);
 						nos-=1;
 					}
@@ -555,13 +739,13 @@ function segment_nos(hu_image,nos_image,training_pixel_size,roi_neurons,nos_proc
 				}
 			}
 			
-		else if (choice=="Correct to NOS positive")
+		else if (choice=="Correct to "+marker_name+" positive")
 		{
 	
 			roiManager("deselect");
 			//bring ROI Manager to the front
 			selectWindow("ROI Manager");
-			waitForUser("You have chosen to reclassify neurons as  NOS neurons. Select the corresponding ROI/s and press OK\n.You can also add a NOS neuron by drawing around the cell, adding to ROI Manager and clicking OK.\nHowever, if everything looks good, press Deselect and just press OK.");
+			waitForUser("You have chosen to reclassify neurons as  "+marker_name+" neurons. Select the corresponding ROI/s and press OK\n.You can also add a "+marker_name+" neuron by drawing around the cell, adding to ROI Manager and clicking OK.\nHowever, if everything looks good, press Deselect and just press OK.");
 			cell_count_updated=roiManager("count");
 			// if nos neuron added, select that cell
 			if(cell_count_updated>neuron_count) roiManager("select", (cell_count_updated-1));
@@ -577,7 +761,10 @@ function segment_nos(hu_image,nos_image,training_pixel_size,roi_neurons,nos_proc
 					{
 						nos+=1;
 						roiManager("select", nos_select[r]);
-						nos_name="NOS_"+nos;
+						rName = toLowerCase(Roi.getName());
+						//if marker name is not previous marker  and ROI has any of marker names in its name; label cell as expressing both marker and prev markers
+						if(!matches(mName, regex) && matches(rName, regex)) nos_name=marker_name+"_"+replace_marker_name+"_"+(nos+1);
+						else nos_name=marker_name+"_"+nos;
 						roiManager("Rename",nos_name);
 						//nos_array=Array.deleteValue(nos_array, not_NOS); 
 				//print(response);
@@ -594,7 +781,7 @@ function segment_nos(hu_image,nos_image,training_pixel_size,roi_neurons,nos_proc
 		}
 		//response=getBoolean("Do you want to continue editing neurons?");
 		} while(response==1)
-		nos=find_ROI_name("NOS");
+		nos=find_ROI_name(marker_name);
 		return nos;
 }
 
@@ -629,4 +816,58 @@ function find_ROI_name(roiName)
 	} 
 	//else roiManager("deselect");
 	return k;
+}
+
+//add a value to every element of an array
+function add_value_array(arr,val)
+{
+	for (i = 0; i < arr.length; i++)
+	{
+		temp=arr[i]+val;
+		arr[i]=parseInt(temp);
+	}
+return arr;
+}
+
+
+
+//set if a neuron is positive or negative based on name of the roi
+//merge into find_ROI_name function
+function roi_name_table(ROI_NAME,table)
+{
+	//ROINAME is normal sentence case
+	roiName=toLowerCase(ROI_NAME);
+	nR = roiManager("Count"); 
+	roiIdx = newArray(nR); 
+	k=0; 
+	clippedIdx = newArray(0); 
+	
+	regex=".*"+roiName+".*";
+	
+	for (i=0; i<nR; i++) 
+	{ 
+		roiManager("Select", i); 
+		rName = toLowerCase(Roi.getName()); 
+		if (matches(rName, regex)) 
+		{ 
+			roiIdx[k] = i; 
+			k++; 
+			selectWindow(table);
+			Table.set(ROI_NAME, i,1);
+			//print(i);
+		} 
+		else 
+		{
+			Table.set(ROI_NAME, i,0);
+		}
+
+	} 
+	if (k>0) 
+	{ 
+		clippedIdx = Array.trim(roiIdx,k); 
+		//roiManager("select", clippedIdx);
+	} 
+	//else roiManager("deselect");
+	return k;
+	Table.update;
 }

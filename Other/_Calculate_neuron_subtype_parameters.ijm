@@ -2,6 +2,7 @@
 //This can be used for studying ChAT or other markers colocalising with neurons 
 
 #@ File (label="Open multi-channel of interest (NOS/ChAT..)",style="open") multi_ch_path
+#@ String(choices={"Method 1","Method 2"}, style="radioButtonHorizontal") Marker_Method
 #@ String marker_name
 //#@ File (label="Open image for neuron (Hu)",style="open") hu
 #@ File (label="Open neuron ROI manager",style="open") roi_location 
@@ -18,13 +19,18 @@ fiji_dir=getDirectory("imagej");
 gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Other"+fs+"commands";
 
 //marker_processing_macro
-marker_processing_dir=gat_dir+fs+"NOS_processing.ijm";
-if(!File.exists(marker_processing_dir)) exit("Cannot find NOS processing macro. Returning: "+marker_processing_dir);
+if(Marker_Method=="Method 1") marker_processing_dir=gat_dir+fs+"NOS_processing.ijm";
+else if(Marker_Method=="Method 2") 
+{
+	marker_processing_dir=gat_dir+fs+"Method_2.ijm";
+	print("MARKER 2");
+}
+
+if(!File.exists(marker_processing_dir)) exit("Cannot find "+Marker_Method+" processing macro. Returning: "+marker_processing_dir);
 
 //check_plugin_installation
 check_plugin=gat_dir+fs+"check_plugin.ijm";
 if(!File.exists(check_plugin)) exit("Cannot find check plugin macro. Returning: "+check_plugin);
-
 runMacro(check_plugin);
 
 run("Clear Results");
@@ -53,7 +59,7 @@ getPixelSize(unit, pixelWidth, pixelHeight);
 if(channels<2) exit("ERROR: Need a multichannel image");
 
 selectWindow(stack);
-waitForUser("Verify Hu and NOS channels. Enter this in the next prompt.");
+waitForUser("Verify Hu and "+marker_name+" channels. Enter this in the next prompt.");
 
 Dialog.create("Choose channels");
 Dialog.addNumber("Enter Hu channel", 1);
@@ -105,11 +111,11 @@ do{
 	run("ROI Color Coder", "measurement=Mean lut=[Rainbow RGB] width=3 opacity=100 label=%Area range=Min-Max n.=11 decimal=0 ramp=[256 pixels] font=SansSerif font_size=14 draw");
 	selectWindow(correlation_map);
 	roiManager("Show All without labels");
-	waitForUser("The ROIs are colour coded based on correlation coefficient.\nUsing colour scale, decide on most appropriate correlation coeff.\n80 is the suggested default, but this can vary based on image quality and acquisition.");
+	waitForUser("The ROIs are colour coded based on correlation coefficient.\nUsing colour scale, decide on most appropriate correlation coeff.\nThis can vary based on image quality and acquisition.");
 	
 	//count NOS neurons
 	response=0;
-	marker_value=getNumber("Enter a value for correlation coefficient. Default is 80.\nYou can test different values if 80 doesn't work", 80);
+	marker_value=getNumber("Enter a value for correlation coefficient.", 80);
 	neuron_count=roiManager("count");
 	count=0;
 	setOption("ExpandableArrays", true);

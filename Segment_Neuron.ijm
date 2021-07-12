@@ -126,7 +126,7 @@ Table.create(table_name);//Final Results Table
 row=0; //row counter for the table
 image_counter=0;
 
-waitForUser("Note the channels for Hu, and NOS if needed");
+waitForUser("Note the channels for Hu, and other markers if needed");
 
 if(sizeC>1)
 {
@@ -349,6 +349,7 @@ if(get_nos==true)
 	nos=segment_neuron_subtype(hu_image,nos_image,training_pixel_size,roi_location,nos_processing_dir,"NOS","");
 
 	cell_count=roiManager("count"); // in case any neurons added after nos analysis
+	selectWindow(table_name);
 	Table.set("Total "+cell_type, row, cell_count);
 	Table.set("NOS "+cell_type, row, nos);
 	Table.set("NOS/Hu "+cell_type, row, nos/cell_count);
@@ -374,13 +375,14 @@ if(marker_type_2==true)
 	if(channel_names.length!=no_markers) exit("Channel names do not match the no of markers");
 	channel_options=newArray(sizeC);
 	method_choice=newArray(sizeC);
+	hi_lo=newArray(sizeC);
 	Dialog.create("Select Channels and Classification Method");
 	for(i=0;i<no_markers;i++)
 	{
 		//Dialog.addRadioButtonGroup(, arr, no_channels, 1, channel_options[0]);
 		Dialog.addChoice("Choose Channel for "+channel_names[i], arr, arr[0]);
 		Dialog.addChoice("Classification Method: ", methods, methods[0]);  
-		
+		Dialog.addCheckbox("Determine if expression is high or low", false);
 	}
 	Dialog.show();
 
@@ -389,6 +391,7 @@ if(marker_type_2==true)
 	{
 		channel_options[i]=Dialog.getChoice();
 		method_choice[i]=Dialog.getChoice();
+		hi_lo[i]=Dialog.getCheckbox();
 	}
 	if(get_nos==false) regex=".*";
 	for(i=0;i<no_markers;i++)
@@ -398,6 +401,14 @@ if(marker_type_2==true)
 		if(!File.exists(marker_processing_dir)) exit("Cannot find "+channel_names[i]+" processing macro. Returning: "+marker_processing_dir);
 	
 		selectWindow(max_projection);
+		run("Select None");
+		run("Remove Overlay");
+		Stack.setChannel(cell_channel);
+		run("Duplicate...", "title="+cell_type+"_segmentation");
+		hu_image=getTitle();
+
+
+		selectWindow(max_projection);
 		Stack.setChannel(channel_options[i]);
 		run("Select None");
 		run("Remove Overlay");
@@ -405,19 +416,36 @@ if(marker_type_2==true)
 		run("Duplicate...", "title="+channel_names[i]+"_segmentation");
 		marker_image=getTitle();
 	
-		selectWindow(max_projection);
-		run("Select None");
-		run("Remove Overlay");
-		Stack.setChannel(cell_channel);
-		run("Duplicate...", "title="+cell_type+"_segmentation");
-		hu_image=getTitle();
 		roiManager("reset");
-		marker_count=segment_neuron_subtype(hu_image,marker_image,training_pixel_size,roi_location,marker_processing_dir,channel_names[i],regex);
+		marker_count=segment_neuron_subtype(hu_image,marker_image,training_pixel_size,roi_location,marker_processing_dir,channel_names[i],regex,hi_lo[i]);
 		cell_count=roiManager("count"); // in case any neurons added after nos analysis
+		selectWindow(table_name);
 		Table.set("Total "+cell_type, row, cell_count);
 		Table.set(channel_names[i]+" "+cell_type, row, marker_count);
 		Table.set(channel_names[i]+"/Hu "+cell_type, row, marker_count/cell_count);
 		Table.update;
+		if(hi_lo[i]== true)
+		{
+			high=find_ROI_name("HIGH");
+			low=find_ROI_name("LOW");
+			Table.set(channel_names[i]+" Low", row, low);
+			Table.set(channel_names[i]+" High", row, high);
+			Table.update;
+		//selectWindow(marker_image);
+		//run("Select None");
+		//run("Remove Overlay");
+		//run("Clear Results");
+		//run("Set Measurements...", "mean redirect=None decimal=2");
+		//roiManager("deselect");
+		//roiManager("measure");
+		//selectWindow("Results");
+		//mean_marker=Table.getColumn("Mean");
+		//selectWindow(table_name);
+		//Table.setColumn("Mean Intensity_"+channel_names[i],mean_marker);
+		//
+			
+		}
+
 		if(isOpen(marker_image)) close(marker_image);
 		roiManager("deselect");
 		roi_location=results_dir+cell_type+"_ROIs_"+file_name+".zip";
@@ -620,7 +648,7 @@ function segment_cells(max_projection, img_seg,model_file,modify_stardist,n_tile
 }
 
 //segment_nos(nos_image,training_pixel_size,roi_location,nos_processing_dir)
-function segment_neuron_subtype(hu_image,nos_image,training_pixel_size,roi_neurons,nos_processing_dir,marker_name,regex)
+function segment_neuron_subtype(hu_image,nos_image,training_pixel_size,roi_neurons,nos_processing_dir,marker_name,regex,hi_lo)
 {
 		//threshold_methods=getList("threshold.methods");
 		//Dialog.create("NOS parameters");
@@ -630,6 +658,10 @@ function segment_neuron_subtype(hu_image,nos_image,training_pixel_size,roi_neuro
 		//nos_threshold_method=Dialog.getChoice();
 		//nos_value=Dialog.getNumber();
 		nos_value=getNumber("Enter a value for "+marker_name+" correlation coefficient.", 80);
+		if(hi_lo==true)
+		{
+			hi_lo_threshold=getNumber("Enter a corr coeff for distinguishing high and low expressing "+marker_name, 80);
+		}
 		//arg_string=nos_image+","+d2s(training_pixel_size,3); //pass image name and decimal size
 		arg_string=nos_image+","+hu_image+","+d2s(training_pixel_size,3);
 		//selectWindow(nos_image);
@@ -679,11 +711,27 @@ function segment_neuron_subtype(hu_image,nos_image,training_pixel_size,roi_neuro
 			run("Clear Results"); 
 			if(corr_coeff>=nos_value) //Provide separate macros to assess this value; default 80
 			{
-				print("Renaming");
+				//print("Renaming");
 				//if it already is a NOS neuron; append nos to the end
 				rName = toLowerCase(Roi.getName()); 
-				if (matches(rName, regex)) nos_name=marker_name+"_"+replace_marker_name+"_"+(nos+1);
-				else nos_name=marker_name+"_"+(nos+1);
+				if (matches(rName, regex)) 
+				{
+					if(hi_lo==true)
+					{
+						if(corr_coeff>hi_lo_threshold) nos_name=marker_name+"_HIGH"+replace_marker_name+"_"+(nos+1);
+						else nos_name=marker_name+"_LOW"+replace_marker_name+"_"+(nos+1);
+					}
+					else nos_name=marker_name+"_"+replace_marker_name+"_"+(nos+1);
+				}
+				else
+				{
+					if(hi_lo==true)
+					{
+						if(corr_coeff>hi_lo_threshold) nos_name=marker_name+"_HIGH"+(nos+1);
+						else nos_name=marker_name+"_LOW"+(nos+1);
+					}
+					else nos_name=marker_name+"_"+(nos+1);
+				}
 				roiManager("Rename",nos_name);
 				//print("Neuron "+(i+1)+" is NOS");
 				nos_array[nos]=i;
@@ -701,8 +749,9 @@ function segment_neuron_subtype(hu_image,nos_image,training_pixel_size,roi_neuro
 			roiManager("deselect");
 			selectWindow(max_projection);
 			roiManager("Show All with labels");
-			Stack.setDisplayMode("composite");
-			run("Channels Tool...");
+			//Stack.setDisplayMode("composite");
+			Stack.setDisplayMode("color");
+			//run("Channels Tool...");
 			//Stack.setChannel(nos_channel);
 			run("Grays");
 			//bring ROI Manager to the front

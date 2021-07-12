@@ -54,7 +54,7 @@ macro "NOS_processing"
 	resetMinAndMax;
 	close("Correlation Maps");
 	close(hu);
-	close(nos);
+	close(nos); //not closing this for now
 }	
 
 //run("Subtract Background...", "rolling=100");

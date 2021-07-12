@@ -425,9 +425,11 @@ if(marker_type_2==true)
 		Table.set(channel_names[i]+"/Hu "+cell_type, row, marker_count/cell_count);
 		Table.update;
 		if(hi_lo[i]== true)
-		{
-			high=find_ROI_name("HIGH");
-			low=find_ROI_name("LOW");
+		{	
+			string_search=channel_names[i]+"_HIGH";
+			high=find_ROI_name(string_search);
+			string_search=channel_names[i]+"_LOW";
+			low=find_ROI_name(string_search);
 			Table.set(channel_names[i]+" Low", row, low);
 			Table.set(channel_names[i]+" High", row, high);
 			Table.update;

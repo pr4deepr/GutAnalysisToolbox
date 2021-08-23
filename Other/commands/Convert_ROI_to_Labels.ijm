@@ -12,9 +12,10 @@ macro "roi_to_label_map"
 	for (i = 0; i < roi_count; i++) 
 	{
 		roiManager("select", i);
-		setColor(i);
+		setColor(i+1);
 		run("Fill");
 	}
 	setForegroundColor(255, 255, 255);
 	resetMinAndMax();
+	run("Select None");
 }

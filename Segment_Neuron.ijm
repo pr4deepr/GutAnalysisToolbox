@@ -72,7 +72,7 @@ cell_type="Neuron";
 #@ String(value="<html>Default Probability is 0.5 and nmsThresh is 0.4. Tick above to change these values if<br/>the default segmentation does not work well.<html>",visibility="MESSAGE") hint5
 marker_type_2=Calculate_Other_Subtype;
 
-training_pixel_size=0.378;
+training_pixel_size=0.568;//0.378;
 
 get_nos=Calculate_nNOS_neurons;
 
@@ -346,8 +346,7 @@ if(get_nos==true)
 	run("Duplicate...", "title="+cell_type+"_segmentation");
 	hu_image=getTitle();
 	roiManager("reset");
-	nos=segment_neuron_subtype(hu_image,nos_image,training_pixel_size,roi_location,nos_processing_dir,"NOS","");
-
+	nos=segment_neuron_subtype(hu_image,nos_image,training_pixel_size,roi_location,nos_processing_dir,"NOS","",false); //noregex so left as empty ""
 	cell_count=roiManager("count"); // in case any neurons added after nos analysis
 	selectWindow(table_name);
 	Table.set("Total "+cell_type, row, cell_count);
@@ -516,6 +515,11 @@ Table.save(results_dir+cell_type+"_"+file_name+".csv");
 selectWindow(max_projection);
 saveAs("Tiff", results_dir+max_save_name);
 //run("Close");
+
+roiManager("deselect");
+roi_location=results_dir+cell_type+"_ROIs_"+file_name+".zip";
+roiManager("save",roi_location );
+
 
 
 roiManager("UseNames", "false");

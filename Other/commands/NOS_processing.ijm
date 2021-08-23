@@ -21,7 +21,7 @@ macro "NOS_processing"
 	getPixelSize(unit, pixelWidth, pixelHeight);
 	
 	//scaling is done so that that any processing stays consistent with cell size
-	//Training images were pixelsize of ~0.378, so scaling images based on this
+	//Training images were pixelsize of ~0.378 or 0.568, so scaling images based on this
 	scale_factor=pixelWidth/pixel_size_micron; //pixelWidth/0.378
 	if(scale_factor<1.001 && scale_factor>1) scale_factor=1;
 	print(scale_factor);

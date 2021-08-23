@@ -15,7 +15,8 @@
 //if(scale_factor==0) scale_factor=1;
 
 var fs=File.separator;
-training_pixel_size=0.378;
+
+training_pixel_size=0.568;//training_pixel_size=0.378;
 //for running other macros
 //consider moving this into plugins folder so can use getDirectory("plugins")
 fiji_dir=getDirectory("imagej");
@@ -212,7 +213,7 @@ Table.set("File name", 0, file_name);
 Table.set("Total neurons ", 0, neuron_count);
 Table.set(marker_name+" number ", 0, marker);
 Table.set(marker_name+"/Hu ratio", 0, marker/cell_count);
-Table.set("Correlation coefficient for "+marker_name, 0, marker/cell_count);
+Table.set("Correlation coefficient for "+marker_name, 0, marker_value);
 if(hi_lo==true)
 {
 	high=find_ROI_name("HIGH");

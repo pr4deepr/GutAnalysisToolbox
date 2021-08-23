@@ -51,20 +51,32 @@ fs = File.separator; //get the file separator for the computer (depending on ope
 #@ boolean image_already_open
 #@ String(value="<html>If image is already open, tick above box.<html>", visibility="MESSAGE") hint1
 #@ File (style="open", label="<html>Choose the StarDist model file if segmenting neurons.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") neuron_model_path 
+#@ String(label="Enter channel number for Hu if you know. Leave as NA if not using.", value="NA") cell_channel
 #@ boolean Calculate_Neuron_Subtype
 #@ String(value="<html>Tick above box if you want to estimate proportion of neuronal subtypes.<html>", visibility="MESSAGE") hint3
 #@ File (style="open", label="<html>Choose the StarDist model for subtype segmentation.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") subtype_model_path 
 cell_type="Neuron";
-#@ String(value="<html>If you already know the channel names and numbers, enter them below<br/>that should be enough. You can also manually draw the ganglia<html>",visibility="MESSAGE") hint5
+#@ String(value="<html>------------------------------------------------------------------<html>",visibility="MESSAGE") hint_star
+#@ String(value="<html>If you already know the channel names and numbers, check the box below and enter them.<br/> The channel numbers MUST match the channel name order.<br/> You have the option of entering them later in the analysis<html>",visibility="MESSAGE") hint5
+#@ boolean Manually_enter_channel_details
 #@ String(label="Enter channel names followed by a comma (,). Leave as NA if not using.", value="NA") marker_names_manual
 #@ String(label="Enter channel numbers with separated by a comma (,). Leave as NA if not using.", value="NA") marker_no_manual
-#@ String(value="<html> Cell counts per ganglia will get cell counts for each ganglia<br/>If you have a channel for neuron and another marker that labels the ganglia (PGP9.5/GFAP/NOS)<br/>that should be enough. You can also manually draw the ganglia<html>",visibility="MESSAGE") hint4
+#@ String(value="<html>------------------------------------------------------------------<html>",visibility="MESSAGE") hint_star
+#@ String(value="<html> Cell counts per ganglia will get cell counts for each ganglia<br/>If you have a channel for neuron and another marker that labels the ganglia (PGP9.5/GFAP/NOS)<br/>that should be enough to calculate ganglia outline. You can also manually draw the ganglia<html>",visibility="MESSAGE") hint4
+#@ String(label="<html> Enter the channel to use for segmenting ganglia.<br/> Preferably a bright marker that labels most of the ganglia.<br/> Leave as NA if not using.<html> ", value="NA") ganglia_channel
 #@ boolean Cell_counts_per_ganglia (description="Use a pretrained deepImageJ model to predict ganglia outline")
 #@ boolean Use_DeepImageJ
 
 //add an option for defining a custom scaling factor
 
 marker_subtype=Calculate_Neuron_Subtype;
+
+if(Manually_enter_channel_details==true)
+{
+	marker_names_manual=split(marker_names_manual, ",");	
+	marker_no_manual=split(marker_no_manual, ",");
+	if(marker_names_manual.length!=marker_no_manual.length) exit("Number of marker names and marker channels do not match");
+}
 
 training_pixel_size=0.568; //Images were trained in StarDist using images of this pixel size. Change this for adult human. ~0.9?
 
@@ -123,12 +135,37 @@ Table.create(table_name);//Final Results Table
 row=0; //row counter for the table
 image_counter=0;
 
-waitForUser("Note the channels for each marker if using multi-channel images.");
+if(cell_channel!="NA")
+{
+	if(Manually_enter_channel_details==true) //delete from channel list as we are not using it for marker classification
+	{
+		//find index of cell_channel;; keep it as string
+		idx_Hu=find_str_array(marker_no_manual,cell_channel);
+	
+		marker_names_manual=Array.deleteIndex(marker_names_manual, idx_Hu);
+		marker_no_manual=Array.deleteIndex(marker_no_manual,idx_Hu);
+	}
+	cell_channel=parseInt(cell_channel);
+	if(isNaN(cell_channel)) exit("Enter channel number for cell. If leaving empty, type NA in the value");
+	
+}
 
+if(ganglia_channel!="NA")
+{
+	ganglia_channel=parseInt(ganglia_channel);
+	if(isNaN(ganglia_channel)) exit("Enter channel number for Ganglia. If leaving empty, type NA in the value");
+	
+}
+
+//Array.show(marker_names_manual);
+//Array.show(marker_no_manual);
+//exit("test");
 if(sizeC>1)
 {
- if (Cell_counts_per_ganglia==true)
+ if (Cell_counts_per_ganglia==true && cell_channel=="NA" && ganglia_channel=="NA") //count cells per ganglia but don't know channels for ganglia or neuron
 	{
+		waitForUser("Note the channels for neuron and ganglia and enter in the next box.");
+		
 		Dialog.create("Choose channels for "+cell_type);
   		Dialog.addNumber("Enter "+cell_type+" channel", 3);
   		Dialog.addNumber("Enter channel for segmenting ganglia", 2);
@@ -140,16 +177,30 @@ if(sizeC>1)
 		Stack.setChannel(ganglia_channel);
 		resetMinAndMax();		
 	}
-
-	else 
-		{
+	else if(Cell_counts_per_ganglia==true && cell_channel!="NA" && ganglia_channel=="NA") //count cells per ganglia but don't know channels for ganglia
+	{
+		waitForUser("Note the channels for ganglia and enter in the next box.");
+		Dialog.create("Choose channel for ganglia");
+  		Dialog.addNumber("Enter channel for segmenting ganglia", 2);
+  		Dialog.show(); 
+		//cell_channel= Dialog.getNumber();
+		ganglia_channel=Dialog.getNumber();
+		//Stack.setChannel(cell_channel);
+		//resetMinAndMax();
+		Stack.setChannel(ganglia_channel);
+		resetMinAndMax();	
+	}
+		else if(Cell_counts_per_ganglia==true && cell_channel=="NA" && ganglia_channel!="NA") //count cells per ganglia but don't know channels for neuron
+	{
+			waitForUser("Note the channels for "+cell_type+" and enter in the next box.");
 			Dialog.create("Choose  channel for "+cell_type);
 	  		Dialog.addNumber("Enter "+cell_type+" channel", 3);
 	  	    Dialog.show(); 
 			cell_channel= Dialog.getNumber();
 			Stack.setChannel(cell_channel);
 			resetMinAndMax();
-		}
+	}
+
 }
 
 
@@ -286,29 +337,41 @@ if (Cell_counts_per_ganglia==true)
 
 //neuron_subtype_matrix=0;
 no_markers=0;
+//if user wants to enter markers before hand, can do that at the start
+//otherwise, option to enter them manually here
 if(marker_subtype==true) 
 {
-	no_markers=getNumber("How many markers would you like to analyse?", 1);
 	arr=Array.getSequence(sizeC);
 	arr=add_value_array(arr,1);
-	string=getString("Enter names of markers separated by comma (,)", "Names");
-	channel_names=split(string, ",");	
-	if(channel_names.length!=no_markers) exit("Channel names do not match the no of markers");
-	channel_numbers=newArray(sizeC);
-	marker_label_img=newArray(sizeC);
-	Dialog.create("Select channels for each marker");
-	for(i=0;i<no_markers;i++)
+	if(Manually_enter_channel_details==true)
 	{
-		Dialog.addChoice("Choose Channel for "+channel_names[i], arr, arr[0]);
-		//Dialog.addCheckbox("Determine if expression is high or low", false);
+		channel_names=marker_names_manual;//split(marker_names_manual, ",");
+		channel_numbers=marker_no_manual;//split(marker_no_manual, ",");
+		channel_numbers=convert_array_int(marker_no_manual);
+		no_markers=channel_names.length;
 	}
-	Dialog.show();
+	else 
+	{
+		no_markers=getNumber("How many markers would you like to analyse?", 1);
+		string=getString("Enter names of markers separated by comma (,)", "Names");
+		channel_names=split(string, ",");	
+		if(channel_names.length!=no_markers) exit("Channel names do not match the no of markers");
+		channel_numbers=newArray(sizeC);
+		marker_label_img=newArray(sizeC);
+		Dialog.create("Select channels for each marker");
+		for(i=0;i<no_markers;i++)
+		{
+			Dialog.addChoice("Choose Channel for "+channel_names[i], arr, arr[0]);
+			//Dialog.addCheckbox("Determine if expression is high or low", false);
+		}
+		Dialog.show();
 
 	
-	for(i=0;i<no_markers;i++)
-	{
-		channel_numbers[i]=Dialog.getChoice();
-		//hi_lo[i]=Dialog.getCheckbox();
+		for(i=0;i<no_markers;i++)
+		{
+			channel_numbers[i]=Dialog.getChoice();
+			//hi_lo[i]=Dialog.getCheckbox();
+		}
 	}
 	if(no_markers>1)
 	{

@@ -69,7 +69,15 @@ cell_type="Neuron";
 #@ String(label="<html> Enter the channel to use for segmenting ganglia.<br/> Preferably a bright marker that labels most of the ganglia.<br/> Leave as NA if not using.<html> ", value="NA") ganglia_channel
 #@ boolean Cell_counts_per_ganglia (description="Use a pretrained deepImageJ model to predict ganglia outline")
 #@ String(choices={"DeepImageJ","Manually draw ganglia"}, style="radioButtonHorizontal") Ganglia_detection
-
+#@ String(value="<html>-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_star
+#@ String(value="<html><center><b>Finetune cell detection</b></center> <html>",visibility="MESSAGE") hint_stardist
+#@ String(value="<html>Probability determines the number of cells, low values will give more cells.<br/>Reducing overlap threshold will lead to more overlapping cells.<br/>More info about below parameters can be found here: https://www.imagej.net/StarDist/<html>",visibility="MESSAGE", required=false) hint34
+#@ String(value="<html><b>Neuron detection</b><html>",visibility="MESSAGE") hint_stardist1
+#@ Double (label="Probability ", style="slider", min=0, max=1, stepSize=0.05,value=0.55) probability
+#@ Double (label="Overlap Threhshold", style="slider", min=0, max=1, stepSize=0.05,value=0.5) overlap
+#@ String(value="<html><b>Detection of neuronal subtypes</b><html>",visibility="MESSAGE") hint_stardist2
+#@ Double (label="Probability ", style="slider", min=0, max=1, stepSize=0.05,value=0.55) probability_subtype
+#@ Double (label="Overlap Threhshold", style="slider", min=0, max=1, stepSize=0.05,value=0.5) overlap_subtype
 
 //add an option for defining a custom scaling factor
 
@@ -129,16 +137,17 @@ print("Analysing: "+file_name);
 results_dir=analysis_dir+file_name+fs; //directory to save images
 if (!File.exists(results_dir)) File.makeDirectory(results_dir); //create directory to save results file
 
-//do not include cells greater than 1000 micron in area
+
+//do not include cells greater than 1500 micron in area
 neuron_area_limit=1500; //microns
 neuron_max_pixels=neuron_area_limit/pixelWidth; //convert micron to pixels
 
-//using limit when segmenting neurons
+//do not include cells lower than 90 micron in area for marker
 neuron_seg_lower_limit=90;//microns
 neuron_seg_lower_limit=neuron_seg_lower_limit/pixelWidth; 
 
 
-//using limit for marker multiplication and delineation
+//using limit for marker segmentation
 neuron_lower_limit= 160;//microns
 neuron_min_pixels=neuron_lower_limit/pixelWidth; //convert micron to pixels
 
@@ -280,8 +289,8 @@ selectWindow("Log");
 print("*********Segmenting cells using StarDist********");
 
 //segment neurons using StarDist model
-segment_cells(max_projection,seg_image,neuron_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit);
-
+segment_cells(max_projection,seg_image,neuron_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap);
+close(seg_image);
 
 //manually correct or verify if needed
 waitForUser("Correct "+cell_type+" ROIs if needed. You can delete or add ROIs using ROI Manager");
@@ -329,7 +338,7 @@ if (Cell_counts_per_ganglia==true)
 	 else ganglia_binary=draw_ganglia_outline(ganglia_img,false);
 	 
 	args=neuron_label_image+","+ganglia_binary;
-	//get cell count per ganglia and returns a table as well as ganglia label window
+	//get cell count per ganglia
 	runMacro(ganglia_cell_count,args);
 
 	//make ganglia binary image with ganglia having atleast 1 neuron
@@ -344,9 +353,9 @@ if (Cell_counts_per_ganglia==true)
 	selectWindow("ganglia_binary");
 	ganglia_binary=getTitle();
 
+	
 	selectWindow("cells_ganglia_count");
 	cell_count_per_ganglia=Table.getColumn("Cell counts");
-	cell_count_per_ganglia=Array.deleteValue(cell_count_per_ganglia, 0);
 	roiManager("deselect");
 	ganglia_number=roiManager("count");
 	roi_location=results_dir+"Ganglia_ROIs_"+file_name+".zip";
@@ -464,7 +473,7 @@ if(marker_subtype==1)
 			roiManager("reset");
 			//segment cells and return image with normal scaling
 			print("Segmenting marker "+channel_name);
-			segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit);
+			segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype, overlap_subtype);
 			selectWindow(max_projection);
 			roiManager("deselect");
 			runMacro(roi_to_label);
@@ -769,7 +778,7 @@ exit("Multi-channel Neuron analysis complete");
 //function to segment cells using max projection, image to segment, model file location
 //no of tiles for stardist, width and height of image
 //returns the ROI manager with ROIs overlaid on the image.
-function segment_cells(max_projection,img_seg,model_file,n_tiles,width,height,scale_factor,neuron_seg_lower_limit)
+function segment_cells(max_projection,img_seg,model_file,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap)
 {
 	//need to have the file separator as \\\\ in the file path when passing to StarDist Command from Macro. 
 	//regex uses \ as an escape character, so \\ gives one backslash \, \\\\ gives \\.
@@ -782,7 +791,7 @@ function segment_cells(max_projection,img_seg,model_file,n_tiles,width,height,sc
 	roiManager("reset");
 	//model_file="D:\\\\Gut analysis toolbox\\\\models\\\\2d_enteric_neuron\\\\TF_SavedModel.zip";
 	selectWindow(img_seg);
-	run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'0.4', 'nmsThresh':'0.45', 'outputType':'Label Image', 'modelFile':'"+model_file+"', 'nTiles':'"+n_tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
+	run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Label Image', 'modelFile':'"+model_file+"', 'nTiles':'"+n_tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
 	wait(50);
 	temp=getTitle();
 	run("Duplicate...", "title=label_image");

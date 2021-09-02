@@ -81,14 +81,16 @@ macro "count_cells_per_ganglia"
 	
 	selectWindow("Results");
 	//IJ.renameResults("Ganglia cell counts");
-	neuron_ganglia_count=Table.getColumn("Max");
-	Array.show(neuron_ganglia_count);
+	cells_ganglia_count=Table.getColumn("Max");
+	Array.show(cells_ganglia_count);
 	
-	selectWindow("neuron_ganglia_count");
+	selectWindow("cells_ganglia_count");
 	Table.renameColumn("Value", "Cell counts");
 	//Table.renameColumn(oldName, newName);
 	selectWindow("Results");
 	run("Close");
-	close(label_overlap);
+	//close(label_overlap);
+	selectWindow(label_overlap);
+	rename("label_overlap");
 	close(ganglia_labels);
 }

@@ -1,8 +1,8 @@
 
 #@ File (label="Select the maximum projection image") max_proj
-#@ File (label="Name of celltype 1", description="Cell 1",value="cell_1") cell_type_1
+#@ String (label="Name of celltype 1", description="Cell 1",value="cell_1") cell_type_1
 #@ File (label="Select roi manager for cell 1") roi_path_1
-#@ File (label="Name of celltype 2", description="Cell 2",value="cell_2") cell_type_2
+#@ String (label="Name of celltype 2", description="Cell 2",value="cell_2") cell_type_2
 #@ File (label="Select roi manager for cell 2") roi_path_2
 #@ File (style="directory",label="Select Output Folder") save_path
 #@ File (label="Select roi manager for ganglia (Enter NA if none)",value="NA") roi_ganglia_path
@@ -30,7 +30,6 @@ if(!File.exists(roi_to_label)) exit("Cannot find roi to label script. Returning:
 
 
 
-
 if(cell_type_1==cell_type_2 || roi_path_1== roi_path_2) exit("Same name or ROI Manager selected");
 
 
@@ -43,7 +42,7 @@ if(file_name_length>50) file_name=substring(file_name, 0, 39); //Restricting fil
 
 getPixelSize(unit, pixelWidth, pixelHeight);
 if(unit!="microns") print("Image is not in calibrated in microns. Output maybe in pixels");
-img=getTitle();
+img=getTitle();	
 
 
 //binary image for ganglia
@@ -66,6 +65,7 @@ if(File.exists(roi_ganglia_path))
 	roiManager("reset");
 	
 }
+else ganglia_binary="NA";
 
 
 
@@ -78,6 +78,7 @@ roiManager("reset");
 roiManager("open", roi_path_1);
 runMacro(roi_to_label);
 wait(10);
+rename(cell_type_1);
 cell_1=getTitle();
 
 
@@ -85,6 +86,7 @@ roiManager("reset");
 roiManager("open", roi_path_2);
 runMacro(roi_to_label);
 wait(10);
+rename(cell_type_2);
 cell_2=getTitle();
 roiManager("reset");
 
@@ -92,17 +94,62 @@ roiManager("reset");
 //convert to pixels
 label_dilation=round(label_dilation/pixelWidth);
 
-/*
- * Dilate first image by 10 micron
- * Dilate second by 10 micron
- * 
- * Label overlap count for first and second
- * then label overlap count for second and first
- * Ensure dilation is enough 
- * Also, may need to subtract by one as it may count the neuron itself
- * 
- */
+label_overlap_1=neighbour_count(cell_1,cell_2,label_dilation);
+roiManager("open", roi_path_1);
+run("Set Measurements...", "min redirect=None decimal=3");
+roiManager("Measure");
+selectWindow("Results");
+cell_count_1=Table.getColumn("Max");
 
+run("Clear Results");
+
+
+label_overlap_2=neighbour_count(cell_2,cell_1,label_dilation);
+roiManager("open", roi_path_2);
+run("Set Measurements...", "min redirect=None decimal=3");
+roiManager("Measure");
+selectWindow("Results");
+cell_count_2=Table.getColumn("Max");
+
+run("Clear Results");
+
+Table.create("Cell counts_overlap");
+Table.setColumn("No of "+cell_1+" around "+cell_2, cell_count_1);
+Table.setColumn("No of "+cell_2+" around "+cell_1, cell_count_2);
+Table.update;
+
+
+CONFIRM IF COUNTS ARE correct 
+pass ganglia outline and use it in the neighbour count function 
+
+
+
+function neighbour_count(ref_img,marker_img,dilate_radius,ganglia_outline)
+{
+	
+	// Init GPU
+	run("CLIJ2 Macro Extensions", "cl_device=");
+	//Ext.CLIJ2_clear();
+	Ext.CLIJ2_push(ref_img);
+	Ext.CLIJ2_push(marker_img);
+
+ if ganglia outline then multiply, 
+	
+	// Dilate Labels
+	Ext.CLIJ2_dilateLabels(ref_img, ref_dilate, dilate_radius);
+	
+	// Dilate Labels
+	Ext.CLIJ2_dilateLabels(marker_img, marker_dilate, dilate_radius);
+
+	
+	// Label Overlap Count Map
+	Ext.CLIJ2_labelOverlapCountMap(ref_dilate, marker_dilate, label_overlap_count);
+	
+	Ext.CLIJ2_pull(label_overlap_count);
+
+	run("Fire");
+	return label_overlap_count;
+}
 
 
 

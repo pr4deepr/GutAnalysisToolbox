@@ -42,6 +42,10 @@ if(!File.exists(ganglia_cell_count)) exit("Cannot find ganglia cell count script
 var deepimagej_post_processing=gat_dir+fs+"Ganglia_prediction_post_processing.ijm";
 if(!File.exists(deepimagej_post_processing)) exit("Cannot find roi to label script. Returning: "+deepimagej_post_processing);
 
+//check if ganglia prediction post processing macro present
+var segment_ganglia=gat_dir+fs+"Segment_Ganglia.ijm";
+if(!File.exists(segment_ganglia)) exit("Cannot find segment ganglia script. Returning: "+segment_ganglia);
+
 
 
 
@@ -322,7 +326,12 @@ if (Cell_counts_per_ganglia==true)
 	roiManager("reset");
 	if(Ganglia_detection=="DeepImageJ")
 	 {
-	 	ganglia_binary=ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel);
+	 	//ganglia_binary=ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel);
+		args=max_projection+","+cell_channel+","+ganglia_channel;
+		//get ganglia outline
+		runMacro(segment_ganglia,args);
+	 	wait(5);
+	 	ganglia_binary=getTitle();
 	 	draw_ganglia_outline(ganglia_binary,true);
 	 	
 	 }
@@ -1103,6 +1112,8 @@ function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel)
 	close("ganglia_rgb_2");
 	close(temp_pred);
 	close(ganglia_rgb);
+	
+	selectWindow(ganglia_pred_processed);
 	return ganglia_pred_processed;
 }
 

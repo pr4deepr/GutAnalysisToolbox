@@ -36,13 +36,15 @@ html="<html>"
      +"If selecting Template matching, install plugin from website:<a href=https://sites.google.com/site/qingzongtseng/template-matching-ij-plugin#install>Installation</a> <br>"
      +"</font>";
 
-
+items=newArray("Linear Alignment with SIFT","Template Matching","StackReg");
 //create directory lists
-input = getDirectory("Choose Input Directory ");
+input = getDirectory("Choose Input Directory with images ");
 Dialog.create("Alignment options");
-Dialog.addCheckbox("Linear Alignment with SIFT", true);
-Dialog.addCheckbox("Template Matching", true);
-Dialog.addMessage("Atleast one option is required. Use first and second option if your\nimages have warping and lots of deformation. If you only have movement in the\nXY direction (sideways) and no warping, use only the second option");
+Dialog.addRadioButtonGroup("Alignment options", items, 1, items.length, items[0]);
+//Dialog.addCheckbox("Linear Alignment with SIFT", true);
+//Dialog.addCheckbox("Template Matching", true);
+//Dialog.addCheckbox("StackReg", true);
+Dialog.addMessage("Use Linear Alignment with SIFT if your\nimages have warping and lots of deformation. If you only have movement in the\nXY direction (sideways) and no warping, use Template Matching and ");
 Dialog.addMessage("If using Template Matching, the plugin can be installed using the Help button");
 Dialog.addNumber("Choose reference slice for aligning stacks", 1);
 Dialog.addMessage("Alignment plugins need a reference image/frame to align the rest of\nthe images. Set the frame here or first frame will be used as reference");
@@ -50,15 +52,17 @@ Dialog.addString("File extension: ", ".tif");
 Dialog.addMessage("If the files are Leica .lif files, each series within the file will be aligned");
 Dialog.addHelp(html);
 Dialog.show();
-sift=Dialog.getCheckbox();
-template_matching=Dialog.getCheckbox();
+//sift=Dialog.getCheckbox();
+//template_matching=Dialog.getCheckbox();
+alignment_choice=Dialog.getRadioButton();
 frame_ref=Dialog.getNumber();
 file_ext=Dialog.getString();
 
 
 
 input_list = getFileList(input); //get no of files
-Array.print("Files in folder: "+input_list);
+print("Files in folder: ");
+Array.print(input_list);
 run("Bio-Formats Macro Extensions");//can use macro extensions (Ext.) for working with lif files and other popular file formats; only tested on .lif and .tif files
 
 
@@ -82,7 +86,7 @@ for (i=0; i<input_list.length; i++)
 					//setSeries will set a corresponding series within the liff file as active, so it can be accessed
 					//confusingly enough, setSeries starts from 0 onwards, so for Series 1, it has to be setSeries(0); 
 					Ext.setSeries(s-1);
-					process_file_align(name,input,frame_ref);
+					process_file_align(name,input,frame_ref,alignment_choice);
 				}
 	
 		}
@@ -95,7 +99,7 @@ for (i=0; i<input_list.length; i++)
 			name=getTitle();
 			name=File.nameWithoutExtension;
 			rename(name);
-			process_file_align(name,input,frame_ref);
+			process_file_align(name,input,frame_ref,alignment_choice);
 		}
 	}
 	else //if file does not end with the specified extension
@@ -107,7 +111,7 @@ Ext.close();
 exit("Alignment Finished");
 
 
-function process_file_align(name,input,frame_ref)
+function process_file_align(name,input,frame_ref,alignment_choice)
 {
 	selectWindow(name);
 	Stack.setFrame(frame_ref);
@@ -137,7 +141,7 @@ function process_file_align(name,input,frame_ref)
 		selectWindow("C1-"+name);
 		Stack.setFrame(frame_ref);
 		//Split channel, run Linear alignment on one channel and then on the other
-		aligned=align_images("C1-"+name,sift,template_matching,sizeX,sizeY,sizeT,frame_ref);
+		aligned=align_images("C1-"+name,alignment_choice,sizeX,sizeY,sizeT,frame_ref);
 		selectWindow(aligned);
 		print("Saving"+input+name+"_aligned");
 		saveAs("Tiff", input+name+"_aligned");
@@ -145,7 +149,7 @@ function process_file_align(name,input,frame_ref)
 		}
 		else
 		{
-			aligned=align_images(name,sift,template_matching,sizeX,sizeY,sizeT,frame_ref);
+			aligned=align_images(name,alignment_choice,sizeX,sizeY,sizeT,frame_ref);
 			selectWindow(aligned);
 			print("Saving"+input+name+"_aligned");
 			saveAs("Tiff", input+name+"_aligned");
@@ -158,28 +162,33 @@ function process_file_align(name,input,frame_ref)
 
 
 //function to run the alignment based on choice
-function align_images(name,sift,template_matching,sizeX,sizeY,sizeT,frame_ref)
+function align_images(name,alignment_choice,sizeX,sizeY,sizeT,frame_ref)
 {
 	selectWindow(name);
 	setBatchMode(true); //batchmode set to True
 	//run alignment with SIFT
-	if(sift==true)
+	if(alignment_choice=="Linear Alignment with SIFT")
 	{
+		Stack.setFrame(frame_ref);
 		align_sift();
 		wait(100);
 		close(name);
 		selectWindow("Aligned "+sizeT+" of "+sizeT);
 	}
-	Stack.setFrame(frame_ref);
-	//second alignment just to make sure the SIFT alignment is steady
-	if(template_matching==true)
+	else if(alignment_choice=="Template Matching")
 	{
+		Stack.setFrame(frame_ref);
 		x_size=floor(sizeX*0.7);	
 		y_size=floor(sizeY*0.7);	
 		x0=floor(sizeX/6);
 		y0=floor(sizeY/6);
 		run("Align slices in stack...", "method=5 windowsizex="+x_size+" windowsizey="+y_size+" x0="+x0+" y0="+y0+" swindow=0 subpixel=false itpmethod=0 ref.slice=3 show=true");
 		wait(10);
+	}
+	else if(alignment_choice=="StackReg")
+	{
+		Stack.setFrame(frame_ref);
+		run("StackReg", "transformation=[Rigid Body]");
 	}
 	aligned=getTitle();
 	setBatchMode("exit and display");

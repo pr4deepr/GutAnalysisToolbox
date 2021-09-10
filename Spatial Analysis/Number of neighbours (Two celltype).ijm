@@ -152,11 +152,6 @@ if(save_parametric_image==true)
 }
 close("*");
 
-//CONFIRM IF COUNTS ARE correct 
-//pass ganglia outline and use it in the neighbour count function 
-
-
-
 function neighbour_count(ref_img,marker_img,dilate_radius,ganglia_outline,cell_type_1,cell_type_2)
 {
 	

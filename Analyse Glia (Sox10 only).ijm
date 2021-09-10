@@ -15,7 +15,7 @@
 // 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-var fs=File.separator;
+var fs=File.separator; //get the file separator for the computer (depending on operating system)
 setOption("ExpandableArrays", true);
 
 print("\\Clear");
@@ -43,8 +43,9 @@ if(!File.exists(ganglia_cell_count)) exit("Cannot find ganglia cell count script
 //check if ganglia prediction post processing macro present
 var deepimagej_post_processing=gat_dir+fs+"Ganglia_prediction_post_processing.ijm";
 if(!File.exists(deepimagej_post_processing)) exit("Cannot find roi to label script. Returning: "+deepimagej_post_processing);
- 
-var fs = File.separator; //get the file separator for the computer (depending on operating system)
+ //check if ganglia prediction post processing macro present
+var segment_ganglia=gat_dir+fs+"Segment_Ganglia.ijm";
+if(!File.exists(segment_ganglia)) exit("Cannot find segment ganglia script. Returning: "+segment_ganglia);
 
 #@ File (style="open", label="<html>Choose the image to segment.<br>Enter NA if image is open.<html>") path
 #@ boolean image_already_open
@@ -248,7 +249,12 @@ run("Remove Overlay");
 	{
 	 if(Use_DeepImageJ==true)
 	 {
-	 	ganglia_binary=ganglia_deepImageJ(max_projection,neuron_channel,ganglia_channel);
+	 	//ganglia_binary=ganglia_deepImageJ(max_projection,neuron_channel,ganglia_channel);
+	 	args=max_projection+","+neuron_channel+","+ganglia_channel;
+		//get ganglia outline
+		runMacro(segment_ganglia,args);
+	 	wait(5);
+	 	ganglia_binary=getTitle();
 	 	draw_ganglia_outline(ganglia_binary,true);
 	 	
 	 }

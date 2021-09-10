@@ -42,6 +42,10 @@ if(!File.exists(ganglia_cell_count)) exit("Cannot find ganglia cell count script
 var deepimagej_post_processing=gat_dir+fs+"Ganglia_prediction_post_processing.ijm";
 if(!File.exists(deepimagej_post_processing)) exit("Cannot find roi to label script. Returning: "+deepimagej_post_processing);
 
+//check if ganglia prediction post processing macro present
+var segment_ganglia=gat_dir+fs+"Segment_Ganglia.ijm";
+if(!File.exists(segment_ganglia)) exit("Cannot find segment ganglia script. Returning: "+segment_ganglia);
+
 
 
 
@@ -58,7 +62,6 @@ fs = File.separator; //get the file separator for the computer (depending on ope
 #@ String(value="<html>Tick above box if you want to estimate proportion of neuronal subtypes.<html>", visibility="MESSAGE") hint3
 #@ File (style="open", label="<html>Choose the StarDist model for subtype segmentation.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") subtype_model_path 
 cell_type="Neuron";
-
 #@ String(value="<html>If you already know the channel names and numbers, check the box below and enter them.<br/> The channel numbers MUST match the channel name order.<br/> You have the option of entering them later in the analysis<html>",visibility="MESSAGE") hint5
 #@ boolean Enter_channel_details_now
 #@ String(label="Enter channel names followed by a comma (,). Leave as NA if not using.", value="NA") marker_names_manual
@@ -69,6 +72,12 @@ cell_type="Neuron";
 #@ String(label="<html> Enter the channel to use for segmenting ganglia.<br/> Preferably a bright marker that labels most of the ganglia.<br/> Leave as NA if not using.<html> ", value="NA") ganglia_channel
 #@ boolean Cell_counts_per_ganglia (description="Use a pretrained deepImageJ model to predict ganglia outline")
 #@ String(choices={"DeepImageJ","Manually draw ganglia"}, style="radioButtonHorizontal") Ganglia_detection
+
+#@ String(value="<html>-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_star
+#@ String(value="<html><center><b>Specify custom scaling (Default is pixel size of 0.568 microns)</b></center> <html>",visibility="MESSAGE") hint_scaling
+#@ String(value="Choose either XY pixel size (microns) or scaling factor (scales images by the specified factor)", visibility="MESSAGE") hint_scaling1
+#@ String(choices={"Use pixel size","Use scaling factor"}, style="radioButtonHorizontal",label="Choose scaling option") scaling_option
+#@ Double (label="Enter scaling value", value=0.568) scale_factor_1
 #@ String(value="<html>-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_star
 #@ String(value="<html><center><b>Finetune cell detection</b></center> <html>",visibility="MESSAGE") hint_stardist
 #@ String(value="<html>Probability determines the number of cells, low values will give more cells.<br/>Reducing overlap threshold will lead to more overlapping cells.<br/>More info about below parameters can be found here: https://www.imagej.net/StarDist/<html>",visibility="MESSAGE", required=false) hint34
@@ -78,6 +87,7 @@ cell_type="Neuron";
 #@ String(value="<html><b>Detection of neuronal subtypes</b><html>",visibility="MESSAGE") hint_stardist2
 #@ Double (label="Probability ", style="slider", min=0, max=1, stepSize=0.05,value=0.55) probability_subtype
 #@ Double (label="Overlap Threhshold", style="slider", min=0, max=1, stepSize=0.05,value=0.5) overlap_subtype
+
 
 //add an option for defining a custom scaling factor
 
@@ -90,8 +100,6 @@ if(marker_subtype==1 && Enter_channel_details_now==1)
 	marker_no_manual=split(marker_no_manual, ",");
 	if(marker_names_manual.length!=marker_no_manual.length) exit("Number of marker names and marker channels do not match");
 }
-
-training_pixel_size=0.568; //Images were trained in StarDist using images of this pixel size. Change this for adult human. ~0.9?
 
 
 if(image_already_open==true)
@@ -116,17 +124,24 @@ if(file_name_length>50) file_name=substring(file_name, 0, 39); //Restricting fil
 
 img_name=getTitle();
 Stack.getDimensions(width, height, sizeC, sizeZ, frames);
-
-
 run("Select None");
 run("Remove Overlay");
-
 getPixelSize(unit, pixelWidth, pixelHeight);
+if(unit!="microns") exit("Image not calibrated");
 
-//Training images were pixelsize of ~0.568, so scaling images based on this
-scale_factor=pixelWidth/training_pixel_size;
-if(scale_factor<1.001 && scale_factor>1) scale_factor=1;
+if(scaling_option=="Use pixel size")
+{
+	//training_pixel_size=scale_factor_1;//0.568; //Images were trained in StarDist using images of this pixel size. Change this for adult human. ~0.9?
+	//Training images were pixelsize of ~0.568, so scaling images based on this
+	scale_factor=pixelWidth/scale_factor_1;
+	if(scale_factor<1.001 && scale_factor>1) scale_factor=1;
+}
+else 
+{
+	scale_factor=scale_factor_1;
+}
 
+print(scale_factor);
 
 print("Analysing: "+file_name);
 analysis_dir= dir+"Analysis"+fs;
@@ -331,7 +346,12 @@ if (Cell_counts_per_ganglia==true)
 	roiManager("reset");
 	if(Ganglia_detection=="DeepImageJ")
 	 {
-	 	ganglia_binary=ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel);
+	 	//ganglia_binary=ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel);
+	 	args=max_projection+","+cell_channel+","+ganglia_channel;
+		//get ganglia outline
+		runMacro(segment_ganglia,args);
+	 	wait(5);
+	 	ganglia_binary=getTitle();
 	 	draw_ganglia_outline(ganglia_binary,true);
 	 	
 	 }
@@ -692,75 +712,6 @@ Table.setColumn("Marker Combinations", marker_combinations);
 }
 close("label_img_*");
 
-/*
- // Threshold 1 to max for marker channel
-Ext.CLIJ2_thresholdHuang(image_4, image_6);
-Ext.CLIJ2_release(image_4);
-
-mean intensity of neuron label map and marker binary
-// Mean Intensity Map
-Ext.CLIJ2_meanIntensityMap(image_6, image_5, image_7);
-Ext.CLIJ2_release(image_6);
-
-// Greater Or Equal Constant 0.5, only accept neurons of % area >0.5, 0.6?
-constant = 0.5;
-Ext.CLIJ2_greaterOrEqualConstant(image_7, image_8, constant);
-Ext.CLIJ2_release(image_7);
-
-// Multiply Images neuron label multiply image_8 above
-Ext.CLIJ2_multiplyImages(image_5, image_8, image_9);
-Ext.CLIJ2_release(image_5);
-Ext.CLIJ2_release(image_8);
-
-reindex
-
-output label image for marker
- * 
-ADD CODE TO set measurements???
-
-run("Clear Results");
-
-//measure area and display the name of the roi as well
-run("Set Measurements...", "area display redirect=None decimal=3");
-selectWindow(neuron_label);
-
-roiManager("deselect");
-roiManager("Measure");
-selectWindow("Results");
-neuron_area=newArray();
-neuron_names=newArray();
-//setOption("ExpandableArrays", true);
-
-neuron_names=Table.getColumn("Label"); //getResult("Label"); 
-neuron_area=Table.getColumn("Area");//getResult("Area");
-
-run("Close");
-
-selectWindow(table_name);
-Table.setColumn("Neurons", neuron_names);
-Table.setColumn("Area of Neurons (um2)", neuron_area);
-Table.update;
-
-//generate a matrix for subtype expression
-///setOption("ExpandableArrays", true);
-if(neuron_subtype_matrix>=2)
-{
-	if(get_nos==true) 
-	{
-		channel_names[channel_names.length]="NOS"; //add NOS to the end
-		no_markers+=1; //if more than 1 marker, likely that no_markers is >1
-		print("NO markers matrix "+no_markers);
-	}
-	for (i = 0; i < no_markers; i++)
-	{
-		roi_name_table(channel_names[i],table_name);
-		
-	}
-}
-
-
-*/
-
 selectWindow(table_name);
 Table.save(results_dir+cell_type+"_"+file_name+".csv");
 
@@ -796,6 +747,7 @@ function segment_cells(max_projection,img_seg,model_file,n_tiles,width,height,sc
 	temp=getTitle();
 	run("Duplicate...", "title=label_image");
 	label_image=getTitle();
+	//waitForUser;
 	run("Remove Overlay");
 	close(temp);
 	roiManager("reset"); 
@@ -1054,66 +1006,6 @@ function rename_roi()
 		}
 }
 
-//use deepimagej to predict ganglia outline and return a binary image
-function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel)
-{
-
-	//waitForUser("Select max projection");
-	selectWindow(max_projection);
-	getPixelSize(unit, pixelWidth, pixelHeight);
-	
-	//max_projection=getTitle();
-	
-	
-	selectWindow(max_projection);
-	run("Duplicate...", "title=ganglia_ch duplicate channels="+ganglia_channel);
-	run("Green");
-	
-	selectWindow(max_projection);
-	run("Duplicate...", "title=cells_ch duplicate channels="+cell_channel);
-	run("Magenta");
-	
-	run("Merge Channels...", "c1=ganglia_ch c2=cells_ch create");
-	composite_img=getTitle();
-	
-	run("RGB Color");
-	ganglia_rgb=getTitle();
-
-	selectWindow(ganglia_rgb);
-	run("Duplicate...", "title=ganglia_rgb_2"); //use this for verification
-	
-	close(composite_img);
-	
-	selectWindow(ganglia_rgb);
-	
-	run("DeepImageJ Run", "model=2D_enteric_ganglia format=Tensorflow preprocessing=[per_sample_scale_range.ijm] postprocessing=[no postprocessing] axes=Y,X,C tile=768,768,3 logging=normal");
-	
-	wait(10);
-	prediction_output=getTitle();
-	
-	runMacro(deepimagej_post_processing,prediction_output);
-	temp_pred=getTitle();
-	
-	selectWindow(temp_pred);
-	run("Options...", "iterations=3 count=2 black do=Open");
-	wait(5);
-	
-	min_area_ganglia_pixels=200;  //200 microns
-	min_area_ganglia=min_area_ganglia_pixels/Math.sqr(pixelWidth);  //area proportional to sqr of radius
-	run("Size Opening 2D/3D", "min="+min_area_ganglia);
-	ganglia_pred_processed=getTitle();
-
-	selectWindow(ganglia_pred_processed);
-	run("Select None");
-	run("Image to Selection...", "image=[ganglia_rgb_2] opacity=60");
-	waitForUser("Check if the ganglia overlay is good. If not, use the brush tool to delete or add.");
-	run("Select None");
-	
-	close("ganglia_rgb_2");
-	close(temp_pred);
-	close(ganglia_rgb);
-	return ganglia_pred_processed;
-}
 
 //Draw outline for ganglia or edit the predicted outline
 function draw_ganglia_outline(ganglia_img,edit_flag)

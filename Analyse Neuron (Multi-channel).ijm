@@ -157,9 +157,11 @@ if(cell_channel!="NA")
 	{
 		//find index of cell_channel;; keep it as string
 		idx_Hu=find_str_array(marker_no_manual,cell_channel);
-	
-		marker_names_manual=Array.deleteIndex(marker_names_manual, idx_Hu);
-		marker_no_manual=Array.deleteIndex(marker_no_manual,idx_Hu);
+		if(idx_Hu!="NA") //if Hu found in the channel entries, delete that corresponding channel
+		{
+			marker_names_manual=Array.deleteIndex(marker_names_manual, idx_Hu);
+			marker_no_manual=Array.deleteIndex(marker_no_manual,idx_Hu);
+		}
 	}
 	cell_channel=parseInt(cell_channel);
 	if(isNaN(cell_channel)) exit("Enter channel number for cell. If leaving empty, type NA in the value");
@@ -220,20 +222,30 @@ if(sizeC>1)
 }
 
 
-//add option for extended depth of field projection for widefield images
+//added option for extended depth of field projection for widefield images
 if(sizeZ>1)
 {
 		print(img_name+" is a stack");
 		roiManager("reset");
-		waitForUser("Note the start and end of the stack.\nPress OK when done");
-		Dialog.create("Choose slices");
-  		Dialog.addNumber("Start slice", 1);
-  		Dialog.addNumber("End slice", sizeZ);
-  		Dialog.show(); 
-  		start=Dialog.getNumber();
-  		end=Dialog.getNumber();
-		run("Z Project...", "start="+start+" stop="+end+" projection=[Max Intensity]");
-		max_projection=getTitle();
+		projection_method=getBoolean("3D stack detected. Which projection method would you like?", "Maximum Intensity Projection", "Extended Depth of Field (Variance)");
+		if(projection_method==1)
+		{
+			waitForUser("Note the start and end of the stack.\nPress OK when done");
+			Dialog.create("Choose slices");
+	  		Dialog.addNumber("Start slice", 1);
+	  		Dialog.addNumber("End slice", sizeZ);
+	  		Dialog.show(); 
+	  		start=Dialog.getNumber();
+	  		end=Dialog.getNumber();
+			run("Z Project...", "start="+start+" stop="+end+" projection=[Max Intensity]");
+			max_projection=getTitle();
+			
+			
+		}
+		else 
+		{
+			max_projection=extended_depth_proj(img_name);
+		}
 }
 else 
 {
@@ -602,7 +614,7 @@ if(marker_subtype==1)
 				}
 				else 
 				{
-					print(j);
+					//print(j);
 					img2=marker_label_arr[channel_pos];
 					img1=result;
 					//print("Processing "+img1+" * "+img2);
@@ -769,6 +781,8 @@ selectWindow(max_projection);
 saveAs("Tiff", results_dir+max_save_name);
 //run("Close");
 roiManager("UseNames", "false");
+
+print("Files saved at: "+results_dir);
 close("*");
 exit("Multi-channel Neuron analysis complete");
 
@@ -786,8 +800,8 @@ function segment_cells(max_projection,img_seg,model_file,n_tiles,width,height,sc
 	//StarDist command takes the escape character as well, so pass 16 backlash to get 4xbackslash in the StarDIst macro command (which is then converted into 2)
 	model_file=replace(model_file, "\\\\","\\\\\\\\\\\\\\\\");
 	choice=0;
-	print(img_seg);
-	print(max_projection);
+	//print(img_seg);
+	//print(max_projection);
 	roiManager("reset");
 	//model_file="D:\\\\Gut analysis toolbox\\\\models\\\\2d_enteric_neuron\\\\TF_SavedModel.zip";
 	selectWindow(img_seg);
@@ -902,7 +916,7 @@ function find_ROI_name(roiName)
 		{ 
 			roiIdx[k] = i; 
 			k++; 
-			print(i);
+			//print(i);
 		} 
 	} 
 	if (k>0) 
@@ -1143,4 +1157,54 @@ function draw_ganglia_outline(ganglia_img,edit_flag)
 		
 	}
 	
+}
+
+function extended_depth_proj(img)
+{
+	run("CLIJ2 Macro Extensions", "cl_device=");
+	concat_ch="";
+	selectWindow(img);
+	Stack.getDimensions(width, height, channels, slices, frames);
+	if(channels>1)
+	{
+		for(ch=1;ch<=channels;ch++)
+		{
+			selectWindow(img);
+			Stack.setChannel(ch);
+			getLut(reds, greens, blues);
+			Ext.CLIJ2_push(img);
+			radius_x = 2.0;
+			radius_y = 2.0;
+			sigma = 10.0;
+			proj_img="proj_img"+ch;
+			Ext.CLIJ2_extendedDepthOfFocusVarianceProjection(img, proj_img, radius_x, radius_y, sigma);
+			Ext.CLIJ2_pull(proj_img);
+			setLut(reds, greens, blues);
+			//Ext.CLIJ2_pull(img);
+			concat_ch=concat_ch+"c"+ch+"="+proj_img+" ";
+			
+		}
+		Ext.CLIJ2_clear();
+		//print(concat_ch);
+		run("Merge Channels...", concat_ch+" create");
+		Stack.setDisplayMode("color");
+
+	}
+	else
+	{
+		selectWindow(img);
+		getLut(reds, greens, blues);
+		Ext.CLIJ2_push(img);
+		radius_x = 2.0;
+		radius_y = 2.0;
+		sigma = 10.0;
+		proj_img="proj_img";
+		Ext.CLIJ2_extendedDepthOfFocusVarianceProjection(img, proj_img, radius_x, radius_y, sigma);
+		Ext.CLIJ2_pull(proj_img);
+		setLut(reds, greens, blues);
+	}
+	max_name="MAX_"+img;
+	rename(max_name);
+	close(img);
+	return max_name;
 }

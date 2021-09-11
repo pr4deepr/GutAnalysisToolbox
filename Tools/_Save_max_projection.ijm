@@ -1,5 +1,5 @@
 /*
- * goes through a folder of 3D tiff stacks, creates a maximum projection and saves a maximum projection in specified output folder 
+ * goes through a folder of 3D tiff stacks, creates a maximum projection and saves it in specified output folder 
  * Using the ImageJ macro template for processing files in directories
  */
 #@ String(value="Reads tif stacks in a folder and save maximum projection images in the specified Output Directory", visibility="MESSAGE") hint

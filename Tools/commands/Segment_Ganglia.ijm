@@ -8,7 +8,6 @@
 var fs=File.separator;
 setOption("ExpandableArrays", true);
 
-print("\\Clear");
 
 var fiji_dir=getDirectory("imagej");
 var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Other"+fs+"commands";
@@ -116,7 +115,7 @@ function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel)
 	run("Options...", "iterations=3 count=2 black do=Open");
 	wait(5);
 	
-	min_area_ganglia_pixels=200;  //200 microns
+	min_area_ganglia_pixels=500;  //500 microns
 	min_area_ganglia=min_area_ganglia_pixels/Math.sqr(pixelWidth);  //area proportional to sqr of radius
 	run("Size Opening 2D/3D", "min="+min_area_ganglia);
 	ganglia_pred_processed=getTitle();
@@ -127,10 +126,14 @@ function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel)
 	waitForUser("Check if the ganglia overlay is good. If not, use the brush tool to delete or add.");
 	run("Select None");
 	
+	run("Size Opening 2D/3D", "min="+min_area_ganglia);
+	ganglia_final=getTitle();
+	
+	close(ganglia_pred_processed);
 	close("ganglia_rgb_2");
 	close(temp_pred);
 	close(ganglia_rgb);
 	
-	selectWindow(ganglia_pred_processed);
-	return ganglia_pred_processed;
+	selectWindow(ganglia_final);
+	return ganglia_final;
 }

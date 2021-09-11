@@ -151,15 +151,26 @@ if(sizeZ>1)
 {
 		print(img_name+" is a stack");
 		roiManager("reset");
-		waitForUser("Note the start and end of the stack.\nPress OK when done");
-		Dialog.create("Choose slices");
-  		Dialog.addNumber("Start slice", 1);
-  		Dialog.addNumber("End slice", sizeZ);
-  		Dialog.show(); 
-  		start=Dialog.getNumber();
-  		end=Dialog.getNumber();
-		run("Z Project...", "start="+start+" stop="+end+" projection=[Max Intensity]");
-		max_projection=getTitle();
+		waitForUser("Verify the type of image projection you'd like (MIP or Extended depth of field\nYou can select in the next prompt.");
+		projection_method=getBoolean("3D stack detected. Which projection method would you like?", "Maximum Intensity Projection", "Extended Depth of Field (Variance)");
+		if(projection_method==1)
+		{
+			waitForUser("Note the start and end of the stack.\nPress OK when done");
+			Dialog.create("Choose slices");
+	  		Dialog.addNumber("Start slice", 1);
+	  		Dialog.addNumber("End slice", sizeZ);
+	  		Dialog.show(); 
+	  		start=Dialog.getNumber();
+	  		end=Dialog.getNumber();
+			run("Z Project...", "start="+start+" stop="+end+" projection=[Max Intensity]");
+			max_projection=getTitle();
+			
+			
+		}
+		else 
+		{
+			max_projection=extended_depth_proj(img_name);
+		}
 }
 else 
 {
@@ -486,4 +497,55 @@ function draw_ganglia_outline(ganglia_img,edit_flag)
 		
 	}
 	
+}
+
+//extended depth of field projection to acccount for out of focus planes. 
+function extended_depth_proj(img)
+{
+	run("CLIJ2 Macro Extensions", "cl_device=");
+	concat_ch="";
+	selectWindow(img);
+	Stack.getDimensions(width, height, channels, slices, frames);
+	if(channels>1)
+	{
+		for(ch=1;ch<=channels;ch++)
+		{
+			selectWindow(img);
+			Stack.setChannel(ch);
+			getLut(reds, greens, blues);
+			Ext.CLIJ2_push(img);
+			radius_x = 2.0;
+			radius_y = 2.0;
+			sigma = 10.0;
+			proj_img="proj_img"+ch;
+			Ext.CLIJ2_extendedDepthOfFocusVarianceProjection(img, proj_img, radius_x, radius_y, sigma);
+			Ext.CLIJ2_pull(proj_img);
+			setLut(reds, greens, blues);
+			//Ext.CLIJ2_pull(img);
+			concat_ch=concat_ch+"c"+ch+"="+proj_img+" ";
+			
+		}
+		Ext.CLIJ2_clear();
+		//print(concat_ch);
+		run("Merge Channels...", concat_ch+" create");
+		Stack.setDisplayMode("color");
+
+	}
+	else
+	{
+		selectWindow(img);
+		getLut(reds, greens, blues);
+		Ext.CLIJ2_push(img);
+		radius_x = 2.0;
+		radius_y = 2.0;
+		sigma = 10.0;
+		proj_img="proj_img";
+		Ext.CLIJ2_extendedDepthOfFocusVarianceProjection(img, proj_img, radius_x, radius_y, sigma);
+		Ext.CLIJ2_pull(proj_img);
+		setLut(reds, greens, blues);
+	}
+	max_name="MAX_"+img;
+	rename(max_name);
+	close(img);
+	return max_name;
 }

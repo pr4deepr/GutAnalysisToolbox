@@ -10,15 +10,39 @@
 // 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
 // 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+//FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+//BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 var fs=File.separator;
 setOption("ExpandableArrays", true);
 
 print("\\Clear");
+run("Clear Results");
 
 var fiji_dir=getDirectory("imagej");
-var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Other"+fs+"commands";
+var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Tools"+fs+"commands";
+
+gat_settings_path=fiji_dir+"scripts"+fs+"GAT"+fs+"gat_settings.txt";
+if(!File.exists(gat_settings_path)) exit("Cannot find settings file. Check: "+gat_settings_path);
+
+
+//specify directory where StarDist models are stored
+var models_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Models"+fs;
+//Neuron segmentation model
+neuron_model_path=models_dir+"2D_enteric_neuron_v2.zip";
+//Marker segmentation model
+subtype_model_path=models_dir+"Neuron_marker_model_v2.zip";
+if(!File.exists(neuron_model_path)||!File.exists(subtype_model_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_model_path+"\n"+subtype_model_path);
+
+run("Results... ", "open="+gat_settings_path);
+training_pixel_size=parseFloat(Table.get("Values", 0)); //0.7;
+neuron_area_limit=parseFloat(Table.get("Values", 1)); //1500
+neuron_seg_lower_limit=parseFloat(Table.get("Values", 2)); //90
+neuron_lower_limit=parseFloat(Table.get("Values", 3)); //160
+run("Close");
+
+
 
 //check if required plugins are installed
 var check_plugin=gat_dir+fs+"check_plugin.ijm";
@@ -54,13 +78,13 @@ fs = File.separator; //get the file separator for the computer (depending on ope
 #@ File (style="open", label="<html>Choose the image to segment.<br>Enter NA if image is open.<html>") path
 #@ boolean image_already_open
 #@ String(value="<html>If image is already open, tick above box.<html>", visibility="MESSAGE") hint1
-#@ File (style="open", label="<html>Choose the StarDist model file if segmenting neurons.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") neuron_model_path 
+// File (style="open", label="<html>Choose the StarDist model file if segmenting neurons.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") neuron_model_path 
 #@ String(label="Enter channel number for Hu if you know. Leave as NA if not using.", value="NA") cell_channel
 #@ String(value="<html>-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_star
 #@ String(value="<html><center><b>NEURONAL SUBTYPE ANALYSIS</b></center> <html>",visibility="MESSAGE") hint_subtype
 #@ boolean Calculate_Neuron_Subtype
 #@ String(value="<html>Tick above box if you want to estimate proportion of neuronal subtypes.<html>", visibility="MESSAGE") hint3
-#@ File (style="open", label="<html>Choose the StarDist model for subtype segmentation.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") subtype_model_path 
+// File (style="open", label="<html>Choose the StarDist model for subtype segmentation.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") subtype_model_path 
 cell_type="Neuron";
 
 #@ String(value="<html>If you already know the channel names and numbers, check the box below and enter them.<br/> The channel numbers MUST match the channel name order.<br/> You have the option of entering them later in the analysis<html>",visibility="MESSAGE") hint5
@@ -73,6 +97,12 @@ cell_type="Neuron";
 #@ String(label="<html> Enter the channel to use for segmenting ganglia.<br/> Preferably a bright marker that labels most of the ganglia.<br/> Leave as NA if not using.<html> ", value="NA") ganglia_channel
 #@ boolean Cell_counts_per_ganglia (description="Use a pretrained deepImageJ model to predict ganglia outline")
 #@ String(choices={"DeepImageJ","Manually draw ganglia"}, style="radioButtonHorizontal") Ganglia_detection
+#@ String(value="<html>--------------------------------------------------------------Advanced------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_adv
+#@ boolean Change_pixel_size_segmentation (description="Change the pixel size of the scaled image thats used to detect neurons")
+#@ Float(label="Enter pixel size for segmenting neurons. Leave as is if unsure.", value=0.7) training_pixel_size_custom
+if(Change_pixel_size_segmentation==true) training_pixel_size=training_pixel_size_custom
+
+print("Using parameters\nSegmentation pixel size:"+training_pixel_size+"\nMax neuron area (microns): "+neuron_area_limit+"\nMin Neuron Area (microns): "+neuron_seg_lower_limit+"\nMin marker area (microns): "+neuron_lower_limit);
 
 
 //add an option for defining a custom scaling factor
@@ -87,7 +117,8 @@ if(marker_subtype==1 && Enter_channel_details_now==1)
 	if(marker_names_manual.length!=marker_no_manual.length) exit("Number of marker names and marker channels do not match");
 }
 
-training_pixel_size=0.568; //Images were trained in StarDist using images of this pixel size. Change this for adult human. ~0.9?
+
+//training_pixel_size=0.7; //Images were trained in StarDist using images of this pixel size. Change this for adult human. ~0.9?
 
 
 if(image_already_open==true)
@@ -108,7 +139,7 @@ else
 
 file_name_length=lengthOf(file_name);
 if(file_name_length>50) file_name=substring(file_name, 0, 39); //Restricting file name length as in Windows long path names can cause errors
-
+//print(file_name);
 
 img_name=getTitle();
 Stack.getDimensions(width, height, sizeC, sizeZ, frames);
@@ -119,7 +150,8 @@ run("Remove Overlay");
 
 getPixelSize(unit, pixelWidth, pixelHeight);
 
-//Training images were pixelsize of ~0.568, so scaling images based on this
+//Training images were pixelsize of ~0.568, so scaling images based on this; 
+//Pixel size of 0.7 works for segmentation. Makes sure small objects aren't detected
 scale_factor=pixelWidth/training_pixel_size;
 if(scale_factor<1.001 && scale_factor>1) scale_factor=1;
 
@@ -128,22 +160,22 @@ print("Analysing: "+file_name);
 analysis_dir= dir+"Analysis"+fs;
 if (!File.exists(analysis_dir)) File.makeDirectory(analysis_dir);
 print("Files will be saved at: "+analysis_dir); 
-print("Analysing: "+file_name);
+
 //Create results directory with file name in "analysis"
 results_dir=analysis_dir+file_name+fs; //directory to save images
 if (!File.exists(results_dir)) File.makeDirectory(results_dir); //create directory to save results file
 
 //do not include cells greater than 1000 micron in area
-neuron_area_limit=1500; //microns
+//neuron_area_limit=1500; //microns
 neuron_max_pixels=neuron_area_limit/pixelWidth; //convert micron to pixels
 
 //using limit when segmenting neurons
-neuron_seg_lower_limit=90;//microns
+//neuron_seg_lower_limit=90;//microns
 neuron_seg_lower_limit=neuron_seg_lower_limit/pixelWidth; 
 
 
 //using limit for marker multiplication and delineation
-neuron_lower_limit= 160;//microns
+//neuron_lower_limit= 160;//microns
 neuron_min_pixels=neuron_lower_limit/pixelWidth; //convert micron to pixels
 
 table_name="Analysis_"+cell_type+"_"+file_name;
@@ -227,6 +259,7 @@ if(sizeZ>1)
 {
 		print(img_name+" is a stack");
 		roiManager("reset");
+		waitForUser("Verify the type of image projection you'd like (MIP or Extended depth of field\nYou can select in the next prompt.");
 		projection_method=getBoolean("3D stack detected. Which projection method would you like?", "Maximum Intensity Projection", "Extended Depth of Field (Variance)");
 		if(projection_method==1)
 		{
@@ -253,7 +286,7 @@ else
 		max_projection=getTitle();
 }
 
-max_save_name="MAX_"+file_name;
+
 
 
 //Segment Neurons
@@ -312,6 +345,7 @@ wait(5);
 neuron_label_image=getTitle();
 //using this image to detect neuron subtypes by label overlap
 selectWindow(neuron_label_image);
+max_save_name="MAX_"+file_name;
 saveAs("Tiff", results_dir+"Neuron_label_"+max_save_name);
 rename("Neuron_label"); //saving the file will change the name, so renaming it and getting image name again
 neuron_label_image=getTitle();
@@ -344,7 +378,7 @@ if (Cell_counts_per_ganglia==true)
 		runMacro(segment_ganglia,args);
 	 	wait(5);
 	 	ganglia_binary=getTitle();
-	 	draw_ganglia_outline(ganglia_binary,true);
+	 	//draw_ganglia_outline(ganglia_binary,true);
 	 	
 	 }
 	 else ganglia_binary=draw_ganglia_outline(ganglia_img,false);
@@ -774,10 +808,13 @@ if(neuron_subtype_matrix>=2)
 */
 
 selectWindow(table_name);
-Table.save(results_dir+cell_type+"_"+file_name+".csv");
+Table.save(results_dir+"Cell_counts.csv");
 
 //save max projection if its scaled image, can use this for further processing later
 selectWindow(max_projection);
+run("Remove Overlay");
+run("Select None");
+
 saveAs("Tiff", results_dir+max_save_name);
 //run("Close");
 roiManager("UseNames", "false");
@@ -1159,12 +1196,14 @@ function draw_ganglia_outline(ganglia_img,edit_flag)
 	
 }
 
+//extended depth of field projection to acccount for out of focus planes. 
 function extended_depth_proj(img)
 {
 	run("CLIJ2 Macro Extensions", "cl_device=");
 	concat_ch="";
 	selectWindow(img);
 	Stack.getDimensions(width, height, channels, slices, frames);
+	getVoxelSize(vox_width, vox_height, vox_depth, vox_unit);
 	if(channels>1)
 	{
 		for(ch=1;ch<=channels;ch++)
@@ -1205,6 +1244,7 @@ function extended_depth_proj(img)
 	}
 	max_name="MAX_"+img;
 	rename(max_name);
+	setVoxelSize(vox_width, vox_height, vox_depth, vox_unit);
 	close(img);
 	return max_name;
 }

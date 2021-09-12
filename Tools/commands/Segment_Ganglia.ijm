@@ -10,7 +10,7 @@ setOption("ExpandableArrays", true);
 
 
 var fiji_dir=getDirectory("imagej");
-var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Other"+fs+"commands";
+var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Tools"+fs+"commands";
 
 //check if ganglia prediction post processing macro present
 var deepimagej_post_processing=gat_dir+fs+"Ganglia_prediction_post_processing.ijm";

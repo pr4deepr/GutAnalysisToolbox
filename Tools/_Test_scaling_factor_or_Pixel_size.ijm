@@ -1,6 +1,23 @@
+var fs=File.separator;
+setOption("ExpandableArrays", true);
+
+print("\\Clear");
+run("Clear Results");
+
+var fiji_dir=getDirectory("imagej");
+var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Tools"+fs+"commands";
+
+gat_settings_path=fiji_dir+"scripts"+fs+"GAT"+fs+"gat_settings.txt";
+if(!File.exists(gat_settings_path)) exit("Cannot find settings file. Check: "+gat_settings_path);
 
 
-fs = File.separator; //get the file separator for the computer (depending on operating system)
+run("Results... ", "open="+gat_settings_path);
+training_pixel_size=parseFloat(Table.get("Values", 0)); //0.7;
+neuron_area_limit=parseFloat(Table.get("Values", 1)); //1500
+neuron_seg_lower_limit=parseFloat(Table.get("Values", 2)); //90
+neuron_lower_limit=parseFloat(Table.get("Values", 3)); //160
+run("Close");
+
 
 #@ File (style="open", label="Choose the image to segment") path
 #@ boolean image_already_open
@@ -21,7 +38,7 @@ fs = File.separator; //get the file separator for the computer (depending on ope
 if(Use_pixel_size && Use_scaling_factor == true) exit("Choose only one option: Pixel size or Scaling factor");
 
 //modify_stardist=Modify_StarDist_Values;
-
+print("\\Clear");
 
 if(image_already_open==true)
 {
@@ -52,6 +69,10 @@ else file_name=series_stack;
 
 Stack.getDimensions(width, height, sizeC, sizeZ, frames);
 getPixelSize(unit, pixelWidth, pixelHeight);
+
+neuron_seg_lower_limit=neuron_seg_lower_limit/pixelWidth; 
+neuron_max_pixels=neuron_area_limit/pixelWidth; //convert micron to pixels
+
 
 if(unit!="microns" && Use_pixel_size==true) exit("Image not calibrated in microns. Please go to ANalyse->SetScale or Image->Properties to set it for the image");
 
@@ -158,12 +179,16 @@ for(scale=scale_factor_1;scale<=scale_factor_2;scale+=step_scale)
 	label_image=getTitle();
 	selectWindow(label_image);
 	run("Remove Overlay");
+	run("Label Size Filtering", "operation=Greater_Than_Or_Equal size="+neuron_seg_lower_limit);
+	label_filtered=getTitle();
+	close(label_image);
+	
 	//run("Remove Border Labels", "left right top bottom");
 	//wait(10);
 	//rename("Label-killBorders_"+scale);
 	run("glasbey_on_dark");
 	//run("LabelMap to ROI Manager (2D)");
-	label_to_roi(label_image);
+	label_to_roi(label_filtered);
 	wait(20);
 	selectWindow(img_seg);
 	run("From ROI Manager");
@@ -171,12 +196,13 @@ for(scale=scale_factor_1;scale<=scale_factor_2;scale+=step_scale)
 	selectWindow(img_seg);
 	img_seg_array[idx]=img_seg;
 	idx+=1;
+	print("No of objects: "+roiManager("count"));
 	//close("Label-killBorders");
 }
 
 run("Cascade");
 print("Verify the segmentation in the images: ");
-Array.print(img_seg_array);
+//Array.print(img_seg_array);
 
 
 function label_to_roi(label_image)

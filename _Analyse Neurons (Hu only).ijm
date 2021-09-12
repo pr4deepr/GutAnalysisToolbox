@@ -18,7 +18,23 @@ setOption("ExpandableArrays", true);
 print("\\Clear");
 
 var fiji_dir=getDirectory("imagej");
-var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Other"+fs+"commands";
+var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Tools"+fs+"commands";
+
+//settings for GAT
+gat_settings_path=fiji_dir+"scripts"+fs+"GAT"+fs+"gat_settings.txt";
+if(!File.exists(gat_settings_path)) exit("Cannot find settings file. Check: "+gat_settings_path);
+run("Results... ", "open="+gat_settings_path);
+training_pixel_size=parseFloat(Table.get("Values", 0)); //0.7;
+neuron_area_limit=parseFloat(Table.get("Values", 1)); //1500
+neuron_seg_lower_limit=parseFloat(Table.get("Values", 2)); //90
+neuron_lower_limit=parseFloat(Table.get("Values", 3)); //160
+run("Close");
+
+//specify directory where StarDist models are stored
+var models_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Models"+fs;
+//Neuron segmentation model
+neuron_model_path=models_dir+"2D_enteric_neuron_v2.zip";
+
 
 //check if required plugins are installed
 var check_plugin=gat_dir+fs+"check_plugin.ijm";
@@ -46,14 +62,15 @@ var fs = File.separator; //get the file separator for the computer (depending on
 #@ File (style="open", label="<html>Choose the image to segment.<br>Enter NA if image is open.<html>") path
 #@ boolean image_already_open
 #@ String(value="<html>If image is already open, tick above box.<html>", visibility="MESSAGE") hint1
-#@ File (style="open", label="<html>Choose the StarDist model file if segmenting neurons.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") neuron_model_path 
+// File (style="open", label="<html>Choose the StarDist model file if segmenting neurons.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") neuron_model_path 
 cell_type="Neuron";
 #@ String(value="<html> Cell counts per ganglia will get cell counts for each ganglia<br/>If you have a channel for neuron and another marker that labels the ganglia (PGP9.5/GFAP/NOS)<br/>that should be enough. You can also manually draw the ganglia<html>",visibility="MESSAGE") hint4
 #@ boolean Cell_counts_per_ganglia (description="Use a pretrained deepImageJ model to predict ganglia outline")
 #@ String(choices={"DeepImageJ","Manually draw ganglia"}, style="radioButtonHorizontal") Ganglia_detection
-//add an option for defining a custom scaling factor
-//Cell_counts_per_ganglia=false;
-training_pixel_size=0.568; //Images were trained in StarDist using images of this pixel size. Change this for adult human. ~0.9?
+#@ String(value="<html>--------------------------------------------------------------Advanced------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_adv
+#@ boolean Change_pixel_size_segmentation (description="Change the pixel size of the scaled image thats used to detect neurons")
+#@ Float(label="Enter pixel size for segmenting neurons. Leave as is if unsure.", value=0.7) training_pixel_size_custom
+if(Change_pixel_size_segmentation==true) training_pixel_size=training_pixel_size_custom
 
 
 if(image_already_open==true)
@@ -85,7 +102,7 @@ run("Remove Overlay");
 
 getPixelSize(unit, pixelWidth, pixelHeight);
 
-//Training images were pixelsize of ~0.568, so scaling images based on this
+//Training images were pixelsize of ~0.568, 0.7 is default value that works
 scale_factor=pixelWidth/training_pixel_size;
 if(scale_factor<1.001 && scale_factor>1) scale_factor=1;
 
@@ -101,11 +118,11 @@ if (!File.exists(results_dir)) File.makeDirectory(results_dir); //create directo
 
 
 //do not include cells greater than 1000 micron in area
-neuron_area_limit=1500; //microns
+//neuron_area_limit=1500; //microns
 neuron_max_pixels=neuron_area_limit/pixelWidth; //convert micron to pixels
 
 //using limit when segmenting neurons
-neuron_seg_lower_limit=90;//microns
+//neuron_seg_lower_limit=90;//microns
 neuron_seg_lower_limit=neuron_seg_lower_limit/pixelWidth; 
 
 

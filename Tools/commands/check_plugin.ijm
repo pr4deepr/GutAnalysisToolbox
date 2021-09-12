@@ -2,7 +2,7 @@
 macro "check_plugins" 
 {
 	print("******Checking if plugins are installed.*******");
-	checks=newArray("DeepImageJ Run","Area Opening","Command From Macro","ROI Color Coder","CLIJ Macro Extensions");//"Area Opening","Shape Smoothing",
+	checks=newArray("DeepImageJ Run","Area Opening","Command From Macro","CLIJ Macro Extensions","StackReg");//"Area Opening","Shape Smoothing","ROI Color Coder",
 	check_plugin_install(checks);
 	print("******Plugins installed.*******");
 	//takes an array of commands as strings and checks if plugins are installed
@@ -23,8 +23,9 @@ macro "check_plugins"
 				if(plugin_command[i]=="ROI Color Coder"){msg="Enable the BAR update site";}
 				else if (plugin_command[i]=="Area Opening") {msg="Activate the IJPB-plugins update site";}
 				else if (plugin_command[i]=="CLIJ Macro Extensions") {msg="Enable the  update site for CLIJ and CLIJ2: https://clij.github.io/clij2-docs/installationInFiji";}
-				else if (plugin_command[i]=="Command From Macro") {msg="Enable the update site for StarDist";}
+				else if (plugin_command[i]=="Command From Macro") {msg="Enable the update site for StarDist and CSBDeep";}
 				else if (plugin_command[i]=="DeepImageJ Run") {msg="Add the update site for DeepImageJ: https://sites.imagej.net/DeepImageJ/";}
+				else if (plugin_command[i]=="StackReg") {msg="Enable the update site for BIG-EPFL: https://sites.imagej.net/DeepImageJ/";}
 				else {msg=plugin_command[i];}
 				print("Error: Install plugin: "+msg);
 				error=1;

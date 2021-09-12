@@ -28,6 +28,7 @@ run("Results... ", "open="+gat_settings_path);
 neuron_area_limit=parseFloat(Table.get("Values", 1)); //1500
 neuron_seg_lower_limit=parseFloat(Table.get("Values", 2)); //90
 neuron_lower_limit=parseFloat(Table.get("Values", 3)); //160
+backgrnd_radius=parseFloat(Table.get("Values", 4)); 
 run("Close");
 
 
@@ -513,6 +514,8 @@ if(marker_subtype==1)
 			roiManager("reset");
 			//segment cells and return image with normal scaling
 			print("Segmenting marker "+channel_name);
+			selectWindow(seg_marker_img);
+			run("Subtract Background...", "rolling="+backgrnd_radius+" sliding");
 			segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype, overlap_subtype);
 			selectWindow(max_projection);
 			roiManager("deselect");
@@ -821,36 +824,52 @@ function multiply_markers(marker1,marker2,minimum_size,maximum_size)
 	
 	
 	// Multiply Images
-	Ext.CLIJ2_multiplyImages(marker1, marker2, image_5);
+	//Ext.CLIJ2_multiplyImages(marker1, marker2, image_5);
 	//Ext.CLIJ2_release(marker1);
-	Ext.CLIJ2_release(marker2);
+	//Ext.CLIJ2_release(marker2);
 	
 	// Exclude Labels Outside Size Range
 	//minimum_size = 300.0;
 	//maximum_size = 3000.0;
-	Ext.CLIJ2_excludeLabelsOutsideSizeRange(image_5, image_6, minimum_size, maximum_size);
-	Ext.CLIJ2_release(image_5);
+	Ext.CLIJ2_excludeLabelsOutsideSizeRange(marker2, marker2_filt, minimum_size, maximum_size);
+
+
+	// Greater Or Equal Constant; convert label image to binary
+	constant = 1.0;
+	Ext.CLIJ2_greaterOrEqualConstant(marker2_filt, marker2_bin, constant);
+	Ext.CLIJ2_release(marker2_filt);
+
+	
+	// Mean Intensity Map -> Area fraction
+	Ext.CLIJ2_meanIntensityMap(marker2_bin, marker1, area_frac);
+	Ext.CLIJ2_release(marker2_bin);
+
+	// Greater Or Equal Constant
+	constant = 0.4;
+	Ext.CLIJ2_greaterOrEqualConstant(area_frac, marker2_area_filt, constant);
+	Ext.CLIJ2_release(area_frac);
+	
 
 	// Label Overlap Count Map; 
 	//marker1 is ref image and counting how many labels in 6 overlap with image_11
-	Ext.CLIJ2_labelOverlapCountMap(marker1,image_6, image_7);
-	Ext.CLIJ2_release(image_6);
+	//Ext.CLIJ2_labelOverlapCountMap(marker1,image_6, image_7);
+	//Ext.CLIJ2_release(image_6);
 	
 	// get cells with overlap of greater than 1 cell
-	constant = 1.0;
-	Ext.CLIJ2_greaterOrEqualConstant(image_7, image_8, constant);
-	Ext.CLIJ2_release(image_7);
+	//constant = 1.0;
+	//Ext.CLIJ2_greaterOrEqualConstant(image_7, image_8, constant);
+	//Ext.CLIJ2_release(image_7);
 	
 	// Multiply Images
-	Ext.CLIJ2_multiplyImages(marker1, image_8, image_9);
-	Ext.CLIJ2_release(image_8);
+	Ext.CLIJ2_multiplyImages(marker1, marker2_area_filt, marker2_processed);
+	Ext.CLIJ2_release(marker2_area_filt);
 	Ext.CLIJ2_release(marker1);
 	
-	Ext.CLIJ2_closeIndexGapsInLabelMap(image_9, image_10);
-	Ext.CLIJ2_release(image_9);
-	Ext.CLIJ2_pull(image_10);
-	
-	return image_10;
+	Ext.CLIJ2_closeIndexGapsInLabelMap(marker2_processed, marker2_idx);
+	Ext.CLIJ2_release(marker2_processed);
+	Ext.CLIJ2_pull(marker2_idx);
+	waitForUser;
+	return marker2_idx;
 }
 
 //Based on macro by Olivier Burri https://forum.image.sc/t/selecting-roi-based-on-name/3809

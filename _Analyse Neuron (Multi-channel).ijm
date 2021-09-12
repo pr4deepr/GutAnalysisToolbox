@@ -688,7 +688,7 @@ if(marker_subtype==1)
 				marker_count=roiManager("count"); // in case any neurons added after analysis of markers
 				selectWindow(table_name);
 				//Table.set("Total "+cell_type, row, cell_count);
-				Table.set("Marker Combinations", row, channel_combinations[i]);
+				Table.set("Marker Combinations", row, roi_file_name);
 				Table.set("Number of cells per marker combination", row, marker_count);
 				//Table.set(""+cell_type, row, marker_count/cell_count);
 				Table.update;
@@ -712,7 +712,7 @@ if(marker_subtype==1)
 					cell_count_per_ganglia=Table.getColumn("Cell counts");
 	
 					selectWindow(table_name);
-					Table.setColumn(channel_combinations[i]+" counts per ganglia", cell_count_per_ganglia);
+					Table.setColumn(roi_file_name+" counts per ganglia", cell_count_per_ganglia);
 					Table.update;
 					
 					selectWindow("cells_ganglia_count");
@@ -875,7 +875,8 @@ function multiply_markers(marker1,marker2,minimum_size,maximum_size)
 	Ext.CLIJ2_closeIndexGapsInLabelMap(marker2_processed, marker2_idx);
 	Ext.CLIJ2_release(marker2_processed);
 	Ext.CLIJ2_pull(marker2_idx);
-	waitForUser;
+	//waitForUser;
+	setTool(3); //freehand tool
 	return marker2_idx;
 }
 

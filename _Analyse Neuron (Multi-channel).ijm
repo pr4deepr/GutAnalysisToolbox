@@ -101,7 +101,7 @@ cell_type="Neuron";
 #@ String(value="<html>--------------------------------------------------------------Advanced------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_adv
 #@ boolean Change_pixel_size_segmentation (description="Change the pixel size of the scaled image thats used to detect neurons")
 #@ Float(label="Enter pixel size for segmenting neurons. Leave as is if unsure.", value=0.7) training_pixel_size_custom
-if(Change_pixel_size_segmentation==true) training_pixel_size=training_pixel_size_custom
+if(Change_pixel_size_segmentation==true) training_pixel_size=training_pixel_size_custom;
 
 print("Using parameters\nSegmentation pixel size:"+training_pixel_size+"\nMax neuron area (microns): "+neuron_area_limit+"\nMin Neuron Area (microns): "+neuron_seg_lower_limit+"\nMin marker area (microns): "+neuron_lower_limit);
 
@@ -728,85 +728,8 @@ marker_combinations=Table.getColumn("Marker Combinations");
 marker_combinations=Array.deleteValue(marker_combinations, 0);
 Table.setColumn("Marker Combinations", marker_combinations);
 
-//remove zeroes in the array
-selectWindow(table_name);
-marker_combinations=Table.getColumn("Marker Combinations"); 
-marker_combinations=Array.deleteValue(marker_combinations, 0);
-Table.setColumn("Marker Combinations", marker_combinations);
-
-
-
 }
 close("label_img_*");
-
-/*
- // Threshold 1 to max for marker channel
-Ext.CLIJ2_thresholdHuang(image_4, image_6);
-Ext.CLIJ2_release(image_4);
-
-mean intensity of neuron label map and marker binary
-// Mean Intensity Map
-Ext.CLIJ2_meanIntensityMap(image_6, image_5, image_7);
-Ext.CLIJ2_release(image_6);
-
-// Greater Or Equal Constant 0.5, only accept neurons of % area >0.5, 0.6?
-constant = 0.5;
-Ext.CLIJ2_greaterOrEqualConstant(image_7, image_8, constant);
-Ext.CLIJ2_release(image_7);
-
-// Multiply Images neuron label multiply image_8 above
-Ext.CLIJ2_multiplyImages(image_5, image_8, image_9);
-Ext.CLIJ2_release(image_5);
-Ext.CLIJ2_release(image_8);
-
-reindex
-
-output label image for marker
- * 
-ADD CODE TO set measurements???
-
-run("Clear Results");
-
-//measure area and display the name of the roi as well
-run("Set Measurements...", "area display redirect=None decimal=3");
-selectWindow(neuron_label);
-
-roiManager("deselect");
-roiManager("Measure");
-selectWindow("Results");
-neuron_area=newArray();
-neuron_names=newArray();
-//setOption("ExpandableArrays", true);
-
-neuron_names=Table.getColumn("Label"); //getResult("Label"); 
-neuron_area=Table.getColumn("Area");//getResult("Area");
-
-run("Close");
-
-selectWindow(table_name);
-Table.setColumn("Neurons", neuron_names);
-Table.setColumn("Area of Neurons (um2)", neuron_area);
-Table.update;
-
-//generate a matrix for subtype expression
-///setOption("ExpandableArrays", true);
-if(neuron_subtype_matrix>=2)
-{
-	if(get_nos==true) 
-	{
-		channel_names[channel_names.length]="NOS"; //add NOS to the end
-		no_markers+=1; //if more than 1 marker, likely that no_markers is >1
-		print("NO markers matrix "+no_markers);
-	}
-	for (i = 0; i < no_markers; i++)
-	{
-		roi_name_table(channel_names[i],table_name);
-		
-	}
-}
-
-
-*/
 
 selectWindow(table_name);
 Table.save(results_dir+"Cell_counts.csv");

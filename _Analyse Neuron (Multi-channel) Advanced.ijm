@@ -58,10 +58,6 @@ var segment_ganglia=gat_dir+fs+"Segment_Ganglia.ijm";
 if(!File.exists(segment_ganglia)) exit("Cannot find segment ganglia script. Returning: "+segment_ganglia);
 
 
-
-
-fs = File.separator; //get the file separator for the computer (depending on operating system)
-
 #@ File (style="open", label="<html>Choose the image to segment.<br>Enter NA if image is open.<html>") path
 #@ boolean image_already_open
 #@ String(value="<html>If image is already open, tick above box.<html>", visibility="MESSAGE") hint1

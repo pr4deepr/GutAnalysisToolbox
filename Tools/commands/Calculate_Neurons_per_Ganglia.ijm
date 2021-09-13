@@ -57,7 +57,8 @@ macro "count_cells_per_ganglia"
 	Ext.CLIJ2_push(cell_img);
 
 	// Flood Fill Components Labeling
-	Ext.CLIJx_morphoLibJFloodFillComponentsLabeling(ganglia_binary, ganglia_labels);
+	Ext.CLIJ2_connectedComponentsLabelingDiamond(ganglia_binary, ganglia_labels);
+	//Ext.CLIJx_morphoLibJFloodFillComponentsLabeling(ganglia_binary, ganglia_labels);
 	Ext.CLIJ2_release(ganglia_binary);
 
 	// Label Overlap Count Map

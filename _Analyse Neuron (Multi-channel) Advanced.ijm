@@ -21,7 +21,7 @@ var fiji_dir=getDirectory("imagej");
 var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Tools"+fs+"commands";
 
 //settings for GAT
-gat_settings_path=fiji_dir+"scripts"+fs+"GAT"+fs+"gat_settings.txt";
+gat_settings_path=gat_dir+fs+"gat_settings.ijm";
 if(!File.exists(gat_settings_path)) exit("Cannot find settings file. Check: "+gat_settings_path);
 run("Results... ", "open="+gat_settings_path);
 //training_pixel_size=parseFloat(Table.get("Values", 0)); //0.7;

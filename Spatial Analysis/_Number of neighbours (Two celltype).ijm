@@ -26,7 +26,7 @@ roiManager("reset");
 var fs=File.separator;
 
 var fiji_dir=getDirectory("imagej");
-var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Other"+fs+"commands";
+var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Tools"+fs+"commands";
 
 
 //check if label to roi macro is present
@@ -233,6 +233,7 @@ function get_parameteric_img(label_overlap_img,cell_img)
 		rename(label_overlap_img);
 		parametric_img=getTitle();
 		
+		run("Fire");
 		return parametric_img;
 
 

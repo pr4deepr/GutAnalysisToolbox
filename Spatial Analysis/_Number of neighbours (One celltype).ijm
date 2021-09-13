@@ -16,7 +16,7 @@ run("Close All");
 var fs=File.separator;
 
 var fiji_dir=getDirectory("imagej");
-var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Other"+fs+"commands";
+var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Tools"+fs+"commands";
 
 
 //check if label to roi macro is present
@@ -39,7 +39,6 @@ if(file_name_length>50) file_name=substring(file_name, 0, 39); //Restricting fil
 getPixelSize(unit, pixelWidth, pixelHeight);
 temp=getTitle();
 roiManager("reset");
-
 //binary image for ganglia
 ganglia_binary="";
 setOption("BlackBackground", true);
@@ -51,31 +50,33 @@ if(File.exists(roi_ganglia_path))
 	runMacro(roi_to_label);
 	wait(10);
 	run("Select None");
-	getMinAndMax(min, max);
-	setThreshold(1, max);
+	run("Remove Overlay");
+	
+	//getMinAndMax(min, max);
+	setThreshold(0.5, 65535);
 	run("Convert to Mask");
+	rename("Ganglia_outline");
 	ganglia_binary=getTitle();
-	run("Divide...", "value=255");
-	resetMinAndMax;
+	run("Divide...", "value=255"); //binary image needs to have 0 and 1 as background and foreground, esp to use in clij
+	setMinAndMax(0, 1);
+	//waitForUser;
 	roiManager("reset");
 	
+	
 }
+else ganglia_binary="NA";
 
 roiManager("open", roi_path);
 //run("ROI Manager to LabelMap(2D)");
 runMacro(roi_to_label);
+rename("Cell_labels");
 wait(10);
 run("Select None");
 label_cell_img=getTitle();
-roiManager("reset");
 
 //define save path based on file name and create a save folder if none
 save_path=save_path+fs+file_name+fs;
 if(!File.exists(save_path)) File.makeDirectory(save_path);
-
-
-
-
 
 run("CLIJ2 Macro Extensions", "cl_device=");
 Ext.CLIJ2_clear();
@@ -86,22 +87,12 @@ Ext.CLIJ2_push(label_cell_img);
 //label_dilation=9; //9 micron dilation
 //convert to pixels
 label_dilation=round(label_dilation/pixelWidth);
-Ext.CLIJx_morphoLibJDilateLabels(label_cell_img, image_4, label_dilation);
-
-//make neuron labels small so we measure only the neighbour count values in the centre
-Ext.CLIJ2_reduceLabelsToCentroids(label_cell_img, centroids);
-Ext.CLIJ2_release(label_cell_img);
-
-// Dilate centroid
-radius = 3.0;
-Ext.CLIJ2_dilateLabels(centroids, cell_centroid_expand, radius);
-Ext.CLIJ2_pullLabelsToROIManager(cell_centroid_expand); //use PTBIOP option?
-Ext.CLIJ2_release(cell_centroid_expand);
-Ext.CLIJ2_release(centroids);
+//Ext.CLIJx_morphoLibJDilateLabels(label_cell_img, image_4, label_dilation);
+Ext.CLIJ2_dilateLabels(label_cell_img, image_4, label_dilation);
 
 if(isOpen(ganglia_binary))
 {
-	
+	Ext.CLIJ2_push(ganglia_binary);
 	Ext.CLIJ2_multiplyImages(image_4, ganglia_binary, label_ganglia_restrict);
 	Ext.CLIJ2_release(image_4);
 	Ext.CLIJ2_release(ganglia_binary);
@@ -116,6 +107,7 @@ else
 }
 
 Ext.CLIJ2_pull(neighbour_count);
+
 run("Fire");
 
 run("Set Measurements...", "min redirect=None decimal=3");

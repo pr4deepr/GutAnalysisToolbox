@@ -34,7 +34,7 @@ subtype_model_path=models_dir+"Neuron_marker_model_v2.zip";
 if(!File.exists(neuron_model_path)||!File.exists(subtype_model_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_model_path+"\n"+subtype_model_path);
 
 //settings for GAT
-gat_settings_path=fiji_dir+"scripts"+fs+"GAT"+fs+"gat_settings.txt";
+gat_settings_path=gat_dir+fs+"gat_settings.ijm";
 if(!File.exists(gat_settings_path)) exit("Cannot find settings file. Check: "+gat_settings_path);
 run("Results... ", "open="+gat_settings_path);
 training_pixel_size=parseFloat(Table.get("Values", 0)); //0.7;

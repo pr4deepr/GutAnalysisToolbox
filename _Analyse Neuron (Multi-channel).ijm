@@ -527,7 +527,7 @@ if(marker_subtype==1)
 			print("Segmenting marker "+channel_name);
 			selectWindow(seg_marker_img);
 			run("Subtract Background...", "rolling="+backgrnd_radius+" sliding");
-			segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,0.5,0.45);
+			segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,0.45,0.45);
 			selectWindow(max_projection);
 			roiManager("deselect");
 			runMacro(roi_to_label);

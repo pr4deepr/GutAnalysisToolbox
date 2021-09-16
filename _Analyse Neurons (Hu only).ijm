@@ -68,7 +68,9 @@ if(!File.exists(segment_ganglia)) exit("Cannot find segment ganglia script. Retu
 #@ String(value="<html>If image is already open, tick above box.<html>", visibility="MESSAGE") hint1
 // File (style="open", label="<html>Choose the StarDist model file if segmenting neurons.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") neuron_model_path 
 cell_type="Neuron";
-#@ String(value="<html> Cell counts per ganglia will get cell counts for each ganglia<br/>If you have a channel for neuron and another marker that labels the ganglia (PGP9.5/GFAP/NOS)<br/>that should be enough. You can also manually draw the ganglia<html>",visibility="MESSAGE") hint4
+#@ String(value="<html>----------------------------------------------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_star
+#@ String(value="<html><center><b>DETERMINE GANGLIA OUTLINE</b></center> <html>",visibility="MESSAGE") hint_ganglia
+#@ String(value="<html> Cell counts per ganglia will be calculated<br/> This needs a neuron channel & second channel that labels the<br/> neuronal fibres (PGP9.5/GFAP/NOS/Calbindin...).<br/>  You have the option of manually drawing the ganglia<html>",visibility="MESSAGE") hint4
 #@ boolean Cell_counts_per_ganglia (description="Use a pretrained deepImageJ model to predict ganglia outline")
 #@ String(choices={"DeepImageJ","Manually draw ganglia"}, style="radioButtonHorizontal") Ganglia_detection
 #@ String(value="<html>--------------------------------------------------------------Advanced------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_adv

@@ -76,9 +76,9 @@ cell_type="Neuron";
 #@ String(label="Enter channel numbers with separated by a comma (,). Leave as NA if not using.", value="NA") marker_no_manual
 #@ String(value="<html>-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_star
 #@ String(value="<html><center><b>DETERMINE GANGLIA OUTLINE</b></center> <html>",visibility="MESSAGE") hint_ganglia
-#@ String(value="<html> You will get cell counts for each ganglia<br/>If you have a channel for neuron and another channel that labels the ganglia (PGP9.5/GFAP/NOS/Calbindin...)<br/>it should be sufficient to calculate ganglia outline. You can also manually draw the ganglia<html>",visibility="MESSAGE") hint4
-#@ String(label="<html> Enter the channel to use for segmenting ganglia.<br/> Preferably a bright marker that labels most of the ganglia.<br/> Leave as NA if not using.<html> ", value="NA") ganglia_channel
+#@ String(value="<html> Cell counts per ganglia will be calculated<br/> This needs a neuron channel & second channel that labels the<br/> neuronal fibres (PGP9.5/GFAP/NOS/Calbindin...).<br/>  You have the option of manually drawing the ganglia<html>",visibility="MESSAGE") hint4
 #@ boolean Cell_counts_per_ganglia (description="Use a pretrained deepImageJ model to predict ganglia outline")
+#@ String(label="<html> Enter the channel NUMBER for segmenting ganglia.<br/> Preferably a bright marker that labels most neuronal fibres.<br/> Leave as NA if not using.<html> ", value="NA") ganglia_channel
 #@ String(choices={"DeepImageJ","Manually draw ganglia"}, style="radioButtonHorizontal") Ganglia_detection
 
 #@ String(value="<html>-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_star
@@ -96,15 +96,24 @@ cell_type="Neuron";
 #@ Double (label="Probability ", style="slider", min=0, max=1, stepSize=0.05,value=0.55) probability_subtype
 #@ Double (label="Overlap Threhshold", style="slider", min=0, max=1, stepSize=0.05,value=0.5) overlap_subtype
 
+//check if files exist
+if(!File.exists(neuron_model_path)) exit("Cannot find Neuron model file. Check if file is at: "+neuron_model_path);
+if(!File.exists(subtype_model_path)) exit("Cannot find subtype model file. Check if file is at: "+subtype_model_path);
+print("Using Cell model "+neuron_model_path);
+print("Using Subtype model "+subtype_model_path);
+
 
 //add an option for defining a custom scaling factor
-
 marker_subtype=Calculate_Neuron_Subtype;
 
 //checking if no of markers and no of channels match
 if(marker_subtype==1 && Enter_channel_details_now==1)
 {
-	marker_names_manual=split(marker_names_manual, ",");	
+	marker_names_manual=split(marker_names_manual, ",");
+
+	//trim space from names
+	marker_names_manual=trim_space_arr(marker_names_manual);	
+	
 	marker_no_manual=split(marker_no_manual, ",");
 	if(marker_names_manual.length!=marker_no_manual.length) exit("Number of marker names and marker channels do not match");
 }
@@ -149,13 +158,13 @@ else
 	scale_factor=scale_factor_1;
 }
 
-print(scale_factor);
+//print(scale_factor);
 
 print("Analysing: "+file_name);
 analysis_dir= dir+"Analysis"+fs;
 if (!File.exists(analysis_dir)) File.makeDirectory(analysis_dir);
 print("Files will be saved at: "+analysis_dir); 
-print("Analysing: "+file_name);
+//print("Analysing: "+file_name);
 //Create results directory with file name in "analysis"
 results_dir=analysis_dir+file_name+fs; //directory to save images
 if (!File.exists(results_dir)) File.makeDirectory(results_dir); //create directory to save results file
@@ -645,7 +654,7 @@ if(marker_subtype==1)
 				}
 				else 
 				{
-					print(j);
+					//print(j);
 					img2=marker_label_arr[channel_pos];
 					img1=result;
 					//print("Processing "+img1+" * "+img2);
@@ -735,7 +744,19 @@ Table.setColumn("Marker Combinations", marker_combinations);
 }
 close("label_img_*");
 
+
+//remove zeroes in the file name
 selectWindow(table_name);
+file_array=Table.getColumn("File name"); 
+file_array=Array.deleteValue(file_array, 0);
+Table.setColumn("File name", file_array);
+
+//remove zeroes in neuron array
+file_array=Table.getColumn("Total "+cell_type); 
+file_array=Array.deleteValue(file_array, 0);
+Table.setColumn("Total "+cell_type, file_array);
+Table.update;
+
 Table.save(results_dir+cell_type+"_"+file_name+".csv");
 
 //save max projection if its scaled image, can use this for further processing later
@@ -760,8 +781,8 @@ function segment_cells(max_projection,img_seg,model_file,n_tiles,width,height,sc
 	//StarDist command takes the escape character as well, so pass 16 backlash to get 4xbackslash in the StarDIst macro command (which is then converted into 2)
 	model_file=replace(model_file, "\\\\","\\\\\\\\\\\\\\\\");
 	choice=0;
-	print(img_seg);
-	print(max_projection);
+	//print(img_seg);
+	//print(max_projection);
 	roiManager("reset");
 	//model_file="D:\\\\Gut analysis toolbox\\\\models\\\\2d_enteric_neuron\\\\TF_SavedModel.zip";
 	selectWindow(img_seg);
@@ -868,42 +889,10 @@ function multiply_markers(marker1,marker2,minimum_size,maximum_size)
 	Ext.CLIJ2_closeIndexGapsInLabelMap(marker2_processed, marker2_idx);
 	Ext.CLIJ2_release(marker2_processed);
 	Ext.CLIJ2_pull(marker2_idx);
-	waitForUser;
+	//waitForUser;
 	return marker2_idx;
 }
 
-//Based on macro by Olivier Burri https://forum.image.sc/t/selecting-roi-based-on-name/3809
-//finds rois that contain a string; converts it to lowercase, so its case-insensitive
-function find_ROI_name(roiName)
-{
-
-	roiName=toLowerCase(roiName);
-	nR = roiManager("Count"); 
-	roiIdx = newArray(nR); 
-	k=0; 
-	clippedIdx = newArray(0); 
-	
-	regex=".*"+roiName+".*";
-	
-	for (i=0; i<nR; i++) 
-	{ 
-		roiManager("Select", i); 
-		rName = toLowerCase(Roi.getName()); 
-		if (matches(rName, regex)) 
-		{ 
-			roiIdx[k] = i; 
-			k++; 
-			print(i);
-		} 
-	} 
-	if (k>0) 
-	{ 
-		clippedIdx = Array.trim(roiIdx,k); 
-		//roiManager("select", clippedIdx);
-	} 
-	//else roiManager("deselect");
-	return k;
-}
 
 //add a value to every element of an array
 function add_value_array(arr,val)
@@ -1122,4 +1111,15 @@ function extended_depth_proj(img)
 	rename(max_name);
 	close(img);
 	return max_name;
+}
+
+//remove space from strings in array
+function trim_space_arr(arr)
+{
+	for (i = 0; i < arr.length; i++)
+	{
+		temp=String.trim(arr[i]); //arr[i]+val;
+		arr[i]=temp;
+	}
+return arr;
 }

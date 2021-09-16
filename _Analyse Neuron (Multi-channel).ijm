@@ -20,13 +20,14 @@ setOption("ExpandableArrays", true);
 print("\\Clear");
 run("Clear Results");
 
+//get fiji directory and get the macro folder for GAT
 var fiji_dir=getDirectory("imagej");
 var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Tools"+fs+"commands";
 
 
-
 //specify directory where StarDist models are stored
 var models_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Models"+fs;
+
 //Neuron segmentation model
 neuron_model_path=models_dir+"2D_enteric_neuron_v2.zip";
 //Marker segmentation model
@@ -95,9 +96,9 @@ cell_type="Neuron";
 #@ String(label="Enter channel numbers with separated by a comma (,). Leave as NA if not using.", value="NA") marker_no_manual
 #@ String(value="<html>-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_star
 #@ String(value="<html><center><b>DETERMINE GANGLIA OUTLINE</b></center> <html>",visibility="MESSAGE") hint_ganglia
-#@ String(value="<html> You will get cell counts for each ganglia<br/>If you have a channel for neuron and another channel that labels the ganglia (PGP9.5/GFAP/NOS/Calbindin...)<br/>it should be sufficient to calculate ganglia outline. You can also manually draw the ganglia<html>",visibility="MESSAGE") hint4
-#@ String(label="<html> Enter the channel to use for segmenting ganglia.<br/> Preferably a bright marker that labels most of the ganglia.<br/> Leave as NA if not using.<html> ", value="NA") ganglia_channel
+#@ String(value="<html> Cell counts per ganglia will be calculated<br/> This needs a neuron channel & second channel that labels the<br/> neuronal fibres (PGP9.5/GFAP/NOS/Calbindin...).<br/>  You have the option of manually drawing the ganglia<html>",visibility="MESSAGE") hint4
 #@ boolean Cell_counts_per_ganglia (description="Use a pretrained deepImageJ model to predict ganglia outline")
+#@ String(label="<html> Enter the channel NUMBER for segmenting ganglia.<br/> Preferably a bright marker that labels most neuronal fibres.<br/> Leave as NA if not using.<html> ", value="NA") ganglia_channel
 #@ String(choices={"DeepImageJ","Manually draw ganglia"}, style="radioButtonHorizontal") Ganglia_detection
 #@ String(value="<html>--------------------------------------------------------------Advanced------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_adv
 #@ boolean Change_pixel_size_segmentation (description="Change the pixel size of the scaled image thats used to detect neurons")
@@ -114,7 +115,13 @@ marker_subtype=Calculate_Neuron_Subtype;
 //checking if no of markers and no of channels match
 if(marker_subtype==1 && Enter_channel_details_now==1)
 {
-	marker_names_manual=split(marker_names_manual, ",");	
+	print(marker_names_manual);
+	marker_names_manual=split(marker_names_manual, ",");
+	
+	//trim space from names
+	marker_names_manual=trim_space_arr(marker_names_manual);
+	//Array.show(marker_names_manual);
+	
 	marker_no_manual=split(marker_no_manual, ",");
 	if(marker_names_manual.length!=marker_no_manual.length) exit("Number of marker names and marker channels do not match");
 }
@@ -513,10 +520,15 @@ if(marker_subtype==1)
 			selectWindow(max_projection);
 			Stack.setChannel(channel_no);
 			run("Select None");
-			
+
+			print(channel_name);
+			//run("Duplicate...", "title="+channel_name+"_segmentation duplicate channels="+channel_no);
 			run("Duplicate...", "title="+channel_name+"_segmentation");
-			marker_image=getTitle();
 			//waitForUser;
+			marker_image=getTitle();
+			print(marker_image);
+			//waitForUser;
+			
 			//scaling marker images so we can segment them using same size as images used for training the model. Also, ensures consistent size exclusion area
 			seg_marker_img=scale_image(marker_image,scale_factor,channel_name);
 			//print(seg_marker_img);
@@ -738,6 +750,18 @@ Table.setColumn("Marker Combinations", marker_combinations);
 }
 close("label_img_*");
 
+//remove zeroes in the file name
+selectWindow(table_name);
+file_array=Table.getColumn("File name"); 
+file_array=Array.deleteValue(file_array, 0);
+Table.setColumn("File name", file_array);
+
+//remove zeroes in neuron array
+file_array=Table.getColumn("Total "+cell_type); 
+file_array=Array.deleteValue(file_array, 0);
+Table.setColumn("Total "+cell_type, file_array);
+Table.update;
+
 selectWindow(table_name);
 Table.save(results_dir+"Cell_counts.csv");
 
@@ -880,38 +904,18 @@ function multiply_markers(marker1,marker2,minimum_size,maximum_size)
 	return marker2_idx;
 }
 
-//Based on macro by Olivier Burri https://forum.image.sc/t/selecting-roi-based-on-name/3809
-//finds rois that contain a string; converts it to lowercase, so its case-insensitive
-function find_ROI_name(roiName)
-{
 
-	roiName=toLowerCase(roiName);
-	nR = roiManager("Count"); 
-	roiIdx = newArray(nR); 
-	k=0; 
-	clippedIdx = newArray(0); 
-	
-	regex=".*"+roiName+".*";
-	
-	for (i=0; i<nR; i++) 
-	{ 
-		roiManager("Select", i); 
-		rName = toLowerCase(Roi.getName()); 
-		if (matches(rName, regex)) 
-		{ 
-			roiIdx[k] = i; 
-			k++; 
-			//print(i);
-		} 
-	} 
-	if (k>0) 
-	{ 
-		clippedIdx = Array.trim(roiIdx,k); 
-		//roiManager("select", clippedIdx);
-	} 
-	//else roiManager("deselect");
-	return k;
+//remove space from strings in array
+function trim_space_arr(arr)
+{
+	for (i = 0; i < arr.length; i++)
+	{
+		temp=String.trim(arr[i]); //arr[i]+val;
+		arr[i]=temp;
+	}
+return arr;
 }
+
 
 //add a value to every element of an array
 function add_value_array(arr,val)
@@ -944,15 +948,16 @@ function scale_image(img,scale_factor,name)
 			Stack.getDimensions(width, height, channels, slices, frames);
 			new_width=round(width*scale_factor); 
 			new_height=round(height*scale_factor);
-			run("Scale...", "x=- y=- width="+new_width+" height="+new_height+" interpolation=None create title="+name+"_resize");
-			close(img);
-			//selectWindow(name+"_resize");
 			scaled_img=name+"_resize";
+			run("Scale...", "x=- y=- width="+new_width+" height="+new_height+" interpolation=None create title="+scaled_img);
+			close(img);
+			selectWindow(name+"_resize");
+			
 		}
 	else 
-	{
-		scaled_img=img;
-	}
+		{
+			scaled_img=img;
+		}
 		return scaled_img;
 }
 

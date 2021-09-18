@@ -88,7 +88,7 @@ fs = File.separator; //get the file separator for the computer (depending on ope
 #@ boolean Calculate_Neuron_Subtype
 #@ String(value="<html>Tick above box if you want to estimate proportion of neuronal subtypes.<html>", visibility="MESSAGE") hint3
 // File (style="open", label="<html>Choose the StarDist model for subtype segmentation.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") subtype_model_path 
-cell_type="Neuron";
+cell_type="Hu";
 
 #@ String(value="<html>If you already know the channel names and numbers, check the box below and enter them.<br/> The channel numbers MUST match the channel name order.<br/> You have the option of entering them later in the analysis<html>",visibility="MESSAGE") hint5
 #@ boolean Enter_channel_details_now
@@ -359,7 +359,7 @@ neuron_label_image=getTitle();
 //using this image to detect neuron subtypes by label overlap
 selectWindow(neuron_label_image);
 max_save_name="MAX_"+file_name;
-saveAs("Tiff", results_dir+"Neuron_label_"+max_save_name);
+saveAs("Tiff", results_dir+cell_type+"n_label_"+max_save_name);
 rename("Neuron_label"); //saving the file will change the name, so renaming it and getting image name again
 neuron_label_image=getTitle();
 selectWindow(neuron_label_image);
@@ -583,6 +583,8 @@ if(marker_subtype==1)
 			//Table.set("Total "+cell_type, row, cell_count);
 			Table.set("Marker Combinations", row, channel_name);
 			Table.set("Number of cells per marker combination", row, marker_count);
+			Table.set("|", row, "|");
+
 			//Table.set(""+cell_type, row, marker_count/cell_count);
 			Table.update;
 			row+=1;
@@ -702,6 +704,7 @@ if(marker_subtype==1)
 				//Table.set("Total "+cell_type, row, cell_count);
 				Table.set("Marker Combinations", row, roi_file_name);
 				Table.set("Number of cells per marker combination", row, marker_count);
+				Table.set("|", row, "|");
 				//Table.set(""+cell_type, row, marker_count/cell_count);
 				Table.update;
 				row+=1;
@@ -747,6 +750,14 @@ marker_combinations=Table.getColumn("Marker Combinations");
 marker_combinations=Array.deleteValue(marker_combinations, 0);
 Table.setColumn("Marker Combinations", marker_combinations);
 
+//trim marker combination column to remove zeroes
+marker_comb_length=marker_combinations.length;
+no_cells_marker=Table.getColumn("Number of cells per marker combination");
+no_cells_marker=Array.trim(no_cells_marker,marker_comb_length);
+Table.setColumn("Number of cells per marker combination", no_cells_marker);
+Table.update;
+
+
 }
 close("label_img_*");
 
@@ -760,7 +771,15 @@ Table.setColumn("File name", file_array);
 file_array=Table.getColumn("Total "+cell_type); 
 file_array=Array.deleteValue(file_array, 0);
 Table.setColumn("Total "+cell_type, file_array);
+
+
+//replace zeroes in divider column with divider
+file_array=Table.getColumn("|"); 
+file_array=replace_str_arr(file_array,0,"|");
+Table.setColumn("|", file_array);
 Table.update;
+
+
 
 selectWindow(table_name);
 Table.save(results_dir+"Cell_counts.csv");
@@ -1044,6 +1063,23 @@ function find_str_array(arr,name)
 		} 
 	} 
 	return position;
+}
+
+
+//replace value in array
+function replace_str_arr(arr,old,new)
+{
+
+	name=".*"+toLowerCase(old)+".*";
+	no_str=arr.length;
+	for (i=0; i<no_str; i++) 
+	{ 
+		if (matches(toLowerCase(arr[i]), name)) 
+		{ 
+		 arr[i]=new;
+		} 
+	} 
+	return arr;
 }
 
 

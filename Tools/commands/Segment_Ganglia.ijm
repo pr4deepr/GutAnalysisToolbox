@@ -60,8 +60,8 @@ macro "ganglia_prediction"
 		args=getArgument();
 		arg_array=split(args, ",");
 		max_projection=arg_array[0];
-		cell_channel=arg_array[1];
-		ganglia_channel=arg_array[2];			
+		cell_channel=parseInt(arg_array[1]);
+		ganglia_channel=parseInt(arg_array[2]);			
 
 	}
 
@@ -82,11 +82,13 @@ function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel)
 	
 	selectWindow(max_projection);
 	run("Select None");
+	Stack.setChannel(ganglia_channel);
 	run("Duplicate...", "title=ganglia_ch duplicate channels="+ganglia_channel);
 	run("Green");
 	
 	selectWindow(max_projection);
 	run("Select None");
+	Stack.setChannel(cell_channel);
 	run("Duplicate...", "title=cells_ch duplicate channels="+cell_channel);
 	run("Magenta");
 	

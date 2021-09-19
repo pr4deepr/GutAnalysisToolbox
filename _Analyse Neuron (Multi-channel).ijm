@@ -43,6 +43,12 @@ neuron_area_limit=parseFloat(Table.get("Values", 1)); //1500
 neuron_seg_lower_limit=parseFloat(Table.get("Values", 2)); //90
 neuron_lower_limit=parseFloat(Table.get("Values", 3)); //160
 backgrnd_radius=parseFloat(Table.get("Values", 4)); 
+
+probability=parseFloat(Table.get("Values", 5)); //prob neuron
+probability_subtype=parseFloat(Table.get("Values", 6)); //prob subtype
+
+overlap= parseFloat(Table.get("Values", 7));
+overlap_subtype=parseFloat(Table.get("Values", 8));
 run("Close");
 
 
@@ -105,7 +111,10 @@ cell_type="Hu";
 #@ Float(label="Enter pixel size for segmenting neurons. Leave as is if unsure.", value=0.7) training_pixel_size_custom
 if(Change_pixel_size_segmentation==true) training_pixel_size=training_pixel_size_custom;
 
+//listing parameters being used for GAT
 print("Using parameters\nSegmentation pixel size:"+training_pixel_size+"\nMax neuron area (microns): "+neuron_area_limit+"\nMin Neuron Area (microns): "+neuron_seg_lower_limit+"\nMin marker area (microns): "+neuron_lower_limit);
+print("**Neuron\nProbability: "+probability+"\nOverlap threshold: "+overlap);
+print("**Neuron subtype\nProbability: "+probability_subtype+"\nOverlap threshold: "+overlap_subtype+"\n");
 
 
 //add an option for defining a custom scaling factor
@@ -115,7 +124,7 @@ marker_subtype=Calculate_Neuron_Subtype;
 //checking if no of markers and no of channels match
 if(marker_subtype==1 && Enter_channel_details_now==1)
 {
-	print(marker_names_manual);
+	//print(marker_names_manual);
 	marker_names_manual=split(marker_names_manual, ",");
 	
 	//trim space from names
@@ -148,7 +157,7 @@ else
 
 file_name_length=lengthOf(file_name);
 if(file_name_length>50) file_name=substring(file_name, 0, 39); //Restricting file name length as in Windows long path names can cause errors
-//print(file_name);
+
 
 img_name=getTitle();
 Stack.getDimensions(width, height, sizeC, sizeZ, frames);
@@ -342,7 +351,7 @@ selectWindow("Log");
 print("*********Segmenting cells using StarDist********");
 
 //segment neurons using StarDist model
-segment_cells(max_projection,seg_image,neuron_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,0.5,0.5);
+segment_cells(max_projection,seg_image,neuron_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap);
 
 
 //manually correct or verify if needed
@@ -521,12 +530,12 @@ if(marker_subtype==1)
 			Stack.setChannel(channel_no);
 			run("Select None");
 
-			print(channel_name);
+			//print(channel_name);
 			//run("Duplicate...", "title="+channel_name+"_segmentation duplicate channels="+channel_no);
 			run("Duplicate...", "title="+channel_name+"_segmentation");
 			//waitForUser;
 			marker_image=getTitle();
-			print(marker_image);
+			//print(marker_image);
 			//waitForUser;
 			
 			//scaling marker images so we can segment them using same size as images used for training the model. Also, ensures consistent size exclusion area
@@ -539,7 +548,7 @@ if(marker_subtype==1)
 			print("Segmenting marker "+channel_name);
 			selectWindow(seg_marker_img);
 			run("Subtract Background...", "rolling="+backgrnd_radius+" sliding");
-			segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,0.45,0.45);
+			segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype,overlap_subtype);
 			selectWindow(max_projection);
 			roiManager("deselect");
 			runMacro(roi_to_label);
@@ -755,6 +764,12 @@ marker_comb_length=marker_combinations.length;
 no_cells_marker=Table.getColumn("Number of cells per marker combination");
 no_cells_marker=Array.trim(no_cells_marker,marker_comb_length);
 Table.setColumn("Number of cells per marker combination", no_cells_marker);
+
+
+//replace zeroes in divider column with divider
+file_array=Table.getColumn("|"); 
+file_array=replace_str_arr(file_array,0,"|");
+Table.setColumn("|", file_array);
 Table.update;
 
 
@@ -773,11 +788,7 @@ file_array=Array.deleteValue(file_array, 0);
 Table.setColumn("Total "+cell_type, file_array);
 
 
-//replace zeroes in divider column with divider
-file_array=Table.getColumn("|"); 
-file_array=replace_str_arr(file_array,0,"|");
-Table.setColumn("|", file_array);
-Table.update;
+
 
 
 

@@ -28,6 +28,8 @@ training_pixel_size=parseFloat(Table.get("Values", 0)); //0.7;
 neuron_area_limit=parseFloat(Table.get("Values", 1)); //1500
 neuron_seg_lower_limit=parseFloat(Table.get("Values", 2)); //90
 neuron_lower_limit=parseFloat(Table.get("Values", 3)); //160
+probability=parseFloat(Table.get("Values", 5)); //prob neuron
+overlap= parseFloat(Table.get("Values", 7));
 run("Close");
 
 //specify directory where StarDist models are stored
@@ -79,6 +81,10 @@ cell_type="Neuron";
 if(Change_pixel_size_segmentation==true) training_pixel_size=training_pixel_size_custom;
 
 
+//listing parameters being used for GAT
+print("Using parameters\nSegmentation pixel size:"+training_pixel_size+"\nMax neuron area (microns): "+neuron_area_limit+"\nMin Neuron Area (microns): "+neuron_seg_lower_limit+"\nMin marker area (microns): "+neuron_lower_limit);
+print("**Neuron\nProbability: "+probability+"\nOverlap threshold: "+overlap);
+
 if(image_already_open==true)
 {
 	waitForUser("Select Image and choose output folder in next prompt");
@@ -97,6 +103,7 @@ else
 //file_name=File.nameWithoutExtension;
 file_name_length=lengthOf(file_name_full);
 if(file_name_length>50) file_name=substring(file_name_full, 0, 39); //Restricting file name length as in Windows long path names can cause errors
+else file_name=file_name_full;
 //print(file_name);
 
 img_name=getTitle();
@@ -244,7 +251,8 @@ selectWindow("Log");
 print("*********Segmenting cells using StarDist********");
 
 //segment neurons using StarDist model
-segment_cells(max_projection,seg_image,neuron_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit);
+segment_cells(max_projection,seg_image,neuron_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap);
+
 close(seg_image);
 
 //manually correct or verify if needed
@@ -344,7 +352,8 @@ exit("Neuron analysis complete");
 //function to segment cells using max projection, image to segment, model file location
 //no of tiles for stardist, width and height of image
 //returns the ROI manager with ROIs overlaid on the image.
-function segment_cells(max_projection,img_seg,model_file,n_tiles,width,height,scale_factor,neuron_seg_lower_limit)
+function segment_cells(max_projection,img_seg,model_file,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap)
+
 {
 	//need to have the file separator as \\\\ in the file path when passing to StarDist Command from Macro. 
 	//regex uses \ as an escape character, so \\ gives one backslash \, \\\\ gives \\.
@@ -357,7 +366,7 @@ function segment_cells(max_projection,img_seg,model_file,n_tiles,width,height,sc
 	roiManager("reset");
 	//model_file="D:\\\\Gut analysis toolbox\\\\models\\\\2d_enteric_neuron\\\\TF_SavedModel.zip";
 	selectWindow(img_seg);
-	run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'0.4', 'nmsThresh':'0.45', 'outputType':'Label Image', 'modelFile':'"+model_file+"', 'nTiles':'"+n_tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
+	run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Label Image', 'modelFile':'"+model_file+"', 'nTiles':'"+n_tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
 	wait(50);
 	temp=getTitle();
 	run("Duplicate...", "title=label_image");

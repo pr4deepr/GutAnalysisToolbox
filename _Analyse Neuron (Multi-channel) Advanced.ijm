@@ -97,8 +97,10 @@ cell_type="Hu";
 #@ Double (label="Overlap Threhshold", style="slider", min=0, max=1, stepSize=0.05,value=0.5) overlap_subtype
 
 //check if files exist
+
 if(!File.exists(neuron_model_path)) exit("Cannot find Neuron model file. Check if file is at: "+neuron_model_path);
-if(!File.exists(subtype_model_path)) exit("Cannot find subtype model file. Check if file is at: "+subtype_model_path);
+if((File.getNameWithoutExtension(subtype_model_path)!="NA") && (!File.exists(subtype_model_path))) exit("Cannot find subtype model file. Check if file is at: "+subtype_model_path);
+
 print("Using Cell model "+neuron_model_path);
 print("Using Subtype model "+subtype_model_path);
 
@@ -137,7 +139,6 @@ else
 
 file_name_length=lengthOf(file_name);
 if(file_name_length>50) file_name=substring(file_name, 0, 39); //Restricting file name length as in Windows long path names can cause errors
-
 
 img_name=getTitle();
 Stack.getDimensions(width, height, sizeC, sizeZ, frames);
@@ -742,6 +743,11 @@ no_cells_marker=Array.trim(no_cells_marker,marker_comb_length);
 Table.setColumn("Number of cells per marker combination", no_cells_marker);
 Table.update;
 
+//replace zeroes in divider column with divider
+file_array=Table.getColumn("|"); 
+file_array=replace_str_arr(file_array,0,"|");
+Table.setColumn("|", file_array);
+Table.update;
 
 }
 close("label_img_*");
@@ -759,11 +765,7 @@ file_array=Array.deleteValue(file_array, 0);
 Table.setColumn("Total "+cell_type, file_array);
 Table.update;
 
-//replace zeroes in divider column with divider
-file_array=Table.getColumn("|"); 
-file_array=replace_str_arr(file_array,0,"|");
-Table.setColumn("|", file_array);
-Table.update;
+
 
 Table.save(results_dir+cell_type+"_"+file_name+".csv");
 

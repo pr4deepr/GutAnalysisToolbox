@@ -1,5 +1,7 @@
 # GutAnalysisToolbox
-Semi-automated analysis of cells within the gastrointestinal tract with an emphasis on the enteric nervous system
+Semi-automated analysis of cells within the gastrointestinal tract with an emphasis on the neurons and glia within the gut wall (enteric nervous system)
+The toolbox allows automated segmentation of neurons and neuronal subtypes. 
+You can quantify the proportion of neuronal subtypes and also get the cell number per ganglia.
 
 ## Installing and configuring GAT
 

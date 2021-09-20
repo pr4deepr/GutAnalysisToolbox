@@ -20,3 +20,6 @@ GAT requires the following update sites:
 
 
 GAT update site: https://sites.imagej.net/GutAnalysisToolbox/
+
+## Installing model files
+[Click to Download model folders](https://wehieduau-my.sharepoint.com/:u:/g/personal/rajasekhar_p_wehi_edu_au/Ecg001ngdvhBgRaWxVakPecBF8d5Qb361PgXYFrcxp8Azw?download=1)

@@ -7,7 +7,7 @@ You can quantify the proportion of neuronal subtypes and also get the cell numbe
 
 Click  on this video to watch how to install and configure FIJI and GAT
 
-[![Youtube](https://img.youtube.com/vi/50OsM3ZV6Jo/0.jpg)](https://www.youtube.com/playlist?list=PLmBt1Dumq60p4mIFT4j7TP_PVRjbO55Oi)
+[![Youtube](https://img.youtube.com/vi/50OsM3ZV6Jo/0.jpg)](https://www.youtube.com/playlist?list=PLmBt1Dumq60p4mIFT4j7TP_PVRjbO55Oi){:target="_blank"}
 
 GAT requires the following update sites:
 * BIG-EPFL

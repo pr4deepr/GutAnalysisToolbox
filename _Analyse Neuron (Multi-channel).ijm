@@ -88,28 +88,42 @@ fs = File.separator; //get the file separator for the computer (depending on ope
 #@ boolean image_already_open
 #@ String(value="<html>If image is already open, tick above box.<html>", visibility="MESSAGE") hint1
 // File (style="open", label="<html>Choose the StarDist model file if segmenting neurons.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") neuron_model_path 
-#@ String(label="Enter channel number for Hu if you know. Leave as NA if not using.", value="NA") cell_channel
-#@ String(value="<html>-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_star
+#@ String(label="Enter channel number for Hu if you know. Enter NA if not using.", value="NA") cell_channel
+#@ String(value="<html>----------------------------------------------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") divider
 #@ String(value="<html><center><b>NEURONAL SUBTYPE ANALYSIS</b></center> <html>",visibility="MESSAGE") hint_subtype
+#@ String(value="<html>Tick box below if you want to estimate proportion of neuronal subtypes.<html>", visibility="MESSAGE") hint3
 #@ boolean Calculate_Neuron_Subtype
-#@ String(value="<html>Tick above box if you want to estimate proportion of neuronal subtypes.<html>", visibility="MESSAGE") hint3
 // File (style="open", label="<html>Choose the StarDist model for subtype segmentation.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") subtype_model_path 
 cell_type="Hu";
-
-#@ String(value="<html>If you already know the channel names and numbers, check the box below and enter them.<br/> The channel numbers MUST match the channel name order.<br/> You have the option of entering them later in the analysis<html>",visibility="MESSAGE") hint5
+#@ String(value="<html> Tick box below if you know channel name and numbers<br/> The order of channel numbers MUST match with channel name order.<html>",visibility="MESSAGE") hint5
 #@ boolean Enter_channel_details_now
-#@ String(label="Enter channel names followed by a comma (,). Leave as NA if not using.", value="NA") marker_names_manual
+#@ String(label="Enter channel names followed by a comma (,). Enter NA if not using.", value="NA") marker_names_manual
 #@ String(label="Enter channel numbers with separated by a comma (,). Leave as NA if not using.", value="NA") marker_no_manual
-#@ String(value="<html>-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_star
+#@ String(value="<html>----------------------------------------------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") divider
 #@ String(value="<html><center><b>DETERMINE GANGLIA OUTLINE</b></center> <html>",visibility="MESSAGE") hint_ganglia
-#@ String(value="<html> Cell counts per ganglia will be calculated<br/> This needs a neuron channel & second channel that labels the<br/> neuronal fibres (PGP9.5/GFAP/NOS/Calbindin...).<br/>  You have the option of manually drawing the ganglia<html>",visibility="MESSAGE") hint4
+#@ String(value="<html> Cell counts per ganglia will be calculated<br/>Requires a neuron channel & second channel that labels the neuronal fibres.<html>",visibility="MESSAGE") hint4
 #@ boolean Cell_counts_per_ganglia (description="Use a pretrained deepImageJ model to predict ganglia outline")
-#@ String(label="<html> Enter the channel NUMBER for segmenting ganglia.<br/> Preferably a bright marker that labels most neuronal fibres.<br/> Leave as NA if not using.<html> ", value="NA") ganglia_channel
+#@ String(label="<html> Enter the channel NUMBER for segmenting ganglia.<br/> Preferably a bright marker that labels most neuronal fibres.<br/> Enter NA if not using.<html> ", value="NA") ganglia_channel
 #@ String(choices={"DeepImageJ","Manually draw ganglia"}, style="radioButtonHorizontal") Ganglia_detection
-#@ String(value="<html>--------------------------------------------------------------Advanced------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_adv
+#@ String(value="<html>---------------------------------------------------------******<b>ADVANCED PARAMETERS<b>******-------------------------------------------<html>",visibility="MESSAGE") hint_adv
+
 #@ boolean Change_pixel_size_segmentation (description="Change the pixel size of the scaled image thats used to detect neurons")
-#@ Float(label="Enter pixel size for segmenting neurons. Leave as is if unsure.", value=0.7) training_pixel_size_custom
+#@ Float(label="Enter pixel size for segmenting neurons. Default is 0.7.", value=0.7) training_pixel_size_custom
 if(Change_pixel_size_segmentation==true) training_pixel_size=training_pixel_size_custom;
+#@ boolean Finetune_detection
+// String(value="<html> Probability<html>",visibility="MESSAGE", required=false) hint34
+#@ Double (label="Probability of detecting neuron ", style="slider", min=0, max=1, stepSize=0.05,value=0.55) probability_manual
+#@ Double (label="Probability of detecting neuron subtype ", style="slider", min=0, max=1, stepSize=0.05,value=0.55) probability_subtype_manual
+#@ Double (label="Overlap threshold", style="slider", min=0, max=1, stepSize=0.05,value=0.5) overlap_manual
+
+if(Finetune_detection==true)
+{
+	probability=probability_manual;
+	probability_subtype=probability_subtype_manual;
+	overlap=overlap_manual;
+	overlap_subtype=overlap_manual;
+}
+
 
 //listing parameters being used for GAT
 print("Using parameters\nSegmentation pixel size:"+training_pixel_size+"\nMax neuron area (microns): "+neuron_area_limit+"\nMin Neuron Area (microns): "+neuron_seg_lower_limit+"\nMin marker area (microns): "+neuron_lower_limit);

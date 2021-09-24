@@ -68,18 +68,31 @@ if(!File.exists(segment_ganglia)) exit("Cannot find segment ganglia script. Retu
 #@ File (style="open", label="<html>Choose the image to segment.<br>Enter NA if image is open.<html>") path
 #@ boolean image_already_open
 #@ String(value="<html>If image is already open, tick above box.<html>", visibility="MESSAGE") hint1
+#@ String(label="Enter channel number for Hu if you know. Enter NA if not using.", value="NA") cell_channel
 // File (style="open", label="<html>Choose the StarDist model file if segmenting neurons.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") neuron_model_path 
 cell_type="Neuron";
 #@ String(value="<html>----------------------------------------------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_star
 #@ String(value="<html><center><b>DETERMINE GANGLIA OUTLINE</b></center> <html>",visibility="MESSAGE") hint_ganglia
-#@ String(value="<html> Cell counts per ganglia will be calculated<br/> This needs a neuron channel & second channel that labels the<br/> neuronal fibres (PGP9.5/GFAP/NOS/Calbindin...).<br/>  You have the option of manually drawing the ganglia<html>",visibility="MESSAGE") hint4
+#@ String(value="<html> Cell counts per ganglia will be calculated<br/>Requires a neuron channel & second channel that labels the neuronal fibres.<html>",visibility="MESSAGE") hint4
 #@ boolean Cell_counts_per_ganglia (description="Use a pretrained deepImageJ model to predict ganglia outline")
 #@ String(choices={"DeepImageJ","Manually draw ganglia"}, style="radioButtonHorizontal") Ganglia_detection
-#@ String(value="<html>--------------------------------------------------------------Advanced------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_adv
+#@ String(label="<html> Enter the channel NUMBER for segmenting ganglia.<br/> Preferably a bright marker that labels most neuronal fibres.<br/> Enter NA if not using.<html> ", value="NA") ganglia_channel
+#@ String(value="<html>---------------------------------------------------------******<b>ADVANCED PARAMETERS<b>******-------------------------------------------<html>",visibility="MESSAGE") hint_adv
+#@ String(value="<html><center><b>Finetune cell detection by changing parameters below.</b></center> <html>",visibility="MESSAGE") hint_stardist
 #@ boolean Change_pixel_size_segmentation (description="Change the pixel size of the scaled image thats used to detect neurons")
-#@ Float(label="Enter pixel size for segmenting neurons. Leave as is if unsure.", value=0.7) training_pixel_size_custom
+#@ Float(label="<html>Enter pixel size for segmenting neurons.", value=0.70) training_pixel_size_custom
 if(Change_pixel_size_segmentation==true) training_pixel_size=training_pixel_size_custom;
+#@ boolean Finetune_detection
+// String(value="<html> Probability<html>",visibility="MESSAGE", required=false) hint34
+#@ Double (label="Probability of detecting neuron ", style="slider", min=0, max=1, stepSize=0.05,value=0.55) probability_manual
+#@ Double (label="Overlap threshold", style="slider", min=0, max=1, stepSize=0.05,value=0.5) overlap_manual
 
+if(Finetune_detection==true)
+{
+	print("Using manual probability and overlap threshold for detection");
+	probability=probability_manual;
+	overlap=overlap_manual;
+}
 
 //listing parameters being used for GAT
 print("Using parameters\nSegmentation pixel size:"+training_pixel_size+"\nMax neuron area (microns): "+neuron_area_limit+"\nMin Neuron Area (microns): "+neuron_seg_lower_limit+"\nMin marker area (microns): "+neuron_lower_limit);
@@ -144,13 +157,22 @@ Table.create(table_name);//Final Results Table
 row=0; //row counter for the table
 image_counter=0;
 
+//parse cell and ganglia channels and check if value is Integer
+if(cell_channel!="NA")
+{
+	cell_channel=parseInt(cell_channel);
+	if(isNaN(cell_channel)) exit("Enter channel number for cell. If leaving empty, type NA in the value");
+	
+}
 
+
+//if more than one channel , check if appropriate values entered
 if(sizeC>1)
 {
- waitForUser("Note the neuron channel.");
-
- if (Cell_counts_per_ganglia==true)
+ if (Cell_counts_per_ganglia==true && cell_channel=="NA" && ganglia_channel=="NA") //count cells per ganglia but don't know channels for ganglia or neuron
 	{
+		waitForUser("Note the channels for neuron and ganglia and enter in the next box.");
+		
 		Dialog.create("Choose channels for "+cell_type);
   		Dialog.addNumber("Enter "+cell_type+" channel", 3);
   		Dialog.addNumber("Enter channel for segmenting ganglia", 2);
@@ -162,17 +184,39 @@ if(sizeC>1)
 		Stack.setChannel(ganglia_channel);
 		resetMinAndMax();		
 	}
-
-	else 
-		{
+	else if(Cell_counts_per_ganglia==true && cell_channel!="NA" && ganglia_channel=="NA") //count cells per ganglia but don't know channels for ganglia
+	{
+		waitForUser("Note the channels for ganglia and enter in the next box.");
+		Dialog.create("Choose channel for ganglia");
+  		Dialog.addNumber("Enter channel for segmenting ganglia", 2);
+  		Dialog.show(); 
+		//cell_channel= Dialog.getNumber();
+		ganglia_channel=Dialog.getNumber();
+		//Stack.setChannel(cell_channel);
+		//resetMinAndMax();
+		Stack.setChannel(ganglia_channel);
+		resetMinAndMax();	
+	}
+		else if(Cell_counts_per_ganglia==true && cell_channel=="NA" && ganglia_channel!="NA") //count cells per ganglia but don't know channels for neuron
+	{
+			waitForUser("Note the channels for "+cell_type+" and enter in the next box.");
 			Dialog.create("Choose  channel for "+cell_type);
 	  		Dialog.addNumber("Enter "+cell_type+" channel", 3);
 	  	    Dialog.show(); 
 			cell_channel= Dialog.getNumber();
 			Stack.setChannel(cell_channel);
 			resetMinAndMax();
-		}
+	}
+	else if(Cell_counts_per_ganglia==true && cell_channel!="NA" && ganglia_channel!="NA")
+	{
+
+		ganglia_channel=parseInt(ganglia_channel);
+		if(isNaN(ganglia_channel)) exit("Enter channel number for Ganglia. If leaving empty, type NA in the value");
+
+	}
+
 }
+
 
 
 

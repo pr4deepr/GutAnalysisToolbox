@@ -85,7 +85,7 @@ cell_type="Hu";
 #@ String(value="<html><center><b>Specify custom scaling (Default is pixel size of 0.7 microns)</b></center> <html>",visibility="MESSAGE") hint_scaling
 #@ String(value="Choose either XY pixel size (microns) or scaling factor (scales images by the specified factor)", visibility="MESSAGE") hint_scaling1
 #@ String(choices={"Use pixel size","Use scaling factor"}, style="radioButtonHorizontal",label="Choose scaling option") scaling_option
-#@ Double (label="Enter scaling value", value=0.568) scale_factor_1
+#@ Double (label="Enter scaling value", value=0.7) scale_factor_1
 #@ String(value="<html>-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_star
 #@ String(value="<html><center><b>Finetune cell detection</b></center> <html>",visibility="MESSAGE") hint_stardist
 #@ String(value="<html>Probability determines the number of cells, low values will give more cells.<br/>Reducing overlap threshold will lead to more overlapping cells.<br/>More info about below parameters can be found here: https://www.imagej.net/StarDist/<html>",visibility="MESSAGE", required=false) hint34

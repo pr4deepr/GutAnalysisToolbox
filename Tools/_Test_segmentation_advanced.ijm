@@ -28,9 +28,10 @@ run("Close");
 #@ String(value="Choose either XY pixel size (microns) or scaling factor (scales images by the specified factor)", visibility="MESSAGE") hint
 #@ String(choices={"Use pixel size", "Use a scaling factor"}, style="radioButtonHorizontal",label="Choose mode of segmentation") choice_scaling
 #@ String(value="Test a range of values for images to figure out the right one that gives accurate cell segmentation.", visibility="MESSAGE") hint2
-#@ Double (label="Enter minimum value", value=1) scale_factor_1
-#@ Double (label="Enter maximum max value", value=2) scale_factor_2
-#@ Double (label="Enter increment step/s", value=0.25) step_scale
+#@ Double (label="Enter minimum value", value=1, min=0.0500, max=10.000) scale_factor_1
+#@ Double (label="Enter maximum max value", value=2.000, min=0.0500, max=0.950) scale_factor_2
+#@ Double (label="Enter increment step/s", value=0.2500) step_scale
+
 //#@ boolean Modify_StarDist_Values (description="Tick to modify the values within the StarDist plugin or defaults will be used.")
 #@ String(value="<html>Default Probability is 0.5 and Overlap threshold is 0.5. Leave it as default when first trying this.<br/>More info about below parameters can be found here: https://www.imagej.net/StarDist/<html>",visibility="MESSAGE", required=false) hint34
 #@ Double (label="Probability (if staining is weak, use low values)", style="slider", min=0, max=1, stepSize=0.05,value=0.55) probability

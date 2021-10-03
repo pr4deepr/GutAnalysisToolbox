@@ -108,7 +108,7 @@ cell_type="Hu";
 #@ String(value="<html>---------------------------------------------------------******<b>ADVANCED PARAMETERS<b>******-------------------------------------------<html>",visibility="MESSAGE") hint_adv
 
 #@ boolean Change_pixel_size_segmentation (description="Change the pixel size of the scaled image thats used to detect neurons")
-#@ Float(label="Enter pixel size for segmenting neurons. Default is 0.7.", value=0.7) training_pixel_size_custom
+#@ Float(label="Enter pixel size for segmenting neurons. Default is 0.568.", value=0.568) training_pixel_size_custom
 if(Change_pixel_size_segmentation==true) training_pixel_size=training_pixel_size_custom;
 #@ boolean Finetune_detection
 // String(value="<html> Probability<html>",visibility="MESSAGE", required=false) hint34

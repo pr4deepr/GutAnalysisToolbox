@@ -80,12 +80,12 @@ cell_type="Neuron";
 #@ String(value="<html>---------------------------------------------------------******<b>ADVANCED PARAMETERS<b>******-------------------------------------------<html>",visibility="MESSAGE") hint_adv
 #@ String(value="<html><center><b>Finetune cell detection by changing parameters below.</b></center> <html>",visibility="MESSAGE") hint_stardist
 #@ boolean Change_pixel_size_segmentation (description="Change the pixel size of the scaled image thats used to detect neurons")
-#@ Float(label="<html>Enter pixel size for segmenting neurons.", value=0.70) training_pixel_size_custom
+#@ Float(label="<html>Enter pixel size for segmenting neurons.", value=0.568) training_pixel_size_custom
 if(Change_pixel_size_segmentation==true) training_pixel_size=training_pixel_size_custom;
 #@ boolean Finetune_detection
 // String(value="<html> Probability<html>",visibility="MESSAGE", required=false) hint34
-#@ Double (label="Probability of detecting neuron ", style="slider", min=0, max=1, stepSize=0.05,value=0.55) probability_manual
-#@ Double (label="Overlap threshold", style="slider", min=0, max=1, stepSize=0.05,value=0.5) overlap_manual
+#@ Double (label="Probability of detecting neuron ", style="slider", min=0, max=1, stepSize=0.050,value=0.5) probability_manual
+#@ Double (label="Overlap threshold", style="slider", min=0, max=1, stepSize=0.050,value=0.500) overlap_manual
 
 if(Finetune_detection==true)
 {

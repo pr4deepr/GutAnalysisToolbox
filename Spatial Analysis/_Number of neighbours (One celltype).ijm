@@ -89,6 +89,7 @@ Ext.CLIJ2_push(label_cell_img);
 label_dilation=round(label_dilation/pixelWidth);
 //Ext.CLIJx_morphoLibJDilateLabels(label_cell_img, image_4, label_dilation);
 Ext.CLIJ2_dilateLabels(label_cell_img, image_4, label_dilation);
+Ext.CLIJ2_pull(label_cell_img);
 
 if(isOpen(ganglia_binary))
 {
@@ -125,11 +126,40 @@ Table.save(save_path+"Neighbour count.csv");
 
 if(save_parametric_image)
 {
-	selectWindow(neighbour_count);
-	run("Select None");
-	saveAs(".tif", save_path+"Neighbour_parametric_image.tif");
-}
+	overlap_cell=get_parameteric_img(neighbour_count,label_cell_img);
+	selectWindow(overlap_cell);
+	saveAs("Tiff", save_path+fs+overlap_cell);
 
+}
 close("*");
 
+
 exit("Neighbour Analysis complete");
+
+
+function get_parameteric_img(label_overlap_img,cell_img)
+{
+		run("CLIJ2 Macro Extensions", "cl_device=");
+		Ext.CLIJ2_push(label_overlap_img);
+		Ext.CLIJ2_push(cell_img);
+		
+		// covert label overlap img to binary
+		constant = 1.0;
+		Ext.CLIJ2_greaterOrEqualConstant(cell_img, label_bin, constant);
+		// Multiply Images
+		Ext.CLIJ2_multiplyImages(label_overlap_img, label_bin, parametric_img);
+		Ext.CLIJ2_release(label_bin);
+		Ext.CLIJ2_release(label_overlap_img);
+		if(isOpen(label_overlap_img)) close(label_overlap_img);
+		
+		Ext.CLIJ2_pull(parametric_img);
+		selectWindow(parametric_img);
+		rename(label_overlap_img);
+		parametric_img=getTitle();
+		
+		run("Fire");
+		return parametric_img;
+
+
+}
+

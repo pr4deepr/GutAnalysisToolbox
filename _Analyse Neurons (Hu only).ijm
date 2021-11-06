@@ -20,6 +20,10 @@ print("\\Clear");
 var fiji_dir=getDirectory("imagej");
 var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Tools"+fs+"commands";
 
+//specify directory where StarDist models are stored
+var models_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Models"+fs;
+
+
 //settings for GAT
 gat_settings_path=gat_dir+fs+"gat_settings.ijm";
 if(!File.exists(gat_settings_path)) exit("Cannot find settings file. Check: "+gat_settings_path);
@@ -30,12 +34,13 @@ neuron_seg_lower_limit=parseFloat(Table.get("Values", 2)); //90
 neuron_lower_limit=parseFloat(Table.get("Values", 3)); //160
 probability=parseFloat(Table.get("Values", 5)); //prob neuron
 overlap= parseFloat(Table.get("Values", 7));
+//get paths of model files
+neuron_model_file = Table.getString("Values", 9);
 run("Close");
 
-//specify directory where StarDist models are stored
-var models_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Models"+fs;
+
 //Neuron segmentation model
-neuron_model_path=models_dir+"2D_enteric_neuron_v2.zip";
+neuron_model_path=models_dir+neuron_model_file;
 
 
 //check if required plugins are installed
@@ -84,8 +89,8 @@ cell_type="Neuron";
 if(Change_pixel_size_segmentation==true) training_pixel_size=training_pixel_size_custom;
 #@ boolean Finetune_detection
 // String(value="<html> Probability<html>",visibility="MESSAGE", required=false) hint34
-#@ Double (label="Probability of detecting neuron ", style="slider", min=0, max=1, stepSize=0.050,value=0.5) probability_manual
-#@ Double (label="Overlap threshold", style="slider", min=0, max=1, stepSize=0.050,value=0.500) overlap_manual
+#@ Double (label="Probability of detecting neuron ", style="slider", min=0, max=1, stepSize=0.050,value=probability) probability_manual
+#@ Double (label="Overlap threshold", style="slider", min=0, max=1, stepSize=0.050,value=overlap) overlap_manual
 
 if(Finetune_detection==true)
 {

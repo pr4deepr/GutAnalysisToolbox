@@ -525,7 +525,7 @@ if(marker_subtype==1)
 			//segment cells and return image with normal scaling
 			print("Segmenting marker "+channel_name);
 			selectWindow(seg_marker_img);
-			run("Subtract Background...", "rolling="+backgrnd_radius+" sliding");
+			//run("Subtract Background...", "rolling="+backgrnd_radius+" sliding");
 			segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype, overlap_subtype);
 			selectWindow(max_projection);
 			roiManager("deselect");

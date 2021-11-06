@@ -28,11 +28,6 @@ var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Tools"+fs+"commands";
 //specify directory where StarDist models are stored
 var models_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Models"+fs;
 
-//Neuron segmentation model
-neuron_model_path=models_dir+"2D_enteric_neuron_v2.zip";
-//Marker segmentation model
-subtype_model_path=models_dir+"Neuron_marker_model_v2.zip";
-if(!File.exists(neuron_model_path)||!File.exists(subtype_model_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_model_path+"\n"+subtype_model_path);
 
 //settings for GAT
 gat_settings_path=gat_dir+fs+"gat_settings.ijm";
@@ -49,7 +44,19 @@ probability_subtype=parseFloat(Table.get("Values", 6)); //prob subtype
 
 overlap= parseFloat(Table.get("Values", 7));
 overlap_subtype=parseFloat(Table.get("Values", 8));
+
+//get paths of model files
+neuron_model_file = Table.getString("Values", 9);
+neron_subtype_file = Table.getString("Values", 10);
 run("Close");
+
+//Neuron segmentation model
+neuron_model_path=models_dir+neuron_model_file;
+//Marker segmentation model
+subtype_model_path=models_dir+neron_subtype_file;
+if(!File.exists(neuron_model_path)||!File.exists(subtype_model_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_model_path+"\n"+subtype_model_path);
+
+
 
 
 
@@ -561,7 +568,7 @@ if(marker_subtype==1)
 			//segment cells and return image with normal scaling
 			print("Segmenting marker "+channel_name);
 			selectWindow(seg_marker_img);
-			run("Subtract Background...", "rolling="+backgrnd_radius+" sliding");
+			//run("Subtract Background...", "rolling="+backgrnd_radius+" sliding");
 			segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype,overlap_subtype);
 			selectWindow(max_projection);
 			roiManager("deselect");
@@ -1117,69 +1124,6 @@ function rename_roi()
 		roiManager("Select", i);
 		roiManager("Rename", i+1);
 		}
-}
-
-//use deepimagej to predict ganglia outline and return a binary image
-function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel)
-{
-
-	//waitForUser("Select max projection");
-	selectWindow(max_projection);
-	getPixelSize(unit, pixelWidth, pixelHeight);
-	
-	//max_projection=getTitle();
-	
-	
-	selectWindow(max_projection);
-	run("Duplicate...", "title=ganglia_ch duplicate channels="+ganglia_channel);
-	run("Green");
-	
-	selectWindow(max_projection);
-	run("Duplicate...", "title=cells_ch duplicate channels="+cell_channel);
-	run("Magenta");
-	
-	run("Merge Channels...", "c1=ganglia_ch c2=cells_ch create");
-	composite_img=getTitle();
-	
-	run("RGB Color");
-	ganglia_rgb=getTitle();
-
-	selectWindow(ganglia_rgb);
-	run("Duplicate...", "title=ganglia_rgb_2"); //use this for verification
-	
-	close(composite_img);
-	
-	selectWindow(ganglia_rgb);
-	
-	run("DeepImageJ Run", "model=2D_enteric_ganglia format=Tensorflow preprocessing=[per_sample_scale_range.ijm] postprocessing=[no postprocessing] axes=Y,X,C tile=768,768,3 logging=normal");
-	
-	wait(10);
-	prediction_output=getTitle();
-	
-	runMacro(deepimagej_post_processing,prediction_output);
-	temp_pred=getTitle();
-	
-	selectWindow(temp_pred);
-	run("Options...", "iterations=3 count=2 black do=Open");
-	wait(5);
-	
-	min_area_ganglia_pixels=200;  //200 microns
-	min_area_ganglia=min_area_ganglia_pixels/Math.sqr(pixelWidth);  //area proportional to sqr of radius
-	run("Size Opening 2D/3D", "min="+min_area_ganglia);
-	ganglia_pred_processed=getTitle();
-
-	selectWindow(ganglia_pred_processed);
-	run("Select None");
-	run("Image to Selection...", "image=[ganglia_rgb_2] opacity=60");
-	waitForUser("Check if the ganglia overlay is good. If not, use the brush tool to delete or add.");
-	run("Select None");
-	
-	close("ganglia_rgb_2");
-	close(temp_pred);
-	close(ganglia_rgb);
-	
-	selectWindow(ganglia_pred_processed);
-	return ganglia_pred_processed;
 }
 
 //Draw outline for ganglia or edit the predicted outline

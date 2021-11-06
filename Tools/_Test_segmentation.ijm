@@ -17,12 +17,6 @@ if(!File.exists(gat_settings_path)) exit("Cannot find settings file. Check: "+ga
 //specify directory where StarDist models are stored
 var models_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Models"+fs;
 
-//Neuron segmentation model
-neuron_model_path=models_dir+"2D_enteric_neuron_v2.zip";
-//Marker segmentation model
-subtype_model_path=models_dir+"Neuron_marker_model_v2.zip";
-if(!File.exists(neuron_model_path)||!File.exists(subtype_model_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_model_path+"\n"+subtype_model_path);
-
 run("Results... ", "open="+gat_settings_path);
 training_pixel_size=parseFloat(Table.get("Values", 0)); //0.7;
 neuron_area_limit=parseFloat(Table.get("Values", 1)); //1500
@@ -35,7 +29,18 @@ probability_subtype=parseFloat(Table.get("Values", 6)); //prob subtype
 overlap= parseFloat(Table.get("Values", 7));
 overlap_subtype=parseFloat(Table.get("Values", 8));
 
+//get paths of model files
+neuron_model_file = Table.getString("Values", 9);
+neron_subtype_file = Table.getString("Values", 10);
+
 run("Close");
+
+//Neuron segmentation model
+neuron_model_path=models_dir+neuron_model_file;
+//Marker segmentation model
+subtype_model_path=models_dir+neron_subtype_file;
+if(!File.exists(neuron_model_path)||!File.exists(subtype_model_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_model_path+"\n"+subtype_model_path);
+
 
 
 #@ File (style="open", label="Choose the image to segment") path

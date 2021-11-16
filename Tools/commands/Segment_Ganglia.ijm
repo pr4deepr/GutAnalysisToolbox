@@ -105,7 +105,7 @@ function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel)
 	
 	selectWindow(ganglia_rgb);
 	
-	run("DeepImageJ Run", "model=2D_enteric_ganglia format=Tensorflow preprocessing=[per_sample_scale_range.ijm] postprocessing=[no postprocessing] axes=Y,X,C tile=768,768,3 logging=normal");
+	run("DeepImageJ Run", "model=2D_enteric_ganglia_v2 format=Tensorflow preprocessing=[per_sample_scale_range.ijm] postprocessing=[no postprocessing] axes=Y,X,C tile=768,768,3 logging=normal");
 	
 	wait(10);
 	prediction_output=getTitle();
@@ -117,9 +117,10 @@ function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel)
 	run("Options...", "iterations=3 count=2 black do=Open");
 	wait(5);
 	
-	min_area_ganglia_pixels=500;  //500 microns
-	min_area_ganglia=min_area_ganglia_pixels/Math.sqr(pixelWidth);  //area proportional to sqr of radius
-	run("Size Opening 2D/3D", "min="+min_area_ganglia);
+	min_area_ganglia=200;  //200 microns
+	//area proportional to sqr of radius; so use square of pixelwidth as denominator
+	min_area_ganglia_pix=min_area_ganglia/Math.sqr(pixelWidth);  
+	run("Size Opening 2D/3D", "min="+min_area_ganglia_pix);
 	ganglia_pred_processed=getTitle();
 
 	selectWindow(ganglia_pred_processed);
@@ -128,7 +129,7 @@ function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel)
 	waitForUser("Check if the ganglia overlay is good. If not, use the brush tool to delete or add.");
 	run("Select None");
 	
-	run("Size Opening 2D/3D", "min="+min_area_ganglia);
+	run("Size Opening 2D/3D", "min="+min_area_ganglia_pix);
 	ganglia_final=getTitle();
 	
 	close(ganglia_pred_processed);

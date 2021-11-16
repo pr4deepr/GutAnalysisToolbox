@@ -8,6 +8,6 @@ prob_neuron	0.5
 prob_subtype	0.4	
 overlap_neuron	0.3	
 overlap_subtype	0.3	
-neuron_model	2D_enteric_neuron_v2.zip	
-neuron_subtype_model	Neuron_marker_model_v2.zip	
+neuron_model	2D_enteric_neuron_v4_1.zip	
+neuron_subtype_model	2D_enteric_neuron_subtype_v4_1.zip	
 sox10_model	NA	

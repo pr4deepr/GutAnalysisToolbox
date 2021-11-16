@@ -41,7 +41,7 @@ run("Close");
 
 //Neuron segmentation model
 neuron_model_path=models_dir+neuron_model_file;
-
+if(!File.exists(neuron_model_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_model_path);
 
 //check if required plugins are installed
 var check_plugin=gat_dir+fs+"check_plugin.ijm";

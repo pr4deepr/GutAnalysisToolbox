@@ -51,7 +51,7 @@ if(!File.exists(neuron_model_path)||!File.exists(subtype_model_path)) exit("Cann
 #@ String(choices={"Use pixel size", "Use a scaling factor"}, style="radioButtonHorizontal",label="Choose mode of segmentation") choice_scaling
 #@ String(value="Test a range of values for images to figure out the right one that gives accurate cell segmentation.", visibility="MESSAGE") hint2
 #@ Double (label="Enter minimum value", value=1, min=0.0500, max=10.000) scale_factor_1
-#@ Double (label="Enter maximum max value", value=2.000, min=0.0500, max=0.950) scale_factor_2
+#@ Double (label="Enter maximum max value", value=2.000, min=0.0500, max=10.000) scale_factor_2
 #@ Double (label="Enter increment step/s", value=0.2500) step_scale
 
 //#@ boolean Modify_StarDist_Values (description="Tick to modify the values within the StarDist plugin or defaults will be used.")
@@ -164,6 +164,8 @@ idx=0;
 for(scale=scale_factor_1;scale<=scale_factor_2;scale+=step_scale)
 {
 	//print("Running segmentation on image scaled by: "+scale);
+	
+	
 	roiManager("reset");
 	selectWindow(img);
 	if(Use_pixel_size == true) 
@@ -173,7 +175,7 @@ for(scale=scale_factor_1;scale<=scale_factor_2;scale+=step_scale)
 		if(scale_factor<1.001 && scale_factor>1) scale_factor=1;
 		scale_name="Pixel_size";
 		img_seg=scale_name+"_"+scale+"_"+cell_type;
-		
+		print(scale_name);
 
 
 	}
@@ -212,21 +214,14 @@ for(scale=scale_factor_1;scale<=scale_factor_2;scale+=step_scale)
 	if(new_width>2000 || new_height>2000) tiles=8;
 	if(new_width>5000 || new_height>5000) tiles=12;
 	else if (new_width>7000 || new_height>7000) tiles=30;
-	//if(modify_stardist==false)
-	//{
-	//model_file="D:\\\\Google Drive\\\\ImageJ+Python scripts\\\\Gut analysis toolbox\\\\models\\\\2d_enteric_neuron_aug (1)\\\\TF_SavedModel.zip";
-		run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Label Image', 'modelFile':'"+model_file+"', 'nTiles':'"+tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
-		wait(50);
-	//}
-	//else 
-	//{
-		//print("Make sure Label Image is selected");
-	//	run("StarDist 2D");
-		//wait(50);
-	//}
+	
+	run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Label Image', 'modelFile':'"+model_file+"', 'nTiles':'"+tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
+	wait(50);
+	
 	label_image=getTitle();
 	selectWindow(label_image);
 	run("Remove Overlay");
+	//remove neurons below size limit
 	run("Label Size Filtering", "operation=Greater_Than_Or_Equal size="+neuron_seg_lower_limit);
 	label_filtered=getTitle();
 	close(label_image);

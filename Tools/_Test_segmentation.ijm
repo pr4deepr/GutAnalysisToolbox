@@ -49,15 +49,15 @@ if(!File.exists(neuron_model_path)||!File.exists(subtype_model_path)) exit("Cann
 // File (style="open", label="<html>Choose the StarDist model file based on celltype.<html>",value="NA") model_file 
 #@ String(value="Choose either XY pixel size (microns) or scaling factor (scales images by the specified factor)", visibility="MESSAGE") hint
 #@ String(choices={"Use pixel size", "Use a scaling factor"}, style="radioButtonHorizontal",label="Choose mode of segmentation") choice_scaling
-#@ String(value="Test a range of values for images to figure out the right one that gives accurate cell segmentation.", visibility="MESSAGE") hint2
+#@ String(value="Test a range of values for images to figure out the right one that gives accurate cell segmentation. Default is 0.568.", visibility="MESSAGE") hint2
 #@ Double (label="Enter minimum value", value=1, min=0.0500, max=10.000) scale_factor_1
 #@ Double (label="Enter maximum max value", value=2.000, min=0.0500, max=10.000) scale_factor_2
 #@ Double (label="Enter increment step/s", value=0.2500) step_scale
 
 //#@ boolean Modify_StarDist_Values (description="Tick to modify the values within the StarDist plugin or defaults will be used.")
-#@ String(value="<html>Default Probability is 0.5 and Overlap threshold is 0.5. Leave it as default when first trying this.<br/>More info about below parameters can be found here: https://www.imagej.net/StarDist/<html>",visibility="MESSAGE", required=false) hint34
-#@ Double (label="Probability (if staining is weak, use low values)", style="slider", min=0.1, max=0.99, stepSize=0.05,value=0.55) probability
-#@ Double (label="Overlap Threshold", style="slider", min=0, max=1, stepSize=0.05,value=0.5) overlap
+#@ String(value="<html>Default Probability is 0.5 and Overlap threshold is 0.3. Leave it as default when first trying this.<br/>More info about below parameters can be found here: https://www.imagej.net/StarDist/<html>",visibility="MESSAGE", required=false) hint34
+#@ Double (label="Probability (if staining is weak, use low values)", style="slider", min=0.1, max=0.99, stepSize=0.05,value=0.5) probability
+#@ Double (label="Overlap Threshold", style="slider", min=0, max=1, stepSize=0.05,value=0.3) overlap
 
 cell_type="Cell";
 

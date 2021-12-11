@@ -724,10 +724,15 @@ if(marker_subtype==1)
 				//save with name of channel_combinations[i]
 				wait(10);
 				//selectWindow(max_projection);
+
 				roiManager("deselect");
 				roi_file_name= String.join(channel_arr, "_");
 				roi_location_marker=results_dir+roi_file_name+"_ROIs.zip";
-				roiManager("save",roi_location_marker);
+				//if no cells in marker combination
+				if(roiManager("count")>0)
+				{
+					roiManager("save",roi_location_marker);
+				}
 
 				marker_count=roiManager("count"); // in case any neurons added after analysis of markers
 				selectWindow(table_name);
@@ -745,24 +750,34 @@ if(marker_subtype==1)
 				
 				if (Cell_counts_per_ganglia==true)
 				{
-					selectWindow(result);
-					run("Remove Overlay");
-					run("Select None");
-					
-					args=result+","+ganglia_binary;
-					//get cell count per ganglia
-					runMacro(ganglia_cell_count,args);
-					close("label_overlap");
-					selectWindow("cells_ganglia_count");
-					cell_count_per_ganglia=Table.getColumn("Cell counts");
+					if(roiManager("count")>0)
+					{
+						selectWindow(result);
+						run("Remove Overlay");
+						run("Select None");
+						
+						args=result+","+ganglia_binary;
+						//get cell count per ganglia
+						runMacro(ganglia_cell_count,args);
+						close("label_overlap");
+						selectWindow("cells_ganglia_count");
+						cell_count_per_ganglia=Table.getColumn("Cell counts");
+						selectWindow("cells_ganglia_count");
+						run("Close");
+						roiManager("reset");
+						selectWindow(table_name);
+						Table.setColumn(roi_file_name+" counts per ganglia", cell_count_per_ganglia);
+
+					}
+					else{
+						cell_count_per_ganglia = 0;
+						Table.set(roi_file_name+" counts per ganglia", 0,cell_count_per_ganglia);
+						
+					}
 	
-					selectWindow(table_name);
-					Table.setColumn(roi_file_name+" counts per ganglia", cell_count_per_ganglia);
+
 					Table.update;
-					
-					selectWindow("cells_ganglia_count");
-					run("Close");
-					roiManager("reset");
+
 				}
 
 				

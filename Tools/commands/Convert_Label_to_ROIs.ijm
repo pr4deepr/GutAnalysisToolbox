@@ -49,65 +49,72 @@ macro "label_map_to_roi"
 
 	//get centroid of each label
 	selectWindow("Results");
-	x=Table.getColumn("CENTROID_X");
-	y=Table.getColumn("CENTROID_Y");
-
-	//getting the identifiers as the values correspond to the label values
-	identifier=Table.getColumn("IDENTIFIER");
-	
-	x1=Table.getColumn("BOUNDING_BOX_X");
-	y1=Table.getColumn("BOUNDING_BOX_Y");
-	x2=Table.getColumn("BOUNDING_BOX_END_X");
-	y2=Table.getColumn("BOUNDING_BOX_END_Y");
-
-	//use wand tool to create selection at each label centroid and add the selection to ROI manager
-	//will not add it if there is no selection or if the background is somehow selected
-	selectWindow(reindex);
-	for(i=0;i<x.length;i++)
+	if(nResults!=0)
 	{
-		//use wand tool; quicker than the threshold and selection method
-		doWand(x[i], y[i]);	
-		intensity=getValue(x[i], y[i]);
-		//if there is a selection and if intensity >0 (not background), add ROI
-		if(selectionType()>0 && intensity>0) { roiManager("add"); }
-		//if there is no intensity value at the centroid, its probably coz the object is not circular
-		// and centroid is not in the object
-		else{
-			//get the width of the bounding box
-			x_b=x2[i]-x1[i];
-			//get the height of the bounding box
-			y_b=y2[i]-y1[i];
-			//get y coordinate
-			//y_temp=y1[i];
-			
-			//parameters for  (Archimedean) spiral 
-			pitch = 4;
-			angle = 0; 
-			r = 0; 
-			a=0;
-			//https://forum.image.sc/t/clij-label-map-to-roi-fast-version/51356/11
-			//spiral search instead brute force search of every pixel
-			while(r <= x_b/2 || r <= y_b/2) 
-			{
-			    r = sqrt(a)*pitch;
-			    angle += atan(1/r);
-			    x_spiral = (r)*cos(angle*pitch);
-			    y_spiral = (r)*sin(angle*pitch);
-			    intensity=getValue(x[i] + x_spiral, y[i] + y_spiral);
-			    a++;
-
-			    if(intensity>0 && intensity==identifier[i])
+		x=Table.getColumn("CENTROID_X");
+		y=Table.getColumn("CENTROID_Y");
+	
+		//getting the identifiers as the values correspond to the label values
+		identifier=Table.getColumn("IDENTIFIER");
+		
+		x1=Table.getColumn("BOUNDING_BOX_X");
+		y1=Table.getColumn("BOUNDING_BOX_Y");
+		x2=Table.getColumn("BOUNDING_BOX_END_X");
+		y2=Table.getColumn("BOUNDING_BOX_END_Y");
+	
+		//use wand tool to create selection at each label centroid and add the selection to ROI manager
+		//will not add it if there is no selection or if the background is somehow selected
+		selectWindow(reindex);
+		for(i=0;i<x.length;i++)
+		{
+			//use wand tool; quicker than the threshold and selection method
+			doWand(x[i], y[i]);	
+			intensity=getValue(x[i], y[i]);
+			//if there is a selection and if intensity >0 (not background), add ROI
+			if(selectionType()>0 && intensity>0) { roiManager("add"); }
+			//if there is no intensity value at the centroid, its probably coz the object is not circular
+			// and centroid is not in the object
+			else{
+				//get the width of the bounding box
+				x_b=x2[i]-x1[i];
+				//get the height of the bounding box
+				y_b=y2[i]-y1[i];
+				//get y coordinate
+				//y_temp=y1[i];
+				
+				//parameters for  (Archimedean) spiral 
+				pitch = 4;
+				angle = 0; 
+				r = 0; 
+				a=0;
+				//https://forum.image.sc/t/clij-label-map-to-roi-fast-version/51356/11
+				//spiral search instead brute force search of every pixel
+				while(r <= x_b/2 || r <= y_b/2) 
 				{
-					doWand(x[i] + x_spiral, y[i] + y_spiral);
-					roiManager("add");
-					r = x_b+1000; //escape "while" condition as the label has been found
+				    r = sqrt(a)*pitch;
+				    angle += atan(1/r);
+				    x_spiral = (r)*cos(angle*pitch);
+				    y_spiral = (r)*sin(angle*pitch);
+				    intensity=getValue(x[i] + x_spiral, y[i] + y_spiral);
+				    a++;
+	
+				    if(intensity>0 && intensity==identifier[i])
+					{
+						doWand(x[i] + x_spiral, y[i] + y_spiral);
+						roiManager("add");
+						r = x_b+1000; //escape "while" condition as the label has been found
+					}
 				}
+				if(r!=x_b+1000) print("search not successful for "+i);  //not the most elegant way to do this
+	
 			}
-			if(r!=x_b+1000) print("search not successful for "+i);  //not the most elegant way to do this
-
 		}
 	}
-close("Results");
-close(reindex);
+	else 
+	{
+		print("No labels in image");
+	}
+	close("Results");
+	close(reindex);
 
 }

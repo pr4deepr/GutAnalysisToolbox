@@ -176,6 +176,8 @@ for(scale=scale_factor_1;scale<=scale_factor_2;scale+=step_scale)
 		if(scale_factor<1.001 && scale_factor>1) scale_factor=1;
 		scale_name="Pixel_size";
 		img_seg=scale_name+"_"+scale+"_"+cell_type;
+		print(scale_name);
+
 
 	}
 	else 
@@ -191,8 +193,6 @@ for(scale=scale_factor_1;scale<=scale_factor_2;scale+=step_scale)
 	}
 
 	//img_seg=scale_name+"_"+scale+"_"+cell_type;
-	print("Running segmentation on image scaled by "+scale_name+" of: "+scale);
-
 	
 	if(scale_factor!=1)
 	{	
@@ -246,7 +246,7 @@ for(scale=scale_factor_1;scale<=scale_factor_2;scale+=step_scale)
 
 run("Cascade");
 print("Verify the segmentation in the images: ");
-close(img);
+
 
 function label_to_roi(label_image)
 {

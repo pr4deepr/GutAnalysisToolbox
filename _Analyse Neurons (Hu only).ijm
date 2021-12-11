@@ -21,7 +21,8 @@ var fiji_dir=getDirectory("imagej");
 var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Tools"+fs+"commands";
 
 //specify directory where StarDist models are stored
-var models_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Models"+fs;
+var models_dir=fiji_dir+"models"+fs;
+//var models_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Models"+fs;
 
 
 //settings for GAT
@@ -410,8 +411,6 @@ function segment_cells(max_projection,img_seg,model_file,n_tiles,width,height,sc
 	//StarDist command takes the escape character as well, so pass 16 backlash to get 4xbackslash in the StarDIst macro command (which is then converted into 2)
 	model_file=replace(model_file, "\\\\","\\\\\\\\\\\\\\\\");
 	choice=0;
-	print(img_seg);
-	print(max_projection);
 	roiManager("reset");
 	//model_file="D:\\\\Gut analysis toolbox\\\\models\\\\2d_enteric_neuron\\\\TF_SavedModel.zip";
 	selectWindow(img_seg);

@@ -15,7 +15,8 @@ gat_settings_path=gat_dir+fs+"gat_settings.ijm";
 if(!File.exists(gat_settings_path)) exit("Cannot find settings file. Check: "+gat_settings_path);
 
 //specify directory where StarDist models are stored
-var models_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Models"+fs;
+var models_dir=fiji_dir+"models"+fs;
+//var models_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Models"+fs;
 
 run("Results... ", "open="+gat_settings_path);
 training_pixel_size=parseFloat(Table.get("Values", 0)); //0.7;

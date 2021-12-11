@@ -3,6 +3,8 @@ Semi-automated analysis of cells within the gastrointestinal tract with an empha
 The toolbox allows automated segmentation of neurons and neuronal subtypes. 
 You can quantify the proportion of neuronal subtypes and also get the cell number per ganglia.
 
+To get started, please go to the [Wiki page](https://github.com/pr4deepr/GutAnalysisToolbox/wiki).
+
 ## Installing and configuring GAT
 
 Click  on this video to watch how to install and configure FIJI and GAT

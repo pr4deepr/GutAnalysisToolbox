@@ -7,7 +7,7 @@ You can quantify the proportion of neuronal subtypes and also get the cell numbe
 
 Click  on this video to watch how to install and configure FIJI and GAT
 
-[![Youtube](https://img.youtube.com/vi/50OsM3ZV6Jo/0.jpg)](https://www.youtube.com/playlist?list=PLmBt1Dumq60p4mIFT4j7TP_PVRjbO55Oi){:target="_blank"}
+[![Youtube](https://img.youtube.com/vi/GmE_lz-m0Rg/0.jpg)](https://www.youtube.com/playlist?list=PLmBt1Dumq60p4mIFT4j7TP_PVRjbO55Oi)
 
 GAT requires the following update sites:
 * BIG-EPFL
@@ -21,5 +21,12 @@ GAT requires the following update sites:
 
 GAT update site: https://sites.imagej.net/GutAnalysisToolbox/
 
-## Installing model files
-[Click to Download model folders](https://wehieduau-my.sharepoint.com/:u:/g/personal/rajasekhar_p_wehi_edu_au/Ecg001ngdvhBgRaWxVakPecBF8d5Qb361PgXYFrcxp8Azw?download=1)
+## Download model files
+The model files are zipped and ready to download here:
+
+[Click to Download GAT FIJI model folders](https://wehieduau-my.sharepoint.com/:u:/g/personal/rajasekhar_p_wehi_edu_au/Ecg001ngdvhBgRaWxVakPecBF8d5Qb361PgXYFrcxp8Azw?download=1)
+
+Click [here](https://www.youtube.com/watch?v=RIvaXL-Q7Go&list=PLmBt1Dumq60p4mIFT4j7TP_PVRjbO55Oi) to see how to configure models after GAT installation in FIJI.
+
+
+[Click to Download QuPath model and scripts](https://wehieduau-my.sharepoint.com/:u:/g/personal/rajasekhar_p_wehi_edu_au/EdYxRodrJLNJj4wK77erHA0BfVKDJpOktgWQ3iIyLaUU1g?download=1)

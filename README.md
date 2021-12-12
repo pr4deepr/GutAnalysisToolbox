@@ -5,7 +5,7 @@ You can quantify the proportion of neuronal subtypes and also get the cell numbe
 
 To get started, please go to the [Wiki page](https://github.com/pr4deepr/GutAnalysisToolbox/wiki).
 
-If you have any difficulties, suggestions or find any bugs, create a post under [Issues](https://github.com/pr4deepr/GutAnalysisToolbox/issues) or you could use the [Imagesc forum](https://forum.image.sc/).
+If you have any difficulties, suggestions or find any bugs, create a post under [Issues](https://github.com/pr4deepr/GutAnalysisToolbox/issues) or you could use the [Imagesc forum](https://forum.image.sc/). Feel free to use the [discussions](https://github.com/pr4deepr/GutAnalysisToolbox/discussions) if you'd like input on your analysis or would like to discuss relevant topics. 
 
 ## Installing and configuring GAT
 

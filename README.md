@@ -4,6 +4,8 @@ Gut Analysis Toolbox or GAT allows the Semi-automated analysis of the enteric ne
 
 To get started, please go to the [Wiki page](https://github.com/pr4deepr/GutAnalysisToolbox/wiki).
 
+You can also watch tutorials for GAT on [Youtube](https://www.youtube.com/playlist?list=PLmBt1Dumq60p4mIFT4j7TP_PVRjbO55Oi).
+
 If you have any difficulties, suggestions or find any bugs, create a post under [Issues](https://github.com/pr4deepr/GutAnalysisToolbox/issues) or you could use the [Imagesc forum](https://forum.image.sc/). Feel free to use the [discussions](https://github.com/pr4deepr/GutAnalysisToolbox/discussions) if you'd like input on your analysis or would like to discuss relevant topics. 
 
 ## Installing and configuring GAT

@@ -5,6 +5,8 @@ You can quantify the proportion of neuronal subtypes and also get the cell numbe
 
 To get started, please go to the [Wiki page](https://github.com/pr4deepr/GutAnalysisToolbox/wiki).
 
+If you have any difficulties, suggestions or find any bugs, create a post under [Issues](https://github.com/pr4deepr/GutAnalysisToolbox/issues) or you could use the [Imagesc forum](https://forum.image.sc/).
+
 ## Installing and configuring GAT
 
 Click  on this video to watch how to install and configure FIJI and GAT

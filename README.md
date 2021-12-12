@@ -1,7 +1,6 @@
 # Gut Analysis Toolbox
-Semi-automated analysis of cells within the gastrointestinal tract with an emphasis on the neurons and glia within the gut wall (enteric nervous system)
-The toolbox allows automated segmentation of neurons and neuronal subtypes. 
-You can quantify the proportion of neuronal subtypes and also get the cell number per ganglia.
+
+Gut Analysis Toolbox or GAT allows the Semi-automated analysis of the enteric nervous system within the gastrointestinal tract. GAT enables quantification of enteric neurons and their subtypes. It runs in FIJI, a popular image analysis software in microscopy and uses deep learning models to segment cells of interest. 
 
 To get started, please go to the [Wiki page](https://github.com/pr4deepr/GutAnalysisToolbox/wiki).
 

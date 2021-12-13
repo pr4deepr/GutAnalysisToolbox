@@ -44,7 +44,7 @@ if(!File.exists(neuron_model_path)||!File.exists(subtype_model_path)) exit("Cann
 
 
 
-#@ File (style="open", label="Choose the image to segment") path
+#@ File (style="open", label="Choose the image to segment",value=fiji_dir) path
 #@ boolean image_already_open
 #@ String(choices={"Neuron Segmentation", "Neuron subtype segmentation"}, style="radioButtonHorizontal",label="Choose mode of segmentation") segmentation_type
 // File (style="open", label="<html>Choose the StarDist model file based on celltype.<html>",value="NA") model_file 

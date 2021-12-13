@@ -59,7 +59,7 @@ var segment_ganglia=gat_dir+fs+"Segment_Ganglia.ijm";
 if(!File.exists(segment_ganglia)) exit("Cannot find segment ganglia script. Returning: "+segment_ganglia);
 
 
-#@ File (style="open", label="<html>Choose the image to segment.<br>Enter NA if image is open.<html>") path
+#@ File (style="open", label="<html>Choose the image to segment.<br><b>Enter NA if field is empty.</b><html>", value=fiji_dir) path
 #@ boolean image_already_open
 #@ String(value="<html>If image is already open, tick above box.<html>", visibility="MESSAGE") hint1
 #@ File (style="open", label="<html>Choose the StarDist model file if segmenting neurons.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") neuron_model_path 

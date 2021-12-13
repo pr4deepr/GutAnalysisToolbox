@@ -71,7 +71,7 @@ if(!File.exists(segment_ganglia)) exit("Cannot find segment ganglia script. Retu
 
  
 
-#@ File (style="open", label="<html>Choose the image to segment.<br>Enter NA if image is open.<html>") path
+#@ File (style="open", label="<html>Choose the image to segment.<br>Enter NA if image is open.<br><b>Enter NA if field is empty.</b><html>", value=fiji_dir) path
 #@ boolean image_already_open
 #@ String(value="<html>If image is already open, tick above box.<html>", visibility="MESSAGE") hint1
 #@ String(label="Enter channel number for Hu if you know. Enter NA if not using.", value="NA") cell_channel

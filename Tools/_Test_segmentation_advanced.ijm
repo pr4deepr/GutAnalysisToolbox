@@ -24,7 +24,7 @@ run("Close");
 #@ File (style="open", label="Choose the image to segment") path
 #@ boolean image_already_open
 // String(choices={"Neuron", "Glia"}, style="list") cell_type
-#@ File (style="open", label="<html>Choose the StarDist model file based on celltype.<html>",value="NA") model_file 0
+#@ File (style="open", label="<html>Choose the StarDist model file based on celltype.<html>",value=fiji_dir) model_file 
 #@ String(value="Choose either XY pixel size (microns) or scaling factor (scales images by the specified factor)", visibility="MESSAGE") hint
 #@ String(choices={"Use pixel size", "Use a scaling factor"}, style="radioButtonHorizontal",label="Choose mode of segmentation") choice_scaling
 #@ String(value="Test a range of values for images to figure out the right one that gives accurate cell segmentation.", visibility="MESSAGE") hint2

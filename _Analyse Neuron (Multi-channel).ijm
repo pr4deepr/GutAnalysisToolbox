@@ -122,6 +122,11 @@ if(Change_pixel_size_segmentation==true) training_pixel_size=training_pixel_size
 #@ Double (label="Probability of detecting neuron ", style="slider", min=0, max=1, stepSize=0.05,value=0.55) probability_manual
 #@ Double (label="Probability of detecting neuron subtype ", style="slider", min=0, max=1, stepSize=0.05,value=0.55) probability_subtype_manual
 #@ Double (label="Overlap threshold", style="slider", min=0, max=1, stepSize=0.05,value=0.5) overlap_manual
+#@ String(value="<html>---------------------------------------------------------******<b>Contribute to improving GAT<b>******-------------------------------------------<html>",visibility="MESSAGE") contrib
+#@ String(value="<html> If you are willing to contribute images and masks to improve GAT, tick the box below <br/>It will save the images and masks in the folder below as you perform your analysis.<html>",visibility="MESSAGE") contrib1
+#@ boolean Save_Image_Masks
+#@ File (style="directory", label="<html>Choose a folder to save the image and masks.<br><b>Enter NA if field is empty.</b><html>", value=fiji_dir) img_masks_path
+
 
 if(Finetune_detection==true)
 {
@@ -458,6 +463,34 @@ if (Cell_counts_per_ganglia==true)
 	run("Close");
 }
 
+//save images and masks if user selects to save them for Hu and ganglia
+if(Save_Image_Masks == true)
+{
+	
+	//print("Saving Image and Masks");
+	if (!File.exists(img_masks_path)) File.makeDirectory(img_masks_path); //create directory to save img masks
+	
+	cells_img_masks_path = img_masks_path+fs+"Cells"+fs;
+	if (!File.exists(cells_img_masks_path)) File.makeDirectory(cells_img_masks_path); //create directory to save img masks for cells
+	save_img_mask_macro_path = gat_dir+fs+"save_img_mask.ijm";
+	
+	args=max_projection+","+neuron_label_image+","+"Hu,"+cells_img_masks_path;
+	//save img masks for cells
+	runMacro(save_img_mask_macro_path,args);
+
+	//ganglia save
+	if (Cell_counts_per_ganglia==true)
+	{
+ 		ganglia_img = create_ganglia_img(max_projection,ganglia_channel,cell_channel);
+ 		ganglia_img_masks_path = img_masks_path+fs+"Ganglia"+fs;
+ 		if (!File.exists(ganglia_img_masks_path)) File.makeDirectory(ganglia_img_masks_path); //create directory to save img masks
+ 		
+ 		args=ganglia_img+","+ganglia_binary+","+"ganglia,"+ganglia_img_masks_path;
+		runMacro(save_img_mask_macro_path,args);
+
+	}
+}
+
 
 //neuron_subtype_matrix=0;
 no_markers=0;
@@ -604,6 +637,20 @@ if(marker_subtype==1)
 			selectWindow("label_mapss");
 			rename("label_img_"+channel_name);
 			label_marker=getTitle();
+			
+			//save images and masks if user selects to save them for the marker
+			if(Save_Image_Masks == true)
+			{
+				
+				//cells_img_masks_path = img_masks_path+fs+"Cells"+fs;
+				//if (!File.exists(cells_img_masks_path)) File.makeDirectory(cells_img_masks_path); //create directory to save img masks for cells
+				//save_img_mask_macro_path = gat_dir+fs+"save_img_mask.ijm";
+				args=marker_image+","+label_marker+","+channel_name+","+cells_img_masks_path;
+				//save img masks for cells
+				runMacro(save_img_mask_macro_path,args);
+				close(marker_image);
+			}
+			else close(marker_image);
 			
 			//store marker name in an array to call when analysing marker combinations
 			if(no_markers>1) marker_label_arr[i]=label_marker;
@@ -1015,7 +1062,7 @@ function scale_image(img,scale_factor,name)
 			new_height=round(height*scale_factor);
 			scaled_img=name+"_resize";
 			run("Scale...", "x=- y=- width="+new_width+" height="+new_height+" interpolation=None create title="+scaled_img);
-			close(img);
+			//close(img);
 			selectWindow(name+"_resize");
 			
 		}
@@ -1219,4 +1266,31 @@ function extended_depth_proj(img)
 	setVoxelSize(vox_width, vox_height, vox_depth, vox_unit);
 	close(img);
 	return max_name;
+}
+
+//function to create ganglia image for saving annotations; move this to separate file later on
+function create_ganglia_img(max_projection,ganglia_channel,cell_channel)
+{
+	
+	selectWindow(max_projection);
+	run("Select None");
+	Stack.setChannel(ganglia_channel);
+	run("Duplicate...", "title=ganglia_ch duplicate channels="+ganglia_channel);
+	run("Green");
+	
+	selectWindow(max_projection);
+	run("Select None");
+	Stack.setChannel(cell_channel);
+	run("Duplicate...", "title=cells_ch duplicate channels="+cell_channel);
+	run("Magenta");
+	
+	run("Merge Channels...", "c1=ganglia_ch c2=cells_ch create");
+	composite_img=getTitle();
+	
+	run("RGB Color");
+	ganglia_rgb=getTitle();
+
+	return ganglia_rgb;
+	
+
 }

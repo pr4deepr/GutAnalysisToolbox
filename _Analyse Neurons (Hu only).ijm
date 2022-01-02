@@ -71,7 +71,7 @@ if(!File.exists(segment_ganglia)) exit("Cannot find segment ganglia script. Retu
 
  
 
-#@ File (style="open", label="<html>Choose the image to segment.<br>Enter NA if image is open.<br><b>Enter NA if field is empty.</b><html>", value=fiji_dir) path
+#@ File (style="open", label="<html>Choose the image to segment.<br><b>Enter NA if image is open or if field is empty.</b><html>", value=fiji_dir) path
 #@ boolean image_already_open
 #@ String(value="<html>If image is already open, tick above box.<html>", visibility="MESSAGE") hint1
 #@ String(label="Enter channel number for Hu if you know. Enter NA if not using.", value="NA") cell_channel
@@ -92,6 +92,15 @@ if(Change_pixel_size_segmentation==true) training_pixel_size=training_pixel_size
 // String(value="<html> Probability<html>",visibility="MESSAGE", required=false) hint34
 #@ Double (label="Probability of detecting neuron ", style="slider", min=0, max=1, stepSize=0.050,value=probability) probability_manual
 #@ Double (label="Overlap threshold", style="slider", min=0, max=1, stepSize=0.050,value=overlap) overlap_manual
+#@ String(value="<html>---------------------------------------------------------******<b>Contribute to improving GAT<b>******-------------------------------------------<html>",visibility="MESSAGE") contrib
+#@ String(value="<html> If you are willing to contribute images and masks to improve GAT, tick the box below <br/>It will save the images and masks in the folder below as you perform your analysis.<html>",visibility="MESSAGE") contrib1
+#@ boolean Save_Image_Masks
+#@ File (style="directory", label="<html>Choose a folder to save the image and masks.<br><b>Enter NA if field is empty.</b><html>", value=fiji_dir) img_masks_path
+
+
+
+
+
 
 if(Finetune_detection==true)
 {
@@ -395,6 +404,36 @@ neuron_label_image=getTitle();
 selectWindow(neuron_label_image);
 run("Select None");
 roiManager("UseNames", "false");
+
+//save images and masks if user selects to save them
+if(Save_Image_Masks == true)
+{
+	
+	print("Saving Image and Masks");
+	if (!File.exists(img_masks_path)) File.makeDirectory(img_masks_path); //create directory to save img masks
+	
+	cells_img_masks_path = img_masks_path+fs+"Cells"+fs;
+	if (!File.exists(cells_img_masks_path)) File.makeDirectory(cells_img_masks_path); //create directory to save img masks for cells
+	save_img_mask_macro_path = gat_dir+fs+"save_img_mask.ijm";
+	
+	args=max_projection+","+neuron_label_image+","+"Hu,"+cells_img_masks_path;
+	//save img masks for cells
+	runMacro(save_img_mask_macro_path,args);
+
+	//ganglia save
+	if (Cell_counts_per_ganglia==true)
+	{
+ 		ganglia_img = create_ganglia_img(max_projection,ganglia_channel,cell_channel);
+ 		ganglia_img_masks_path = img_masks_path+fs+"Ganglia"+fs;
+ 		if (!File.exists(ganglia_img_masks_path)) File.makeDirectory(ganglia_img_masks_path); //create directory to save img masks
+ 		
+ 		args=ganglia_img+","+ganglia_binary+","+"ganglia,"+ganglia_img_masks_path;
+		runMacro(save_img_mask_macro_path,args);
+
+	}
+}
+
+
 close("*");
 exit("Neuron analysis complete");
 
@@ -568,4 +607,32 @@ function extended_depth_proj(img)
 	rename(max_name);
 	close(img);
 	return max_name;
+}
+
+
+//function to create ganglia image for saving annotations; move this to separate file later on
+function create_ganglia_img(max_projection,ganglia_channel,cell_channel)
+{
+	
+	selectWindow(max_projection);
+	run("Select None");
+	Stack.setChannel(ganglia_channel);
+	run("Duplicate...", "title=ganglia_ch duplicate channels="+ganglia_channel);
+	run("Green");
+	
+	selectWindow(max_projection);
+	run("Select None");
+	Stack.setChannel(cell_channel);
+	run("Duplicate...", "title=cells_ch duplicate channels="+cell_channel);
+	run("Magenta");
+	
+	run("Merge Channels...", "c1=ganglia_ch c2=cells_ch create");
+	composite_img=getTitle();
+	
+	run("RGB Color");
+	ganglia_rgb=getTitle();
+
+	return ganglia_rgb;
+	
+
 }

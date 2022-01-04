@@ -26,9 +26,10 @@ GAT requires the following update sites:
 
 GAT update site: https://sites.imagej.net/GutAnalysisToolbox/
 
+***********
 ## Download model files
 
-#### FIJI
+### FIJI
 
 The model files are zipped and ready to download here:
 
@@ -55,7 +56,7 @@ The GAT FIJI models folder contains the 3 files required for running GAT in FIJI
 
 Click [here](https://www.youtube.com/watch?v=RIvaXL-Q7Go&list=PLmBt1Dumq60p4mIFT4j7TP_PVRjbO55Oi) to see how to configure models after GAT installation in FIJI.
 
-#### QuPath
+### QuPath
 
 [Click to Download QuPath model and scripts](https://wehieduau-my.sharepoint.com/:u:/g/personal/rajasekhar_p_wehi_edu_au/EdYxRodrJLNJj4wK77erHA0BfVKDJpOktgWQ3iIyLaUU1g?download=1)
 

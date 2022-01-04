@@ -36,9 +36,22 @@ The model files are zipped and ready to download here:
 
 The GAT FIJI models folder contains the 3 files required for running GAT in FIJI:
 
-- Enteric neuron model: 2D_enteric_neuron_v4_1.zip
-- Enteric neuron subtype model: 2D_enteric_neuron_subtype_v4_1.zip
-- Ganglia model folder: 2D_enteric_ganglia_v2.bioimage.io.model
+- **Enteric neuron model: 2D_enteric_neuron_v4_1.zip**
+  
+  StarDist model to segment enteric neurons labelled with Hu, a pan-neuronal marker
+- **Enteric neuron subtype model: 2D_enteric_neuron_subtype_v4_1.zip**
+  
+  StarDist model to segment enteric neuronal subtypes. It has been trained on images with labelling for:
+  * neuronal nitric oxide synthase (nNOS)
+  * Calbindin
+  * Calretinin
+  * Mu-opioid receptor (MOR) reporter (mCherry)
+  * Delta-opioid receptor (DOR) reporter (GFP)
+  * Choline acetyltransferase (ChAT)
+  * Neurofilament (NFM)
+- **Ganglia model folder: 2D_enteric_ganglia_v2.bioimage.io.model**
+  
+  DeepImageJ-based UNet model to segment ganglia. Needs both Hu and a neuronal/glial marker labelling the ganglia
 
 Click [here](https://www.youtube.com/watch?v=RIvaXL-Q7Go&list=PLmBt1Dumq60p4mIFT4j7TP_PVRjbO55Oi) to see how to configure models after GAT installation in FIJI.
 

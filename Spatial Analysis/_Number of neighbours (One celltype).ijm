@@ -4,9 +4,9 @@
 #@ File (label="Select roi manager for cells") roi_path
 #@ File (label="Select roi manager for ganglia (Enter NA if none)",value="NA") roi_ganglia_path
 #@ File (style="directory",label="Select Output Folder") save_path
-#@ String(choices={"Neuron", "Glia"}, style="list") cell_type
-#@ String(value="<html>Expand cells by a certain distance so that they touch each other <br> and then count immediate neighbours (9 micron is default)<html>", visibility="MESSAGE") hint;
-#@ Double (value=10, min=1, max=15, style="slider",label="Cell expansion (microns)") label_dilation
+#@ String (label="Name of celltype 1", description="Cell 1",value="Hu") cell_type
+#@ String(value="<html>Expand cells by a certain distance so that they touch each other <br> and then count immediate neighbours (6.5 micron is default)<html>", visibility="MESSAGE") hint
+#@ Double (value=6.5, min=1, max=15, stepSize = 0.5, style="slider",label="Cell expansion (microns)") label_dilation
 #@ boolean save_parametric_image
 
 run("Clear Results");
@@ -75,7 +75,7 @@ run("Select None");
 label_cell_img=getTitle();
 
 //define save path based on file name and create a save folder if none
-save_path=save_path+fs+file_name+fs;
+save_path=save_path+fs+"spatial_analysis"+fs;
 if(!File.exists(save_path)) File.makeDirectory(save_path);
 
 run("CLIJ2 Macro Extensions", "cl_device=");
@@ -87,6 +87,7 @@ Ext.CLIJ2_push(label_cell_img);
 //label_dilation=9; //9 micron dilation
 //convert to pixels
 label_dilation=round(label_dilation/pixelWidth);
+print("Expansion in pixels "+label_dilation);
 //Ext.CLIJx_morphoLibJDilateLabels(label_cell_img, image_4, label_dilation);
 Ext.CLIJ2_dilateLabels(label_cell_img, image_4, label_dilation);
 Ext.CLIJ2_pull(label_cell_img);
@@ -121,14 +122,16 @@ IJ.renameResults(table_name);
 selectWindow(table_name);
 Table.deleteColumn("Min");
 Table.renameColumn("Max", "No of immediate neighbours");
-Table.save(save_path+"Neighbour count.csv");
+table_name = "Neighbour_count_single_celltype_"+cell_type;
+table_path=save_path+fs+table_name+".csv";
+Table.save(table_path);
 //close();
 
 if(save_parametric_image)
 {
 	overlap_cell=get_parameteric_img(neighbour_count,label_cell_img);
 	selectWindow(overlap_cell);
-	saveAs("Tiff", save_path+fs+overlap_cell);
+	saveAs("Tiff", save_path+fs+table_name);
 
 }
 close("*");

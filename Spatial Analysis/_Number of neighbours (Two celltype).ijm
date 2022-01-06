@@ -13,8 +13,8 @@
 #@ File (label="Select roi manager for cell 2") roi_path_2
 #@ File (style="directory",label="Select Output Folder") save_path
 #@ File (label="Select roi manager for ganglia (Enter NA if none)",value="NA") roi_ganglia_path
-#@ String(value="<html>Expand cells by a certain distance so that they touch each other <br> and then count immediate neighbours (9 micron is default)<html>", visibility="MESSAGE") hint;
-#@ Double (value=10, min=1, max=15, style="slider",label="Cell expansion distance for cells (microns)") label_dilation
+#@ String(value="<html>Expand cells by a certain distance so that they touch each other <br> and then count immediate neighbours (6.5 micron is default)<html>", visibility="MESSAGE") hint
+#@ Double (value=6.5, min=1, max=15, style="slider",label="Cell expansion distance for cells (microns)") label_dilation
 #@ boolean save_parametric_image
 
 run("Clear Results");
@@ -39,7 +39,7 @@ if(!File.exists(roi_to_label)) exit("Cannot find roi to label script. Returning:
 
 
 
-if(cell_type_1==cell_type_2 || roi_path_1== roi_path_2) exit("Same name or ROI Manager selected");
+if(cell_type_1==cell_type_2 || roi_path_1== roi_path_2) exit("Cell names or ROI managers are the same for both celltypes");
 
 
 //open the image
@@ -110,6 +110,7 @@ run("Remove Overlay");
 //label_dilation=9; //9 micron dilation or whatever user enters
 //convert to pixels
 label_dilation=round(label_dilation/pixelWidth);
+print("Expansion in pixels "+label_dilation);
 
 label_overlap_1=neighbour_count(cell_1,cell_2,label_dilation,ganglia_binary,cell_type_1,cell_type_2);
 
@@ -129,8 +130,13 @@ roiManager("Measure");
 selectWindow("Results");
 cell_count_2=Table.getColumn("Max");
 
+save_path=save_path+fs+"spatial_analysis"+fs;
+if(!File.exists(save_path)) File.makeDirectory(save_path);
+
 run("Clear Results");
-table_path=save_path+fs+file_name+".csv";
+table_name = "Neighbour_count_"+cell_type_1+"_"+cell_type_2;
+table_path=save_path+fs+table_name+".csv";
+
 
 Table.create("Cell counts_overlap");
 Table.setColumn("No of "+cell_type_2+" around "+cell_type_1, cell_count_1);
@@ -138,6 +144,7 @@ Table.setColumn("No of "+cell_type_1+" around "+cell_type_2, cell_count_2);
 Table.update;
 Table.save(table_path);
 
+exit("Neighbour Analysis complete");
 
 if(save_parametric_image==true)
 {

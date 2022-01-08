@@ -61,3 +61,9 @@ Click [here](https://www.youtube.com/watch?v=RIvaXL-Q7Go&list=PLmBt1Dumq60p4mIFT
 [Click to Download QuPath model and scripts](https://wehieduau-my.sharepoint.com/:u:/g/personal/rajasekhar_p_wehi_edu_au/EdYxRodrJLNJj4wK77erHA0BfVKDJpOktgWQ3iIyLaUU1g?download=1)
 
 Check here for more detail on using [QuPath models](https://github.com/pr4deepr/GutAnalysisToolbox/wiki/4.-QuPath-for-analysing-ENS)
+
+**********************
+## Citing
+
+Information will be updated soon. Software will be published on zenodo so it will be citable in the mean time. 
+Upon publication, the paper can be cited instead

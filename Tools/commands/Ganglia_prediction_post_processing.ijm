@@ -24,7 +24,9 @@ macro "ganglia_prediction_post"
 	close(multi_ch_prediction);
 
 	selectWindow("ganglia_prediction");
-	setThreshold(0.8, 1);
+	image_type=bitDepth();
+	if(bitDepth()==8) setThreshold((0.8*255),255);
+	else setThreshold(0.8, 1);
 	setOption("BlackBackground", true);
 	run("Convert to Mask");
 

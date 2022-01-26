@@ -368,6 +368,19 @@ print("*********Segmenting cells using StarDist********");
 segment_cells(max_projection,seg_image,neuron_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap);
 close(seg_image);
 
+//if cell count zero, check with user if they want to terminate the analysis
+cell_count=roiManager("count");
+if(cell_count == 0)
+{
+	print("No cells detected");
+	proceed = getBoolean("NO cells detected, do you still want to continue analysis?");
+	if(!proceed) 
+	{
+		print("Analysis stopped as no cells detected");
+		exit("Analysis stopped as no cells detected");
+	}
+}
+
 //manually correct or verify if needed
 waitForUser("Correct "+cell_type+" ROIs if needed. You can delete or add ROIs using ROI Manager");
 cell_count=roiManager("count");

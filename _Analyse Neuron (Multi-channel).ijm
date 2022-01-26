@@ -194,8 +194,36 @@ run("Remove Overlay");
 
 getPixelSize(unit, pixelWidth, pixelHeight);
 
+//Check image properties************
+//Check if RGB
+if (bitDepth()==24)
+{
+	print("Image is RGB type. It is recommended to NOT\nconvert the image to RGB and use the raw output from the microscope (usually, 8,12 or 16-bit)\n.");
+	rgb_prompt = getBoolean("Image is RGB. Recommend to use 8,12 or 16-bit images. Can try converting to 8-bit and proceed.", "Convert to 8-bit", "No, stop analysis");
+	if(rgb_prompt ==1)
+	{
+		print("Converting to 8-bit");
+		selectWindow(img_name);
+		run("8-bit");
+	}
+	else exit("User terminated analysis as Image is RGB.");
+}
+
+
+//check if unit is microns or micron
+unit=String.trim(unit);
+
+if(unit!="microns" && unit!="micron" && unit!="um" )
+{
+	print("Image not calibrated in microns. This is required for accurate segmentation");
+	exit("Image must have pixel size in microns.\nGo to Image -> Properties to set this.\nYou can get this from the microscope settings.\nCannot proceed: STOPPING Analysis");
+
+}
+//************
+
+
 //Training images were pixelsize of ~0.568, so scaling images based on this; 
-//Pixel size of 0.7 works for segmentation. Makes sure small objects aren't detected
+// Makes sure small objects aren't detected
 scale_factor=pixelWidth/training_pixel_size;
 if(scale_factor<1.001 && scale_factor>1) scale_factor=1;
 

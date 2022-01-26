@@ -1,6 +1,24 @@
 //check installation of plugins
 macro "check_plugins" 
 {
+	print("System Config:");
+	run("Clear Results");
+	
+	//print system config (separate out to a different macro
+	run("CLIJ2 Macro Extensions", "cl=");
+	Ext.CLIJ2_GPUProperties();
+	
+	gpu = Table.getString("GPUName",0);
+	gpu_memory=Table.get("Global_memory_in_bytes",0);
+	print("OpenCL Device: "+gpu+"\nOpenCL memory(GB):"+gpu_memory/(1024000000));
+	
+	memory = IJ.freeMemory();
+	print("RAM: "+memory);
+	run("Clear Results");
+	selectWindow("Results");
+	run("Close");
+	//****************
+	
 	print("******Checking if plugins are installed.*******");
 	checks=newArray("DeepImageJ Run","Area Opening","Command From Macro","CLIJ Macro Extensions","StackReg");//"Area Opening","Shape Smoothing","ROI Color Coder",
 	check_plugin_install(checks);

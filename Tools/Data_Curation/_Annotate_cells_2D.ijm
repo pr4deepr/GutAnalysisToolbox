@@ -9,7 +9,7 @@
  */
 
 List.setCommands;
-if (List.get("LabelMap to ROI Manager (2D)")="") print("Enable update site for SCF MPI CBG in ImageJ updater");
+if (List.get("LabelMap to ROI Manager (2D)")=="") print("Enable update site for SCF MPI CBG in ImageJ updater");
 
 
 #@ File (style="open", label="Select Image") orig_img_path

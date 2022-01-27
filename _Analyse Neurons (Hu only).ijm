@@ -307,10 +307,15 @@ run("Duplicate...", "title="+cell_type+"_segmentation");
 seg_image=getTitle();
 roiManager("reset");
 
-n_tiles=2;
+
+//calculate no. of tiles
 new_width=round(width*scale_factor); 
-if(new_width>1200) n_tiles=4;
-else if(new_width>4000) n_tiles=10;
+tiles=4;
+if(new_width>2000 || new_height>2000) tiles=8;
+if(new_width>5000 || new_height>5000) tiles=12;
+else if (new_width>9000 || new_height>5000) tiles=20;
+
+
 
 //scale image if scaling factor is not equal to 1
 if(scale_factor!=1)

@@ -24,11 +24,11 @@ neuron_area_limit=parseFloat(Table.get("Values", 1)); //1500
 neuron_seg_lower_limit=parseFloat(Table.get("Values", 2)); //90
 neuron_lower_limit=parseFloat(Table.get("Values", 3)); //160
 
-probability=parseFloat(Table.get("Values", 5)); //prob neuron
-probability_subtype=parseFloat(Table.get("Values", 6)); //prob subtype
+//probability=parseFloat(Table.get("Values", 5)); //prob neuron
+//probability_subtype=parseFloat(Table.get("Values", 6)); //prob subtype
 
-overlap= parseFloat(Table.get("Values", 7));
-overlap_subtype=parseFloat(Table.get("Values", 8));
+//overlap= parseFloat(Table.get("Values", 7));
+//overlap_subtype=parseFloat(Table.get("Values", 8));
 
 //get paths of model files
 neuron_model_file = Table.getString("Values", 9);
@@ -90,14 +90,13 @@ else
 }
 
 
-//open(path);
 run("Select None");
 run("Remove Overlay");
+print("**Neuron analysis: \nProbability: "+probability+"\nOverlap threshold: "+overlap);
 
-//file_name=File.nameWithoutExtension; //get file name without extension (.lif)
 
 series_stack=getTitle();
-//series_stack=getTitle();
+
 
 dotIndex = indexOf(series_stack, "." );
 if(dotIndex>=0) file_name = substring(series_stack,0, dotIndex);
@@ -216,7 +215,13 @@ for(scale=scale_factor_1;scale<=scale_factor_2;scale+=step_scale)
 	if(new_width>5000 || new_height>5000) tiles=12;
 	else if (new_width>7000 || new_height>7000) tiles=30;
 	
-	run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Label Image', 'modelFile':'"+model_file+"', 'nTiles':'"+tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
+	//run segmentation
+	run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D], args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Both', 'modelFile':'"+model_file+"', 'nTiles':'"+tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
+	wait(50);
+
+	//make sure cells are detected.. if not exit macro
+	if(roiManager("count")==0) exit("No cells detected. Reduce probability or check image.\nAnalysis stopped");
+	else roiManager("reset");
 	wait(50);
 	
 	label_image=getTitle();

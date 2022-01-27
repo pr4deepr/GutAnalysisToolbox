@@ -41,7 +41,7 @@ cell_type="Cell";
 if(choice_scaling=="Use pixel size") Use_pixel_size=true;
 else if(choice_scaling=="Use a scaling factor") Use_pixel_size=false;
 
-//modify_stardist=Modify_StarDist_Values;
+
 print("\\Clear");
 
 if(image_already_open==true)
@@ -64,6 +64,10 @@ else
 //open(path);
 run("Select None");
 run("Remove Overlay");
+
+
+print("**Neuron analysis: \nProbability: "+probability+"\nOverlap threshold: "+overlap);
+
 
 //file_name=File.nameWithoutExtension; //get file name without extension (.lif)
 
@@ -172,18 +176,15 @@ for(scale=scale_factor_1;scale<=scale_factor_2;scale+=step_scale)
 	if(new_width>2000 || new_height>2000) tiles=8;
 	if(new_width>5000 || new_height>5000) tiles=12;
 	else if (new_width>9000 || new_height>5000) tiles=20;
-	//if(modify_stardist==false)
-	//{
-	//model_file="D:\\\\Google Drive\\\\ImageJ+Python scripts\\\\Gut analysis toolbox\\\\models\\\\2d_enteric_neuron_aug (1)\\\\TF_SavedModel.zip";
-		run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Label Image', 'modelFile':'"+model_file+"', 'nTiles':'"+tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
-		wait(50);
-	//}
-	//else 
-	//{
-		//print("Make sure Label Image is selected");
-	//	run("StarDist 2D");
-		//wait(50);
-	//}
+
+	//run segmentation
+	run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Both', 'modelFile':'"+model_file+"', 'nTiles':'"+tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
+	wait(50);
+
+	//make sure cells are detected.. if not exit macro
+	if(roiManager("count")==0) exit("No cells detected. Reduce probability or check image.\nAnalysis stopped");
+	else roiManager("reset");
+
 	label_image=getTitle();
 	selectWindow(label_image);
 	run("Remove Overlay");

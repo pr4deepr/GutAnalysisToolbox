@@ -112,7 +112,7 @@ macro "label_map_to_roi"
 	}
 	else 
 	{
-		print("No labels in image");
+		print("No labels or cells detected in image");
 	}
 	close("Results");
 	close(reindex);

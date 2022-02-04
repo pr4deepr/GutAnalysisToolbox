@@ -118,6 +118,7 @@ if(scale_factor!=1)
 	close(image);
 	selectWindow("img_resize");
 	image=getTitle();
+	print("Width and height based on scaling are: "+new_width+" & "+new_height);
 
 }
 

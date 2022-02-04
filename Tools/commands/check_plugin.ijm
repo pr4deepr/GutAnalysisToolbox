@@ -22,6 +22,58 @@ macro "check_plugins"
 	selectWindow("Results");
 	run("Close");
 	//****************
+
+	//check if model files are present
+	var fs = File.separator;
+	//models
+	//get settings for GAT
+	//get fiji directory and get the macro folder for GAT
+	var fiji_dir=getDirectory("imagej");
+	var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Tools"+fs+"commands";
+	
+	//specify directory where StarDist models are stored
+	var models_dir=fiji_dir+"models"+fs;
+	
+	gat_settings_path=gat_dir+fs+"gat_settings.ijm";
+	if(!File.exists(gat_settings_path)) exit("Cannot find settings file. Check: "+gat_settings_path);
+	run("Results... ", "open="+gat_settings_path);
+
+	//get paths of model files
+	neuron_model_file = Table.getString("Values", 9);
+	neron_subtype_file = Table.getString("Values", 10);
+	run("Close");
+
+	//Neuron segmentation model
+	neuron_model_path=models_dir+neuron_model_file;
+	//Marker segmentation model
+	subtype_model_path=models_dir+neron_subtype_file;
+	if(!File.exists(neuron_model_path)||!File.exists(subtype_model_path)) 
+	{
+		print("Cannot find models for segmenting. It is possible that the model has not been copied or even updated");
+		print("Current model for neuron segmentation: "+neuron_model_file);
+		print("Current model for neuron subtype segmentation: "+neron_subtype_file);
+		print("Models found in the folder:");
+		files_list = getFileList(models_dir);
+		if(files_list.length >0)
+		{
+			for (i = 0; i < files_list.length; i++) 
+			{
+				file_name = File.getNameWithoutExtension(files_list[i]);
+				if(startsWith(file_name, "2D_enteric_neuron"))
+				{
+					print(file_name);
+				}
+			}
+		}
+		else print("No files found");
+
+		
+		exit("Cannot find models for segmenting neurons. Check log for details");
+	}
+
+
+
+
 	
 	print("******Checking if plugins are installed.*******");
 	checks=newArray("DeepImageJ Run","Area Opening","Command From Macro","CLIJ Macro Extensions","StackReg");//"Area Opening","Shape Smoothing","ROI Color Coder",

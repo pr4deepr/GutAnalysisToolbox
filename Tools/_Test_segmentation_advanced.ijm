@@ -36,6 +36,10 @@ run("Close");
 #@ String(value="<html>Default Probability is 0.5 and Overlap threshold is 0.5. Leave it as default when first trying this.<br/>More info about below parameters can be found here: https://www.imagej.net/StarDist/<html>",visibility="MESSAGE", required=false) hint34
 #@ Double (label="Probability (if staining is weak, use low values)", style="slider", min=0, max=1, stepSize=0.05,value=0.55) probability
 #@ Double (label="Overlap Threshold", style="slider", min=0, max=1, stepSize=0.05,value=0.5) overlap
+#@ String(value="<html>If you are getting out of memory errors, you can try increasing the number of tiles./<html>",visibility="MESSAGE", required=false) tile_hint
+#@ boolean Change_Tile
+#@ Double (label="No. of tiles", style="spinner", min=1, stepSize=1,value=1) tile_manual 
+
 
 cell_type="Cell";
 if(choice_scaling=="Use pixel size") Use_pixel_size=true;
@@ -172,11 +176,15 @@ for(scale=scale_factor_1;scale<=scale_factor_2;scale+=step_scale)
 	}
 	//choice=0;
 	selectWindow(img_seg);
+	if(Change_Tile) tiles = tile_manual;
+	else 
+	{ 
 	tiles=4;
 	if(new_width>2000 || new_height>2000) tiles=8;
 	if(new_width>5000 || new_height>5000) tiles=12;
 	else if (new_width>9000 || new_height>5000) tiles=20;
-
+	}
+	print("No. of tiles "+tiles);
 	//run segmentation
 	run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Both', 'modelFile':'"+model_file+"', 'nTiles':'"+tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
 	wait(50);

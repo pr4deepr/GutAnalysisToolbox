@@ -38,6 +38,7 @@ The model files are zipped and ready to download here:
 
 [Click to Download GAT FIJI model folders](https://wehieduau-my.sharepoint.com/:u:/g/personal/rajasekhar_p_wehi_edu_au/Ecg001ngdvhBgRaWxVakPecBF8d5Qb361PgXYFrcxp8Azw?download=1)
 
+
 The GAT FIJI models folder contains the 3 files required for running GAT in FIJI:
 
 - **Enteric neuron model: 2D_enteric_neuron_v4_1.zip**
@@ -66,10 +67,18 @@ Click [here](https://www.youtube.com/watch?v=RIvaXL-Q7Go&list=PLmBt1Dumq60p4mIFT
 Check here for more detail on using [QuPath models](https://github.com/pr4deepr/GutAnalysisToolbox/wiki/4.-QuPath-for-analysing-ENS)
 
 **********************
+
+### Accessing training data
+
+To download the training data, notebooks and associated model reports go to:
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6096664.svg)](https://doi.org/10.5281/zenodo.6096664)
+
+**********************
 ## Citing
 
 Software citation on Zenodo:
 
 Sorensen, Luke, Saito, Ayame, Poon, Sabrina, Noe Han, Myat, Humenick, Adam, Mutunduwe, Keith, Glennan, Christie, Mahdavian, Narges, JH Brookes, Simon, M McQuade, Rachel, PP Foong, Jaime, Gómez-de-Mariscal, Estibaliz, Haase, Robert, Carbone, Simona, A. Veldhuis, Nicholas, P. Poole, Daniel, & Rajasekhar, Pradeep. (2022). GutAnalysisToolbox (1.0.0). Zenodo. https://doi.org/10.5281/zenodo.6095822
 
-Upon publication, the paper will be included here
+Upon publication, the paper will be included here.

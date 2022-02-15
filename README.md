@@ -1,5 +1,8 @@
 # Gut Analysis Toolbox
 
+[![DOI](https://zenodo.org/badge/407348873.svg)](https://zenodo.org/badge/latestdoi/407348873)
+
+
 **To get started with GAT, please go to the** [**Wiki page**](https://github.com/pr4deepr/GutAnalysisToolbox/wiki).
 ***********
 Gut Analysis Toolbox or GAT allows the semi-automated analysis of the cells within the enteric nervous system of the gastrointestinal tract. GAT enables quantification of enteric neurons and their subtypes. It runs in FIJI, a popular image analysis software in microscopy and uses deep learning models to segment cells of interest. 
@@ -29,7 +32,7 @@ GAT update site: https://sites.imagej.net/GutAnalysisToolbox/
 ***********
 ## Download model files
 
-### FIJI
+### Model files for use in FIJI
 
 The model files are zipped and ready to download here:
 
@@ -56,7 +59,7 @@ The GAT FIJI models folder contains the 3 files required for running GAT in FIJI
 
 Click [here](https://www.youtube.com/watch?v=RIvaXL-Q7Go&list=PLmBt1Dumq60p4mIFT4j7TP_PVRjbO55Oi) to see how to configure models after GAT installation in FIJI.
 
-### QuPath
+### Model files for use in QuPath
 
 [Click to Download QuPath model and scripts](https://wehieduau-my.sharepoint.com/:u:/g/personal/rajasekhar_p_wehi_edu_au/EdYxRodrJLNJj4wK77erHA0BfVKDJpOktgWQ3iIyLaUU1g?download=1)
 

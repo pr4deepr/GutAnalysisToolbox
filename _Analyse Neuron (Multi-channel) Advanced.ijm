@@ -50,11 +50,8 @@ if(!File.exists(roi_to_label)) exit("Cannot find roi to label script. Returning:
 var ganglia_cell_count=gat_dir+fs+"Calculate_Neurons_per_Ganglia.ijm";
 if(!File.exists(ganglia_cell_count)) exit("Cannot find ganglia cell count script. Returning: "+ganglia_cell_count);
 
-//check if ganglia prediction post processing macro present
-var deepimagej_post_processing=gat_dir+fs+"Ganglia_prediction_post_processing.ijm";
-if(!File.exists(deepimagej_post_processing)) exit("Cannot find roi to label script. Returning: "+deepimagej_post_processing);
 
-//check if ganglia prediction post processing macro present
+//check if ganglia prediction macro present
 var segment_ganglia=gat_dir+fs+"Segment_Ganglia.ijm";
 if(!File.exists(segment_ganglia)) exit("Cannot find segment ganglia script. Returning: "+segment_ganglia);
 

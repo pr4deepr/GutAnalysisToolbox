@@ -12,10 +12,6 @@ setOption("ExpandableArrays", true);
 var fiji_dir=getDirectory("imagej");
 var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Tools"+fs+"commands";
 
-//check if ganglia prediction post processing macro present
-var deepimagej_post_processing=gat_dir+fs+"Ganglia_prediction_post_processing.ijm";
-if(!File.exists(deepimagej_post_processing)) exit("Cannot find roi to label script. Returning: "+deepimagej_post_processing);
-
 
 
 macro "ganglia_prediction"
@@ -135,7 +131,6 @@ function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel)
 	
 	close(ganglia_pred_processed);
 	close("ganglia_rgb_2");
-	close(temp_pred);
 	close(ganglia_rgb);
 	
 	selectWindow(ganglia_final);

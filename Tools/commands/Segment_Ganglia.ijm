@@ -105,15 +105,16 @@ function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel)
 	
 	selectWindow(ganglia_rgb);
 	
-	run("DeepImageJ Run", "model=2D_enteric_ganglia_v2 format=Tensorflow preprocessing=[per_sample_scale_range.ijm] postprocessing=[no postprocessing] axes=Y,X,C tile=768,768,3 logging=normal");
+	print("If you are getting an error during ganglia prediction, please download a new ganglia model");
+	run("DeepImageJ Run", "model=2D_enteric_ganglia_v2 format=Tensorflow preprocessing=[per_sample_scale_range.ijm] postprocessing=[_ganglia_binarise.ijm] axes=Y,X,C tile=768,768,3 logging=normal");
 	
 	wait(10);
 	prediction_output=getTitle();
+		//deprecated; modified deepimagej yaml file to accept a custom postprocessing macro
+	//runMacro(deepimagej_post_processing,prediction_output);
+	//temp_pred=getTitle();
 	
-	runMacro(deepimagej_post_processing,prediction_output);
-	temp_pred=getTitle();
-	
-	selectWindow(temp_pred);
+	selectWindow(prediction_output);
 	run("Options...", "iterations=3 count=2 black do=Open");
 	wait(5);
 	

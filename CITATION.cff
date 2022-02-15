@@ -1,0 +1,69 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Sorensen"
+  given-names: "Luke"
+  
+- family-names: "Saito"
+  given-names: "Ayame"
+  
+- family-names: "Poon"
+  given-names: "Sabrina"
+
+- family-names: "Noe Han"
+  given-names: "Myat"
+  orcid: "https://orcid.org/0000-0003-3028-7359"
+  
+- family-names: "Humenick"
+  given-names: "Adam"
+  
+- family-names: "Mutunduwe"
+  given-names: "Keith"
+  
+- family-names: "Glennan"
+  given-names: "Christie "
+
+- family-names: "Mahdavian"
+  given-names: "Narges "
+ 
+- family-names: "JH Brookes"
+  given-names: "Simon"
+  orcid: "https://orcid.org/0000-0001-5635-0876"
+
+- family-names: "M McQuade"
+  given-names: "Rachel"
+  orcid: "https://orcid.org/0000-0002-3510-1288"
+
+- family-names: "PP Foong"
+  given-names: "Jaime"
+  orcid: "https://orcid.org/0000-0003-2082-5520"
+
+- family-names: "Gómez-de-Mariscal"
+  given-names: "Estibaliz"
+  orcid: "https://orcid.org/0000-0003-2082-3277"
+
+- family-names: "Haase"
+  given-names: "Robert"
+  orcid: "https://orcid.org/0000-0001-5949-2327"
+
+- family-names: "Carbone"
+  given-names: "Simona"
+  orcid: "https://orcid.org/0000-0002-4350-6357"
+
+- family-names: "A. Veldhuis"
+  given-names: "Nicholas"
+  orcid: "https://orcid.org/0000-0002-8902-9365"
+
+- family-names: "P. Poole"
+  given-names: "Daniel"
+  orcid: "https://orcid.org/0000-0002-6168-8422"
+
+- family-names: "Rajasekhar"
+  given-names: "Pradeep"
+  orcid: "https://orcid.org/0000-0002-1983-7244"
+
+title: "GutAnalysisToolbox"
+version: 1.0.0
+doi: 10.5281/zenodo.1234
+date-released: 2022-02-15
+url: "https://github.com/pr4deepr/GutAnalysisToolbox"

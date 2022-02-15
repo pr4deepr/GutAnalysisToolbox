@@ -1,6 +1,6 @@
 # Gut Analysis Toolbox
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6095591.svg)](https://doi.org/10.5281/zenodo.6095591)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6095822.svg)](https://doi.org/10.5281/zenodo.6095822)
 
 
 **To get started with GAT, please go to the** [**Wiki page**](https://github.com/pr4deepr/GutAnalysisToolbox/wiki).
@@ -68,5 +68,8 @@ Check here for more detail on using [QuPath models](https://github.com/pr4deepr/
 **********************
 ## Citing
 
-Information will be updated soon. Software will be published on zenodo so it will be citable in the mean time. 
-Upon publication, the paper can be cited instead
+Software citation on Zenodo:
+
+Sorensen, Luke, Saito, Ayame, Poon, Sabrina, Noe Han, Myat, Humenick, Adam, Mutunduwe, Keith, Glennan, Christie, Mahdavian, Narges, JH Brookes, Simon, M McQuade, Rachel, PP Foong, Jaime, Gómez-de-Mariscal, Estibaliz, Haase, Robert, Carbone, Simona, A. Veldhuis, Nicholas, P. Poole, Daniel, & Rajasekhar, Pradeep. (2022). GutAnalysisToolbox (1.0.0). Zenodo. https://doi.org/10.5281/zenodo.6095822
+
+Upon publication, the paper will be included here

@@ -3,8 +3,13 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6095822.svg)](https://doi.org/10.5281/zenodo.6095822)
 
 
-**To get started with GAT, please go to the** [**Wiki page**](https://github.com/pr4deepr/GutAnalysisToolbox/wiki).
+**To get started with using GAT, please go to the** [**Wiki page**](https://github.com/pr4deepr/GutAnalysisToolbox/wiki).
+
 ***********
+<p align="center">
+<img src="https://github.com/pr4deepr/GutAnalysisToolbox/blob/main/wiki_images/figures/summary_figure.png" alt="GAT_overview" width="600" >
+</p>
+
 Gut Analysis Toolbox or GAT allows the semi-automated analysis of the cells within the enteric nervous system of the gastrointestinal tract. GAT enables quantification of enteric neurons and their subtypes. It runs in FIJI, a popular image analysis software in microscopy and uses deep learning models to segment cells of interest. 
 
 You can also watch tutorials for GAT on [Youtube](https://www.youtube.com/playlist?list=PLmBt1Dumq60p4mIFT4j7TP_PVRjbO55Oi).

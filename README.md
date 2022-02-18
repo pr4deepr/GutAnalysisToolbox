@@ -84,6 +84,6 @@ To download the training data, notebooks and associated model reports go to:
 
 Software citation on Zenodo:
 
-Sorensen, Luke, Saito, Ayame, Poon, Sabrina, Noe Han, Myat, Humenick, Adam, Mutunduwe, Keith, Glennan, Christie, Mahdavian, Narges, JH Brookes, Simon, M McQuade, Rachel, PP Foong, Jaime, Gómez-de-Mariscal, Estibaliz, Haase, Robert, Carbone, Simona, A. Veldhuis, Nicholas, P. Poole, Daniel, & Rajasekhar, Pradeep. (2022). GutAnalysisToolbox (1.0.0). Zenodo. https://doi.org/10.5281/zenodo.6095822
+Luke Sorensen, Ayame Saito, Sabrina Poon, Myat Noe Han, Adam Humenick, Keith Mutunduwe, Christie Glennan, Narges Mahdavian, Simon JH Brookes, Rachel M McQuade, Jaime PP Foong, Sebastian K. King, Estibaliz Gómez-de-Mariscal, Robert Haase, Simona Carbone, Nicholas A. Veldhuis, Daniel P. Poole, & Pradeep Rajasekhar. (2022). Gut Analysis Toolbox (GAT): 2D models for segmenting enteric neurons, neuronal subtypes and ganglia (1.0). Zenodo. https://doi.org/10.5281/zenodo.6095590
 
 Upon publication, the paper will be included here.

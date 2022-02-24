@@ -66,8 +66,8 @@ authors:
   given-names: "Pradeep"
   orcid: "https://orcid.org/0000-0002-1983-7244"
 
-title: "GutAnalysisToolbox"
+title: "Gut Analysis Toolbox"
 version: 1.0.0
-doi: 10.5281/zenodo.1234
+doi: 10.5281/zenodo.6095590
 date-released: 2022-02-15
 url: "https://github.com/pr4deepr/GutAnalysisToolbox"

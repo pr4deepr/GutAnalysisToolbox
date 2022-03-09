@@ -1,0 +1,3 @@
+//Easy access for users to report errors
+
+#@ String (visibility=MESSAGE, value="<html><b>Help/Support</b><br>Any of the following options can be used for getting help or reporting errors:<br><br> * Visit <a href='https://forms.gle/6AampkLzhVJc5ygx9'> link 1 </a> to use Google forms to report errors<br>* Visit <a href='https://github.com/pr4deepr/GutAnalysisToolbox/issues'> link 2 </a> to post within the GAT github repository.<br>You will need a Github account for this.<br>* Visit <a href='https://forum.image.sc/'> link 3 </a> to post in imagesc forum. Include @pr4deepr in the post<br><br> Gut Analysis Toolbox: <a href='https://github.com/pr4deepr/GutAnalysisToolbox'> Github Repository</a> </html>") google_form

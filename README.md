@@ -16,13 +16,17 @@ You can also watch tutorials for GAT on [Youtube](https://www.youtube.com/playli
 
 ## Reporting problems
 
-If you have any difficulties, suggestions or find any bugs, you can either 
+If you have any difficulties, suggestions or find any bugs, you can either:
 
-* Create a post under [Issues](https://github.com/pr4deepr/GutAnalysisToolbox/issues) or you could use the [Imagesc forum](https://forum.image.sc/). Feel free to use the [discussions](https://github.com/pr4deepr/GutAnalysisToolbox/discussions) if you'd like input on your analysis or would like to discuss relevant topics. 
+* Use [this link](https://forms.gle/oEpFMtQo29Dr9AQT7) to access a Google form for submitting issues or questions.
 
 OR
 
-* Use [this link](https://forms.gle/oEpFMtQo29Dr9AQT7) to access a Google form for submitting issues or questions.
+* Create a post under [Issues](https://github.com/pr4deepr/GutAnalysisToolbox/issues) 
+
+OR
+
+* Post the problem on the [Imagesc forum](https://forum.image.sc/) and tag @pr4deepr
 
 
 ## Installing and configuring GAT

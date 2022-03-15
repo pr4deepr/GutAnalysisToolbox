@@ -48,16 +48,10 @@ GAT requires the following update sites:
 GAT update site: https://sites.imagej.net/GutAnalysisToolbox/
 
 ***********
-## Download model files
 
-### Model files for use in FIJI
+## Model files for use in FIJI
 
-The model files are zipped and ready to download here:
-
-[Click to Download GAT FIJI model folders](https://wehieduau-my.sharepoint.com/:u:/g/personal/rajasekhar_p_wehi_edu_au/Ecg001ngdvhBgRaWxVakPecBF8d5Qb361PgXYFrcxp8Azw?download=1)
-
-
-The GAT FIJI models folder contains the 3 files required for running GAT in FIJI:
+The GAT models are located in `Fiji.app/models` folder and contains 3 separate model files:
 
 - **Enteric neuron model: 2D_enteric_neuron_v4_1.zip**
   
@@ -88,7 +82,7 @@ Check here for more detail on using [QuPath models](https://github.com/pr4deepr/
 
 ### Accessing training data
 
-To download the training data, notebooks and associated model reports go to:
+To download the training data, notebooks and associated models please go to the following Zenodo link:
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6096664.svg)](https://doi.org/10.5281/zenodo.6096664)
 

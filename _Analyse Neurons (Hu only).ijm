@@ -65,6 +65,10 @@ if(!File.exists(ganglia_cell_count)) exit("Cannot find ganglia cell count script
 var segment_ganglia=gat_dir+fs+"Segment_Ganglia.ijm";
 if(!File.exists(segment_ganglia)) exit("Cannot find segment ganglia script. Returning: "+segment_ganglia);
 
+//check if ganglia hu expansion macro present
+var ganglia_hu_expansion=gat_dir+fs+"ganglia_hu.ijm";
+if(!File.exists(ganglia_hu_expansion)) exit("Cannot find hu expansion script. Returning: "+ganglia_hu_expansion);
+ 
  
 
 #@ File (style="open", label="<html>Choose the image to segment.<br><b>Enter NA if image is open or if field is empty.</b><html>", value=fiji_dir) path
@@ -77,8 +81,8 @@ cell_type="Neuron";
 #@ String(value="<html><center><b>DETERMINE GANGLIA OUTLINE</b></center> <html>",visibility="MESSAGE") hint_ganglia
 #@ String(value="<html> Cell counts per ganglia will be calculated<br/>Requires a neuron channel & second channel that labels the neuronal fibres.<html>",visibility="MESSAGE") hint4
 #@ boolean Cell_counts_per_ganglia (description="Use a pretrained deepImageJ model to predict ganglia outline")
-#@ String(choices={"DeepImageJ","Manually draw ganglia"}, style="radioButtonHorizontal") Ganglia_detection
-#@ String(label="<html> Enter the channel NUMBER for segmenting ganglia.<br/> Preferably a bright marker that labels most neuronal fibres.<br/> Enter NA if not using.<html> ", value="NA") ganglia_channel
+#@ String(choices={"DeepImageJ","Define ganglia using Hu","Manually draw ganglia"}, style="radioButtonHorizontal") Ganglia_detection
+#@ String(label="<html> Enter the channel number for segmenting ganglia.<br/> Not valid for 'Define ganglia using Hu'.<br/> Enter NA if not using.<html> ", value="NA") ganglia_channel
 #@ String(value="<html>---------------------------------------------------------******<b>ADVANCED PARAMETERS<b>******-------------------------------------------<html>",visibility="MESSAGE") hint_adv
 #@ String(value="<html><center><b>Finetune cell detection by changing parameters below.</b></center> <html>",visibility="MESSAGE") hint_stardist
 #@ boolean Change_pixel_size_segmentation (description="Change the pixel size of the scaled image thats used to detect neurons")
@@ -248,6 +252,7 @@ if(sizeC>1)
 	}
 
 }
+else cell_channel = 1;
 
 
 
@@ -394,7 +399,46 @@ if (Cell_counts_per_ganglia==true)
 	 	draw_ganglia_outline(ganglia_binary,true);
 	 	
 	 }
-	 else ganglia_binary=draw_ganglia_outline(ganglia_img,false);
+	 else if(Ganglia_detection=="Define ganglia using Hu")
+	 {
+	 	
+	 	selectWindow(max_projection);
+	 	args1=max_projection+","+cell_channel+","+neuron_label_image+","+pixelWidth;
+		//get ganglia outline
+		runMacro(ganglia_hu_expansion,args1);
+		wait(5);
+		ganglia_binary=getTitle();
+		draw_ganglia_outline(ganglia_binary,true);
+		
+	 	/*
+		run("Select None");
+		Stack.setChannel(cell_channel);
+		run("Duplicate...", "title=ganglia_hu duplicate channels="+cell_channel);
+		Dialog.create("Choose cell expansion distance (um)");
+		Dialog.addMessage("Choose cell expansion distance to define the ganglia");
+	  	Dialog.addNumber("Cell expansion (um)", 10);
+	  	Dialog.show(); 
+	  	cell_expansion=Dialog.getNumber();
+	  	
+		label_dilation=round(cell_expansion/pixelWidth);
+		print("******Ganglia segmentation using user-defined cell expansion radius********");
+		print("Expansion in pixels "+label_dilation);
+		print("Corresponding expansion in microns "+cell_expansion);
+		print("**************");
+		
+		run("CLIJ2 Macro Extensions", "cl_device=");
+
+		Ext.CLIJ2_push(neuron_label_image);
+		Ext.CLIJ2_dilateLabels(neuron_label_image, dilated, label_dilation);
+		Ext.CLIJ2_greaterConstant(dilated, ganglia_binary, 1);
+		Ext.CLIJ2_release(dilated);
+		Ext.CLIJ2_pull(ganglia_binary);
+		Ext.CLIJ2_pull(neuron_label_image);*/
+	 }
+	 else
+	 {
+	 	ganglia_binary=draw_ganglia_outline(ganglia_img,false);
+	 }
 	 
 	args=neuron_label_image+","+ganglia_binary;
 	//get cell count per ganglia

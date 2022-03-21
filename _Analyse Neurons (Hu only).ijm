@@ -203,7 +203,7 @@ if(cell_channel!="NA")
 
 
 //if more than one channel , check if appropriate values entered
-if(sizeC>1)
+if(sizeC>1 && Ganglia_detection!="Define ganglia using Hu")
 {
  if (Cell_counts_per_ganglia==true && cell_channel=="NA" && ganglia_channel=="NA") //count cells per ganglia but don't know channels for ganglia or neuron
 	{
@@ -252,6 +252,18 @@ if(sizeC>1)
 	}
 
 }
+else if(Ganglia_detection=="Define ganglia using Hu" && cell_channel=="NA")
+{
+	waitForUser("Note the channels for "+cell_type+" and enter in the next box.");
+	Dialog.create("Choose  channel for "+cell_type+);
+	Dialog.addNumber("Enter "+cell_type+" and ganglia channel", 3);
+	Dialog.show(); 
+	cell_channel= Dialog.getNumber();
+	ganglia_channel = cell_channel;
+	Stack.setChannel(cell_channel);
+	resetMinAndMax();
+}
+else  if(Ganglia_detection=="Define ganglia using Hu") ganglia_channel = cell_channel;
 else cell_channel = 1;
 
 

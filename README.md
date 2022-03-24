@@ -10,9 +10,18 @@
 <img src="https://github.com/pr4deepr/GutAnalysisToolbox/blob/main/wiki_images/figures/summary_figure.png" alt="GAT_overview" width="600" >
 </p>
 
-Gut Analysis Toolbox or GAT allows the semi-automated analysis of the cells within the enteric nervous system of the gastrointestinal tract in **2D**. GAT enables quantification of enteric neurons and their subtypes. It runs in FIJI, a popular image analysis software in microscopy and uses deep learning models to segment cells of interest. 
+Gut Analysis Toolbox or GAT allows the semi-automated analysis of the cells within the enteric nervous system of the gastrointestinal tract in **2D**. GAT enables quantification of enteric neurons and their subtypes in **gut wholemounts**. It runs in FIJI, a popular image analysis software in microscopy and uses deep learning models to segment cells of interest. 
 
 You can also watch tutorials for GAT on [Youtube](https://www.youtube.com/playlist?list=PLmBt1Dumq60p4mIFT4j7TP_PVRjbO55Oi).
+
+What you can do with GAT:
+* Semi-automated analysis of number of enteric neurons: Uses pan-neuronal marker Hu or anything with similar 
+ labelling
+* Normalise counts to the number of ganglia.
+* Count number of neuronal subtypes, such as ChAT, nNOS etc..
+* Spatial analysis using number of neighboring cells.
+* Calcium imaging analysis: Alignment of images and extraction of normalised traces
+
 
 ## Reporting problems
 

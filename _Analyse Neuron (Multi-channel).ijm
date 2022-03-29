@@ -110,28 +110,33 @@ cell_type="Hu";
 #@ boolean Cell_counts_per_ganglia (description="Use a pretrained model, Hu or manually define ganglia outline")
 #@ String(choices={"DeepImageJ","Define ganglia using Hu","Manually draw ganglia"}, style="radioButtonHorizontal") Ganglia_detection
 #@ String(label="<html> Enter the channel number for segmenting ganglia.<br/> Not valid for 'Define ganglia using Hu'.<br/> Enter NA if not using.<html> ", value="NA") ganglia_channel
-#@ String(value="<html>---------------------------------------------------------******<b>ADVANCED PARAMETERS<b>******-------------------------------------------<html>",visibility="MESSAGE") hint_adv
-
-#@ boolean Change_pixel_size_segmentation (description="Change the pixel size of the scaled image thats used to detect neurons")
-#@ Float(label="Enter pixel size for segmenting neurons. Default is 0.568.", value=0.568) training_pixel_size_custom
-if(Change_pixel_size_segmentation==true) training_pixel_size=training_pixel_size_custom;
-#@ boolean Finetune_detection
-// String(value="<html> Probability<html>",visibility="MESSAGE", required=false) hint34
-#@ Double (label="Probability of detecting neuron ", style="slider", min=0, max=1, stepSize=0.05,value=0.55) probability_manual
-#@ Double (label="Probability of detecting neuron subtype ", style="slider", min=0, max=1, stepSize=0.05,value=0.55) probability_subtype_manual
-#@ Double (label="Overlap threshold", style="slider", min=0, max=1, stepSize=0.05,value=0.5) overlap_manual
+#@ String(value="<html>------------------------------------******<b>ADVANCED: Finetune analysis by changing custom parameters<b>******------------------------------------<html>",visibility="MESSAGE") hint_adv
+//#@ String(value="<html><center><b>Finetune cell detection by changing parameters below.</b></center> <html>",visibility="MESSAGE") hint_stardist
+#@ boolean Custom_Rescaling_Factor (description="Enter custom rescaling factor")
+#@ Float(label="<html>Enter rescaling factor for segmenting neurons.", value=1) scale
+if(Custom_Rescaling_Factor==true) scale=scale;
+else scale = 1;
+#@ boolean Finetune_probability_overlap
 #@ String(value="<html>---------------------------------------------------------******<b>Contribute to improving GAT<b>******-------------------------------------------<html>",visibility="MESSAGE") contrib
-#@ String(value="<html> If you are willing to contribute images and masks to improve GAT, tick the box below <br/>It will save the images and masks in the folder below as you perform your analysis.<html>",visibility="MESSAGE") contrib1
+#@ String(value="<html> If you are willing to contribute images and masks to improve GAT, tick the box below to save the images and masks in a custom folder.<html>",visibility="MESSAGE") contrib1
 #@ boolean Save_Image_Masks
 #@ File (style="directory", label="<html>Choose a folder to save the image and masks.<br><b>Enter NA if field is empty.</b><html>", value=fiji_dir) img_masks_path
 
 
-if(Finetune_detection==true)
+if(Finetune_probability_overlap==true)
 {
-	probability=probability_manual;
-	probability_subtype=probability_subtype_manual;
-	overlap=overlap_manual;
-	overlap_subtype=overlap_manual;
+	print("Using manual probability and overlap threshold for detection");
+	Dialog.create("Change Probability and Overlap for Neuron Detection");
+  	Dialog.addSlider("Probability of detecting neurons (Hu)", 0, 1,probability );	
+  	Dialog.addSlider("Probability of detecting neuronal subtypes", 0, 1,probability);
+  	Dialog.addSlider("Overlap threshold", 0, 1,overlap);
+	Dialog.show(); 
+	probability= Dialog.getNumber();
+	probability_subtype_manual= Dialog.getNumber();
+	overlap= Dialog.getNumber();
+	overlap_subtype=overlap;
+	//probability=probability_manual;
+	//overlap=overlap_manual;
 }
 
 
@@ -220,9 +225,9 @@ if(unit!="microns" && unit!="micron" && unit!="um" )
 //************
 
 
-//Training images were pixelsize of ~0.568, so scaling images based on this; 
-// Makes sure small objects aren't detected
-scale_factor=pixelWidth/training_pixel_size;
+//Define scale factor to be used
+target_pixel_size= training_pixel_size/scale;
+scale_factor = pixelWidth/target_pixel_size;
 if(scale_factor<1.001 && scale_factor>1) scale_factor=1;
 
 

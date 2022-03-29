@@ -48,12 +48,14 @@ if(!File.exists(neuron_model_path)||!File.exists(subtype_model_path)) exit("Cann
 #@ boolean image_already_open
 #@ String(choices={"Neuron Segmentation", "Neuron subtype segmentation"}, style="radioButtonHorizontal",label="Choose mode of segmentation") segmentation_type
 // File (style="open", label="<html>Choose the StarDist model file based on celltype.<html>",value="NA") model_file 
-#@ String(value="Choose either XY pixel size (microns) or scaling factor (scales images by the specified factor)", visibility="MESSAGE") hint
-#@ String(choices={"Use pixel size", "Use a scaling factor"}, style="radioButtonHorizontal",label="Choose mode of segmentation") choice_scaling
-#@ String(value="Test a range of values for images to figure out the right one that gives accurate cell segmentation. Default is 0.568.", visibility="MESSAGE") hint2
-#@ Double (label="Enter minimum value", value=1, min=0.0500, max=10.000) scale_factor_1
-#@ Double (label="Enter maximum max value", value=2.000, min=0.0500, max=10.000) scale_factor_2
-#@ Double (label="Enter increment step/s", value=0.2500) step_scale
+//#@ String(value="Choose either XY pixel size (microns) or scaling factor (scales images by the specified factor)", visibility="MESSAGE") hint
+//#@ String(choices={"Use pixel size", "Use a scaling factor"}, style="radioButtonHorizontal",label="Choose mode of segmentation") choice_scaling
+#@ String(value="Test a range of rescaling factors to get the value with the most accurate cell segmentation. Default is 1.", visibility="MESSAGE") hint2
+#@ Float (label="Enter minimum value", value=1.00, min=0.0500, max=10.0) scale_factor_1
+#@ Float (label="Enter maximum max value", value=1.50, min=0.0500, max=10.0) scale_factor_2
+#@ Float (label="Enter size of each increment step", value=0.2500) step_scale
+
+choice_scaling = "Use a scaling factor";
 
 //#@ boolean Modify_StarDist_Values (description="Tick to modify the values within the StarDist plugin or defaults will be used.")
 #@ String(value="<html>Default Probability is 0.5 and Overlap threshold is 0.3. Leave it as default when first trying this.<br/>More info about below parameters can be found here: https://www.imagej.net/StarDist/<html>",visibility="MESSAGE", required=false) hint34
@@ -72,8 +74,8 @@ if(segmentation_type=="Neuron subtype segmentation") model_file=subtype_model_pa
 
 //if(Use_pixel_size && Use_scaling_factor == true) exit("Choose only one option: Pixel size or Scaling factor");
 
-if(choice_scaling=="Use pixel size") Use_pixel_size=true;
-else if(choice_scaling=="Use a scaling factor") Use_pixel_size=false;
+//if(choice_scaling=="Use pixel size") Use_pixel_size=true;
+//else if(choice_scaling=="Use a scaling factor") Use_pixel_size=false;
 
 //modify_stardist=Modify_StarDist_Values;
 print("\\Clear");
@@ -114,7 +116,7 @@ neuron_seg_lower_limit=neuron_seg_lower_limit/pixelWidth;
 neuron_max_pixels=neuron_area_limit/pixelWidth; //convert micron to pixels
 
 
-if(unit!="microns" && Use_pixel_size==true) exit("Image not calibrated in microns. Please go to ANalyse->SetScale or Image->Properties to set it for the image");
+if(unit!="microns") exit("Image not calibrated in microns. Please go to ANalyse->SetScale or Image->Properties to set it for the image");
 
 
 
@@ -166,6 +168,7 @@ model_file=replace(model_file, "\\\\","\\\\\\\\\\\\\\\\");
 img_seg_array=newArray();
 setOption("ExpandableArrays", true);
 idx=0;
+scale_factor_2+=0.00001; //makes sure last
 for(scale=scale_factor_1;scale<=scale_factor_2;scale+=step_scale)
 {
 	//print("Running segmentation on image scaled by: "+scale);
@@ -173,30 +176,17 @@ for(scale=scale_factor_1;scale<=scale_factor_2;scale+=step_scale)
 	
 	roiManager("reset");
 	selectWindow(img);
-	if(Use_pixel_size == true) 
-	{
-		//Training images were pixelsize of ~0.378, so scaling images based on this
-		scale_factor=pixelWidth/scale;
-		if(scale_factor<1.001 && scale_factor>1) scale_factor=1;
-		scale_name="Pixel_size";
-		img_seg=scale_name+"_"+scale+"_"+cell_type;
-
-	}
-	else 
-	{
-		scale_factor=scale;
-		scale_name="Pixel_size";//scale_name="Scale_factor";
-		pixel_scale=pixelWidth/scale_factor;
-		//print(pixelWidth);
-		//print(scale_factor);
-		//exit;
-		img_seg=scale_name+"_"+pixel_scale+"_"+cell_type;
-		print("Using scale factor. Calculated "+scale_name+" of: "+pixel_scale);
-	}
-
-	//img_seg=scale_name+"_"+scale+"_"+cell_type;
+	//Rescale factor applied to training pixel size of 0.568
+	//the target image is then rescale to the rescaled pixel size
+	scale_name="Recaling_factor";
+	target_pixel_size= training_pixel_size/scale;
+	scale_factor = pixelWidth/target_pixel_size;
+	img_seg=scale_name+"_"+scale+"_"+cell_type;
+	//print("Calculated "+scale_name+" of: "+scale_factor);
+	img_seg=scale_name+"_"+scale+"_"+cell_type;
 	print("Running segmentation on image scaled by "+scale_name+" of: "+scale);
-
+	print("Target pixel size used "+target_pixel_size);
+	//Pixel size decreases by scale factor
 	
 	if(scale_factor!=1)
 	{	
@@ -213,6 +203,8 @@ for(scale=scale_factor_1;scale<=scale_factor_2;scale+=step_scale)
 		new_width=width;
 		new_height=height;
 	}
+	print(new_width);
+	print(new_height);
 	//choice=0;
 	if(Change_Tile) tiles = tile_manual;
 	else 
@@ -254,6 +246,8 @@ for(scale=scale_factor_1;scale<=scale_factor_2;scale+=step_scale)
 	img_seg_array[idx]=img_seg;
 	idx+=1;
 	print("No of objects: "+roiManager("count"));
+	getPixelSize(unit, pixelWidth_new, pixelHeight_new);
+	print(pixelWidth_new);
 	//close("Label-killBorders");
 }
 

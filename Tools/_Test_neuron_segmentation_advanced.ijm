@@ -25,12 +25,12 @@ run("Close");
 #@ boolean image_already_open
 // String(choices={"Neuron", "Glia"}, style="list") cell_type
 #@ File (style="open", label="<html>Choose the StarDist model file based on celltype.<html>",value=fiji_dir) model_file 
-#@ String(value="Choose either XY pixel size (microns) or scaling factor (scales images by the specified factor)", visibility="MESSAGE") hint
-#@ String(choices={"Use pixel size", "Use a scaling factor"}, style="radioButtonHorizontal",label="Choose mode of segmentation") choice_scaling
-#@ String(value="Test a range of values for images to figure out the right one that gives accurate cell segmentation.", visibility="MESSAGE") hint2
-#@ Double (label="Enter minimum value", value=1, min=0.0500, max=10.000) scale_factor_1
-#@ Double (label="Enter maximum max value", value=2.000, min=0.0500, max=0.950) scale_factor_2
-#@ Double (label="Enter increment step/s", value=0.2500) step_scale
+#@ String(value="Test a range of rescaling factors to get the value with the most accurate cell segmentation. Default is 1.", visibility="MESSAGE") hint2
+#@ Float (label="Enter minimum value", value=1.00, min=0.0500, max=10.0) scale_factor_1
+#@ Float (label="Enter maximum max value", value=1.50, min=0.0500, max=10.0) scale_factor_2
+#@ Float (label="Enter size of each increment step", value=0.2500) step_scale
+
+choice_scaling = "Use a scaling factor";
 
 //#@ boolean Modify_StarDist_Values (description="Tick to modify the values within the StarDist plugin or defaults will be used.")
 #@ String(value="<html>Default Probability is 0.5 and Overlap threshold is 0.5. Leave it as default when first trying this.<br/>More info about below parameters can be found here: https://www.imagej.net/StarDist/<html>",visibility="MESSAGE", required=false) hint34
@@ -42,10 +42,6 @@ run("Close");
 
 
 cell_type="Cell";
-if(choice_scaling=="Use pixel size") Use_pixel_size=true;
-else if(choice_scaling=="Use a scaling factor") Use_pixel_size=false;
-
-
 print("\\Clear");
 
 if(image_already_open==true)
@@ -141,26 +137,22 @@ model_file=replace(model_file, "\\\\","\\\\\\\\\\\\\\\\");
 img_seg_array=newArray();
 setOption("ExpandableArrays", true);
 idx=0;
+scale_factor_2+=0.00001; //makes sure last
 for(scale=scale_factor_1;scale<=scale_factor_2;scale+=step_scale)
 {
-	//print("Running segmentation on image scaled by: "+scale);
 	roiManager("reset");
 	selectWindow(img);
-	if(Use_pixel_size == true) 
-	{
-		//Training images were pixelsize of ~0.378, so scaling images based on this
-		scale_factor=pixelWidth/scale;
-		if(scale_factor<1.001 && scale_factor>1) scale_factor=1;
-		scale_name="Pixel_size";
-	}
-	else 
-	{
-		scale_factor=scale;
-		scale_name="Scale_factor";
-	}
-
+	//Rescale factor applied to training pixel size of 0.568
+	//the target image is then rescale to the rescaled pixel size
+	scale_name="Recaling_factor";
+	target_pixel_size= training_pixel_size/scale;
+	scale_factor = pixelWidth/target_pixel_size;
+	img_seg=scale_name+"_"+scale+"_"+cell_type;
+	//print("Calculated "+scale_name+" of: "+scale_factor);
 	img_seg=scale_name+"_"+scale+"_"+cell_type;
 	print("Running segmentation on image scaled by "+scale_name+" of: "+scale);
+	print("Target pixel size used "+target_pixel_size);
+	
 	if(scale_factor!=1)
 	{	
 		new_width=round(width*scale_factor); 

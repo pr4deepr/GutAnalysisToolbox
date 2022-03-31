@@ -168,11 +168,19 @@ model_file=replace(model_file, "\\\\","\\\\\\\\\\\\\\\\");
 img_seg_array=newArray();
 setOption("ExpandableArrays", true);
 idx=0;
-scale_factor_2+=0.00001; //makes sure last
-for(scale=scale_factor_1;scale<=scale_factor_2;scale+=step_scale)
+
+//multiplying by 10 to avoid errors with using float values
+start = scale_factor_1*10;
+end = scale_factor_2*10;
+increment = step_scale*10;
+print(start,end,increment);
+//scale_factor_2+=0.00001; //makes sure last
+
+for(i=start;i<=end;i+=increment)
 {
 	//print("Running segmentation on image scaled by: "+scale);
-	
+	//dividing by 10 to get actual scale value
+	scale = i/10;
 	
 	roiManager("reset");
 	selectWindow(img);
@@ -254,6 +262,7 @@ for(scale=scale_factor_1;scale<=scale_factor_2;scale+=step_scale)
 run("Cascade");
 print("Verify the segmentation in the images: ");
 close(img);
+exit("Completed");
 
 function label_to_roi(label_image)
 {

@@ -165,7 +165,6 @@ if(marker_subtype==1 && Enter_channel_details_now==1)
 }
 
 
-//training_pixel_size=0.7; //Images were trained in StarDist using images of this pixel size. Change this for adult human. ~0.9?
 
 
 if(image_already_open==true)
@@ -173,7 +172,7 @@ if(image_already_open==true)
 	waitForUser("Select Image. and choose output folder in next prompt");
 	file_name=getTitle(); //get file name without extension (.lif)
 	dir=getDirectory("Choose Output Folder");
-	//file_name=File.nameWithoutExtension;
+	
 }
 else
 {
@@ -613,16 +612,10 @@ if(marker_subtype==1)
 	else
 	{
 		channel_combinations=channel_names; // pass single combination
-		
-		//channel_combinations=channel_numbers[0];
+
 	}
 	channel_position=newArray();
 	marker_label_arr=newArray(); //store names of label images generated from StarDist
-	
-	//count=0;
-	//Array.show(channel_numbers);
-	//Array.show(channel_names);
-	//Array.show(channel_numbers);
 
 	selectWindow(max_projection);
 	Stack.setDisplayMode("color");
@@ -649,67 +642,61 @@ if(marker_subtype==1)
 			channel_no=channel_numbers[channel_idx]; //idx fro above is returned as 0 indexed, so using this indx to find channel no
 			channel_name=channel_names[channel_idx];
 		}			//Array.print(channel_position);
-			//print(channel_no);
-			//print(channel_name);
-				
-			selectWindow(max_projection);
-			Stack.setChannel(channel_no);
-			run("Select None");
 
-			//print(channel_name);
-			//run("Duplicate...", "title="+channel_name+"_segmentation duplicate channels="+channel_no);
-			run("Duplicate...", "title="+channel_name+"_segmentation");
+				
+		selectWindow(max_projection);
+		Stack.setChannel(channel_no);
+		run("Select None");
+		run("Duplicate...", "title="+channel_name+"_segmentation");
 			//waitForUser;
-			marker_image=getTitle();
-			//print(marker_image);
-			//waitForUser;
-			
-			//scaling marker images so we can segment them using same size as images used for training the model. Also, ensures consistent size exclusion area
-			seg_marker_img=scale_image(marker_image,scale_factor,channel_name);
-			//print(seg_marker_img);
-			//print(max_projection);
-			//marker_label_img[i]=scale_image(temp,scale_factor,channel_names[i]+"_label_img"); //returns image with _rescale in name
-			roiManager("reset");
-			//segment cells and return image with normal scaling
-			print("Segmenting marker "+channel_name);
-			selectWindow(seg_marker_img);
-			//run("Subtract Background...", "rolling="+backgrnd_radius+" sliding");
-			segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype,overlap_subtype);
-			selectWindow(max_projection);
-			roiManager("deselect");
-			runMacro(roi_to_label);
-			wait(5);
-			rename("label_img_temp");
-			run("glasbey_on_dark");
-			//selectWindow("label_mapss");
-			run("Select None");
-			roiManager("reset");
-			
-			//multiply with HU to verify if its a neuron. multiply above label image with image of Neuron label
-			//if Hu and marker are present, keeps label, else it becomes background
-			//keep objects within size range 400 to 3000; may need to alter this later depending on cell size
-			//Manual step to verify
-			temp_label=multiply_markers(neuron_label_image,"label_img_temp",neuron_min_pixels,neuron_max_pixels);//getting smaller objects, so inc min size to 400
-			//decide on how to work with multiplication, neuron multiply labl or other way around?
-			//selectWindow(temp_label);
-			selectWindow(temp_label);
-			run("Select None");
-			runMacro(label_to_roi,temp_label);
-			close(temp_label);
-			close("label_img_temp");
-			wait(5);
-			selectWindow(max_projection);
-			//roiManager("deselect");
-			roiManager("show all");
-			//selectWindow(max_projection);
-			waitForUser("Verify ROIs for "+channel_name+". Delete or add ROIs as needed. Press OK when done.");
-			roiManager("deselect");
-			//convert roi manager to label image
-			runMacro(roi_to_label);
-			selectWindow("label_mapss");
-			rename("label_img_"+channel_name);
-			label_marker=getTitle();
-			
+		marker_image=getTitle();
+
+		//scaling marker images so we can segment them using same size as images used for training the model. Also, ensures consistent size exclusion area
+		seg_marker_img=scale_image(marker_image,scale_factor,channel_name);
+		roiManager("reset");
+		//segment cells and return image with normal scaling
+		print("Segmenting marker "+channel_name);
+		selectWindow(seg_marker_img);
+		//run("Subtract Background...", "rolling="+backgrnd_radius+" sliding");
+		segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype,overlap_subtype);
+		selectWindow(max_projection);
+		roiManager("deselect");
+		runMacro(roi_to_label);
+		wait(5);
+		rename("label_img_temp");
+		run("glasbey_on_dark");
+		//selectWindow("label_mapss");
+		run("Select None");
+		roiManager("reset");
+		
+		//multiply with HU to verify if its a neuron. multiply above label image with image of Neuron label
+		//if Hu and marker are present, keeps label, else it becomes background
+		//keep objects within size range 400 to 3000; may need to alter this later depending on cell size
+		//Manual step to verify
+		temp_label=multiply_markers(neuron_label_image,"label_img_temp",neuron_min_pixels,neuron_max_pixels);//getting smaller objects, so inc min size to 400
+		//decide on how to work with multiplication, neuron multiply labl or other way around?
+		//selectWindow(temp_label);
+		selectWindow(temp_label);
+		run("Select None");
+		runMacro(label_to_roi,temp_label);
+		close(temp_label);
+		close("label_img_temp");
+		wait(5);
+		selectWindow(max_projection);
+		//roiManager("deselect");
+		roiManager("show all");
+		//selectWindow(max_projection);
+		waitForUser("Verify ROIs for "+channel_name+". Delete or add ROIs as needed. Press OK when done.");
+		roiManager("deselect");
+		//convert roi manager to label image
+		runMacro(roi_to_label);
+		selectWindow("label_mapss");
+		rename("label_img_"+channel_name);
+		label_marker=getTitle();
+		//store resized label images for analysing label co-expression
+		label_name = "label_"+channel_name;
+		label_rescaled_img=scale_image(label_marker,scale_factor,label_name);
+		selectWindow(label_marker);	
 			//save images and masks if user selects to save them for the marker
 			if(Save_Image_Masks == true)
 			{
@@ -725,7 +712,7 @@ if(marker_subtype==1)
 			else close(marker_image);
 			
 			//store marker name in an array to call when analysing marker combinations
-			if(no_markers>1) marker_label_arr[i]=label_marker;
+			if(no_markers>1) marker_label_arr[i]=label_rescaled_img;//label_marker;
 
 			marker_count=roiManager("count"); // in case any neurons added after manual verification of markers
 			selectWindow(table_name);
@@ -768,22 +755,17 @@ if(marker_subtype==1)
 				run("Close");
 				roiManager("reset");
 			}
-
+			close(label_marker);
 			
 		}
-		//if more than one marker to analyse; if more than one marker, then it multiplies the marker labels from above to find coexpressing cells
+		//if more than one marker to analyse; then it multiplies the marker labels from above to find coexpressing cells
 		else if(channel_arr.length>=1) 
 		{
 	
 			for(j=0;j<channel_arr.length;j++)
 			{
 				marker_name="_"+channel_arr[j];
-				//print("Getting counts for cells positive for markers: "+String.join(channel_arr, " "));
 				channel_pos=find_str_array(marker_label_arr,marker_name); //look for marker with _ in its name.returns index of marker_label image
-				//channel_as=channel_numbers[channel_pos-1]; //use index to get the channel number value
-				//print(marker_label_arr[channel_pos]+"\t");
-				//print(channel_pos);
-				//print("Processing: "+marker_label_arr[channel_pos]+"\t"); 
 				if(j==0) //if first time running the loop
 				{		//Array.print(marker_label_arr);
 						//multiply_markers
@@ -796,20 +778,17 @@ if(marker_subtype==1)
 						temp_label=multiply_markers(img1,img2,400,3000);
 						selectWindow(temp_label);
 						run("Select None");
-						//runMacro(label_to_roi,temp_label);
-						//close(temp_label);
-						close(img1);
-						close(img2);
+						if(scale_factor!=1)
+						{
+								selectWindow(temp_label);
+								label_temp_name = img1+"_*_"+img2+"_label";
+								//run("Duplicate...", "title=label_original");
+								run("Scale...", "x=- y=- width="+width+" height="+height+" interpolation=None create title="+label_temp_name);
+								close(temp_label);
+								//selectWindow(label_temp_name);
+								temp_label = label_temp_name;
+						}
 						wait(5);
-						//selectWindow(max_projection);
-						//roiManager("deselect");
-						//roiManager("show all");
-						//selectWindow(max_projection);
-						//waitForUser("Verify ROIs for "+channel_name+". Delete or add ROIs as needed. Press OK when done.");
-						//roiManager("deselect");
-						//convert roi manager to label image
-						//runMacro(roi_to_label);
-						//selectWindow("label_mapss");
 						selectWindow(temp_label);
 						run("Select None");
 						rename(img1+"_"+img2);
@@ -826,12 +805,22 @@ if(marker_subtype==1)
 					temp_label=multiply_markers(img1,img2,400,3000);
 					selectWindow(temp_label);
 					run("Select None");
+					if(scale_factor!=1)
+					{
+						selectWindow(temp_label);
+						label_temp_name = img1+"_*_"+img2+"_label";
+						run("Scale...", "x=- y=- width="+width+" height="+height+" interpolation=None create title="+label_temp_name);
+						close(temp_label);
+						temp_label = label_temp_name;
+					}
 					//runMacro(label_to_roi,temp_label);
 					//close(temp_label);
 					close(img1);
 					close(img2);
 					wait(5);
 					result="img "+d2s(j,0);
+					selectWindow(temp_label);
+					rename(result);
 					
 				}
 			if(j==channel_arr.length-1) //when reaching end of arr length, get ROI counts

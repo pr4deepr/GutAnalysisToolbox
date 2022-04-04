@@ -393,16 +393,12 @@ for(i=0;i<channel_combinations.length;i++)
 			//use index of position to get the channel number and the channel name
 			channel_no=channel_numbers[channel_idx]; //idx fro above is returned as 0 indexed, so using this indx to find channel no
 			channel_name=channel_names[channel_idx];
-		}			//Array.print(channel_position);
-			//print(channel_no);
-			//print(channel_name);
+		}			
 				
 			selectWindow(max_projection);
 			Stack.setChannel(channel_no);
 			run("Select None");
 
-			//print(channel_name);
-			//run("Duplicate...", "title="+channel_name+"_segmentation duplicate channels="+channel_no);
 			run("Duplicate...", "title="+channel_name+"_segmentation");
 			//waitForUser;
 			marker_image=getTitle();
@@ -411,9 +407,6 @@ for(i=0;i<channel_combinations.length;i++)
 			
 			//scaling marker images so we can segment them using same size as images used for training the model. Also, ensures consistent size exclusion area
 			seg_marker_img=scale_image(marker_image,scale_factor,channel_name);
-			//print(seg_marker_img);
-			//print(max_projection);
-			//marker_label_img[i]=scale_image(temp,scale_factor,channel_names[i]+"_label_img"); //returns image with _rescale in name
 			roiManager("reset");
 			//segment cells and return image with normal scaling
 			print("Segmenting marker "+channel_name);
@@ -447,7 +440,11 @@ for(i=0;i<channel_combinations.length;i++)
 			selectWindow("label_mapss");
 			rename("label_img_"+channel_name);
 			label_marker=getTitle();
-			
+			//store resized label images for analysing label co-expression
+			label_name = "label_"+channel_name;
+			label_rescaled_img=scale_image(label_marker,scale_factor,label_name);
+
+			selectWindow(label_marker);
 			//save images and masks if user selects to save them for the marker
 			if(Save_Image_Masks == true)
 			{
@@ -463,7 +460,7 @@ for(i=0;i<channel_combinations.length;i++)
 			else close(marker_image);
 			
 			//store marker name in an array to call when analysing marker combinations
-			if(no_markers>1) marker_label_arr[i]=label_marker;
+			if(no_markers>1) marker_label_arr[i]=label_rescaled_img;//label_marker;
 
 			marker_count=roiManager("count"); // in case any neurons added after manual verification of markers
 			selectWindow(table_name);
@@ -482,6 +479,7 @@ for(i=0;i<channel_combinations.length;i++)
 			roi_location_marker=results_dir+channel_name+"_ROIs.zip";
 			roiManager("save",roi_location_marker);
 			close(seg_marker_img);
+			
 			roiManager("reset");
 			//Array.print(marker_label_arr);
 
@@ -506,7 +504,7 @@ for(i=0;i<channel_combinations.length;i++)
 				run("Close");
 				roiManager("reset");
 			}
-
+		close(label_marker);
 			
 		}
 		//if more than one marker to analyse; if more than one marker, then it multiplies the marker labels from above to find coexpressing cells
@@ -523,7 +521,8 @@ for(i=0;i<channel_combinations.length;i++)
 				//print(channel_pos);
 				//print("Processing: "+marker_label_arr[channel_pos]+"\t"); 
 				if(j==0) //if first time running the loop
-				{		//Array.print(marker_label_arr);
+				{		
+
 						//multiply_markers
 						marker_name="_"+channel_arr[1]; //get img2
 						channel_pos2=find_str_array(marker_label_arr,marker_name);
@@ -533,11 +532,22 @@ for(i=0;i<channel_combinations.length;i++)
 						print("Processing "+img1+" * "+img2);
 						temp_label=multiply_markers(img1,img2,400,3000);
 						selectWindow(temp_label);
+						if(scale_factor!=1)
+						{
+								selectWindow(temp_label);
+								label_temp_name = img1+"_*_"+img2+"_label";
+								//run("Duplicate...", "title=label_original");
+								run("Scale...", "x=- y=- width="+width+" height="+height+" interpolation=None create title="+label_temp_name);
+								close(temp_label);
+								//selectWindow(label_temp_name);
+								temp_label = label_temp_name;
+						}
+
 						run("Select None");
 						//runMacro(label_to_roi,temp_label);
 						//close(temp_label);
-						close(img1);
-						close(img2);
+						//close(img1);
+						//close(img2);
 						wait(5);
 						selectWindow(temp_label);
 						run("Select None");
@@ -548,19 +558,26 @@ for(i=0;i<channel_combinations.length;i++)
 				}
 				else 
 				{
-					//print(j);
 					img2=marker_label_arr[channel_pos];
 					img1=result;
-					//print("Processing "+img1+" * "+img2);
+					print("Processing "+img1+" * "+img2);
 					temp_label=multiply_markers(img1,img2,400,3000);
 					selectWindow(temp_label);
 					run("Select None");
-					//runMacro(label_to_roi,temp_label);
-					//close(temp_label);
+					if(scale_factor!=1)
+					{
+						selectWindow(temp_label);
+						label_temp_name = img1+"_*_"+img2+"_label";
+						run("Scale...", "x=- y=- width="+width+" height="+height+" interpolation=None create title="+label_temp_name);
+						close(temp_label);
+						temp_label = label_temp_name;
+					}
 					close(img1);
 					close(img2);
+
 					wait(5);
 					result="img "+d2s(j,0);
+					rename(result);
 					
 				}
 			if(j==channel_arr.length-1) //when reaching end of arr length, get ROI counts
@@ -744,22 +761,17 @@ function segment_cells(max_projection,img_seg,model_file,n_tiles,width,height,sc
 	close(label_filter);
 }
 
+
 //multiply label images of markers to get double positive cells
 //exclude based no size and only keep cells if there is overlap
 function multiply_markers(marker1,marker2,minimum_size,maximum_size)
 {
-	//marker 1 is ref channel For neuron segmentation, its Hu and then marker of choice in marker2
+	//marker 1 is ref channel For neuron segmentation with Hu, its Hu and then marker of choice in marker2
 	// Init GPU
 	run("CLIJ2 Macro Extensions", "cl_device=");
 	Ext.CLIJ2_clear();
 	Ext.CLIJ2_pushCurrentZStack(marker1);
 	Ext.CLIJ2_pushCurrentZStack(marker2);
-	
-	
-	// Multiply Images
-	//Ext.CLIJ2_multiplyImages(marker1, marker2, image_5);
-	//Ext.CLIJ2_release(marker1);
-	//Ext.CLIJ2_release(marker2);
 	
 	// Exclude Labels Outside Size Range
 	//minimum_size = 300.0;
@@ -781,18 +793,7 @@ function multiply_markers(marker1,marker2,minimum_size,maximum_size)
 	constant = 0.4;
 	Ext.CLIJ2_greaterOrEqualConstant(area_frac, marker2_area_filt, constant);
 	Ext.CLIJ2_release(area_frac);
-	
 
-	// Label Overlap Count Map; 
-	//marker1 is ref image and counting how many labels in 6 overlap with image_11
-	//Ext.CLIJ2_labelOverlapCountMap(marker1,image_6, image_7);
-	//Ext.CLIJ2_release(image_6);
-	
-	// get cells with overlap of greater than 1 cell
-	//constant = 1.0;
-	//Ext.CLIJ2_greaterOrEqualConstant(image_7, image_8, constant);
-	//Ext.CLIJ2_release(image_7);
-	
 	// Multiply Images
 	Ext.CLIJ2_multiplyImages(marker1, marker2_area_filt, marker2_processed);
 	Ext.CLIJ2_release(marker2_area_filt);

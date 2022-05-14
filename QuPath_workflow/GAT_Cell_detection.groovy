@@ -102,7 +102,7 @@ pane.setHgap(5);
 
 //min_area
 Label min_area_label = new Label("Enter minimum area of cells (um2)");
-Spinner min_area_Spinner = new Spinner(new SpinnerValueFactory.DoubleSpinnerValueFactory(1, 200, 10, 1));
+Spinner min_area_Spinner = new Spinner(new SpinnerValueFactory.DoubleSpinnerValueFactory(1, 200, 90, 1));
 min_area_Spinner.setEditable(true);
 //global
 def min_area = min_area_Spinner.valueProperty();

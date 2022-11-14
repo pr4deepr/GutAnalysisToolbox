@@ -146,15 +146,33 @@ if(image_already_open==true)
 else
 {
 	if(endsWith(path, ".czi")|| endsWith(path, ".lif")) run("Bio-Formats", "open=["+path+"] color_mode=Composite rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT");
+	else if (endsWith(path, ".lif"))
+	{
+		run("Bio-Formats Macro Extensions");
+		Ext.setId(path);
+		Ext.getSeriesCount(seriesCount);
+		print("Opening lif file, detected series count of "+seriesCount+". Leave options in bioformats importer unticked");
+		open(path);
+		
+	}
 	else if (endsWith(path, ".tif")|| endsWith(path, ".tiff")) open(path);
-	else exit("File type not recognised.  Tif, Lif and CZI files supported.");
+	else exit("File type not recognised.  Tif, Lif and Czi files supported.");
 	dir=File.directory;
-	file_name=File.nameWithoutExtension; //get file name without extension (.lif)
+	file_name_full=File.nameWithoutExtension; //get file name without extension (.lif)
 }
 
-file_name_length=lengthOf(file_name);
-if(file_name_length>50) file_name=substring(file_name, 0, 39); //Restricting file name length as in Windows long path names can cause errors
-
+//file_name=File.nameWithoutExtension;
+file_name_length=lengthOf(file_name_full);
+if(file_name_length>50)
+{
+	file_name=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
+	suffix = getString("File name is too long, so it will be truncated. Enter custom name to be be added to end of filename", "_1");
+	file_name = file_name+suffix;
+}
+else file_name=file_name_full;
+//if delimiters such as , ; or _ are there in file name, split string and join with underscore
+file_name_split = split(file_name,",;_-");
+file_name =String.join(file_name_split,"_");
 
 img_name=getTitle();
 Stack.getDimensions(width, height, sizeC, sizeZ, frames);
@@ -202,11 +220,10 @@ if(scale_factor<1.001 && scale_factor>1) scale_factor=1;
 print("Analysing: "+file_name);
 analysis_dir= dir+"Analysis"+fs;
 if (!File.exists(analysis_dir)) File.makeDirectory(analysis_dir);
-print("Files will be saved at: "+analysis_dir); 
-
 //Create results directory with file name in "analysis"
 results_dir=analysis_dir+file_name+fs; //directory to save images
 if (!File.exists(results_dir)) File.makeDirectory(results_dir); //create directory to save results file
+print("Files will be saved at: "+results_dir); 
 
 //do not include cells greater than 1000 micron in area
 //neuron_area_limit=1500; //microns
@@ -265,6 +282,11 @@ else
 		max_projection=getTitle();
 }
 
+max_save_name="MAX_"+file_name;
+selectWindow(max_projection);
+rename(max_save_name);
+
+max_projection = max_save_name;
 
 
 

@@ -121,7 +121,16 @@ if(image_already_open==true)
 }
 else
 {
-	if(endsWith(path, ".czi")|| endsWith(path, ".lif")) run("Bio-Formats", "open=["+path+"] color_mode=Composite rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT");
+	if(endsWith(path, ".czi")) run("Bio-Formats", "open=["+path+"] color_mode=Composite rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT");
+	else if (endsWith(path, ".lif"))
+	{
+		run("Bio-Formats Macro Extensions");
+		Ext.setId(path);
+		Ext.getSeriesCount(seriesCount);
+		print("Opening lif file, detected series count of "+seriesCount+". Leave options in bioformats importer unticked");
+		open(path);
+		
+	}
 	else if (endsWith(path, ".tif")|| endsWith(path, ".tiff")) open(path);
 	else exit("File type not recognised.  Tif, Lif and Czi files supported.");
 	dir=File.directory;
@@ -130,9 +139,18 @@ else
 
 //file_name=File.nameWithoutExtension;
 file_name_length=lengthOf(file_name_full);
-if(file_name_length>50) file_name=substring(file_name_full, 0, 39); //Restricting file name length as in Windows long path names can cause errors
+if(file_name_length>50)
+{
+	file_name=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
+	suffix = getString("File name is too long, so it will be truncated. Enter custom name to be be added to end of filename", "_1");
+	file_name = file_name+suffix;
+}
 else file_name=file_name_full;
-//print(file_name);
+//if delimiters such as , ; or _ are there in file name, split string and join with underscore
+file_name_split = split(file_name,",;_-");
+file_name =String.join(file_name_split,"_");
+
+print(file_name);
 
 img_name=getTitle();
 Stack.getDimensions(width, height, sizeC, sizeZ, frames);
@@ -178,12 +196,11 @@ if(scale_factor<1.001 && scale_factor>1) scale_factor=1;
 print("Analysing: "+file_name);
 analysis_dir= dir+"Analysis"+fs;
 if (!File.exists(analysis_dir)) File.makeDirectory(analysis_dir);
-print("Files will be saved at: "+analysis_dir); 
 print("Analysing: "+file_name);
 //Create results directory with file name in "analysis"
 results_dir=analysis_dir+file_name+fs; //directory to save images
 if (!File.exists(results_dir)) File.makeDirectory(results_dir); //create directory to save results file
-
+print("Files will be saved at: "+results_dir); 
 
 //do not include cells greater than 1000 micron in area
 //neuron_area_limit=1500; //microns
@@ -308,7 +325,9 @@ else
 }
 
 max_save_name="MAX_"+file_name;
-
+selectWindow(max_projection);
+rename(max_save_name);
+max_projection = max_save_name;
 
 //Segment Neurons
 selectWindow(max_projection);
@@ -384,12 +403,9 @@ roiManager("deselect");
 print("No of "+cell_type+" in "+max_projection+" : "+cell_count);
 roiManager("deselect");
 roi_location=results_dir+cell_type+"_ROIs_"+file_name+".zip";
-roiManager("save",roi_location );
+roiManager("save",roi_location);
 
-
-
-
-selectWindow(max_projection);
+selectWindow(max_projection);
 
 //uses roi to label macro code; clij is a dependency
 runMacro(roi_to_label);
@@ -531,6 +547,12 @@ if(Save_Image_Masks == true)
 
 	}
 }
+
+//save max projection if its scaled image, can use this for further processing later
+selectWindow(max_projection);
+run("Remove Overlay");
+run("Select None");
+saveAs("Tiff", results_dir+max_save_name);
 
 
 close("*");

@@ -166,25 +166,42 @@ if(marker_subtype==1 && Enter_channel_details_now==1)
 
 
 
-
 if(image_already_open==true)
 {
-	waitForUser("Select Image. and choose output folder in next prompt");
-	file_name=getTitle(); //get file name without extension (.lif)
+	waitForUser("Select Image and choose output folder in next prompt");
+	file_name_full=getTitle(); //get file name without extension (.lif)
 	dir=getDirectory("Choose Output Folder");
-	
 }
 else
 {
-	if(endsWith(path, ".czi")|| endsWith(path, ".lif")) run("Bio-Formats", "open=["+path+"] color_mode=Composite rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT");
+	if(endsWith(path, ".czi")) run("Bio-Formats", "open=["+path+"] color_mode=Composite rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT");
+	else if (endsWith(path, ".lif"))
+	{
+		run("Bio-Formats Macro Extensions");
+		Ext.setId(path);
+		Ext.getSeriesCount(seriesCount);
+		print("Opening lif file, detected series count of "+seriesCount+". Leave options in bioformats importer unticked");
+		open(path);
+		
+	}
 	else if (endsWith(path, ".tif")|| endsWith(path, ".tiff")) open(path);
-	else exit("File type not recognised.  Tif, Lif and CZI files supported.");
+	else exit("File type not recognised.  Tif, Lif and Czi files supported.");
 	dir=File.directory;
-	file_name=File.nameWithoutExtension; //get file name without extension (.lif)
+	file_name_full=File.nameWithoutExtension; //get file name without extension (.lif)
 }
 
-file_name_length=lengthOf(file_name);
-if(file_name_length>50) file_name=substring(file_name, 0, 39); //Restricting file name length as in Windows long path names can cause errors
+//file_name=File.nameWithoutExtension;
+file_name_length=lengthOf(file_name_full);
+if(file_name_length>50)
+{
+	file_name=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
+	suffix = getString("File name is too long, so it will be truncated. Enter custom name to be be added to end of filename", "_1");
+	file_name = file_name+suffix;
+}
+else file_name=file_name_full;
+//if delimiters such as , ; or _ are there in file name, split string and join with underscore
+file_name_split = split(file_name,",;_-");
+file_name =String.join(file_name_split,"_");
 
 
 img_name=getTitle();
@@ -233,11 +250,10 @@ if(scale_factor<1.001 && scale_factor>1) scale_factor=1;
 print("Analysing: "+file_name);
 analysis_dir= dir+"Analysis"+fs;
 if (!File.exists(analysis_dir)) File.makeDirectory(analysis_dir);
-print("Files will be saved at: "+analysis_dir); 
-
 //Create results directory with file name in "analysis"
 results_dir=analysis_dir+file_name+fs; //directory to save images
 if (!File.exists(results_dir)) File.makeDirectory(results_dir); //create directory to save results file
+print("Files will be saved at: "+results_dir); 
 
 //do not include cells greater than 1000 micron in area
 //neuron_area_limit=1500; //microns
@@ -376,7 +392,11 @@ else
 		print(img_name+" has only one slice, using as max projection");
 		max_projection=getTitle();
 }
+max_save_name="MAX_"+file_name;
+selectWindow(max_projection);
+rename(max_save_name);
 
+max_projection = max_save_name;
 
 
 
@@ -461,6 +481,12 @@ selectWindow(neuron_label_image);
 run("Select None");
 
 print("No of "+cell_type+" in "+max_projection+" : "+cell_count);
+
+//select all rois in roi manager
+selection_indexes = Array.getSequence(roiManager("count"));
+roiManager("select", selection_indexes);
+group_id = 1;
+set_all_rois_group_id(group_id);
 roiManager("deselect");
 roi_location=results_dir+cell_type+"_ROIs_"+file_name+".zip";
 roiManager("save",roi_location );
@@ -674,7 +700,7 @@ if(marker_subtype==1)
 		//keep objects within size range 400 to 3000; may need to alter this later depending on cell size
 		//Manual step to verify
 		temp_label=multiply_markers(neuron_label_image,"label_img_temp",neuron_min_pixels,neuron_max_pixels);//getting smaller objects, so inc min size to 400
-		//decide on how to work with multiplication, neuron multiply labl or other way around?
+		
 		//selectWindow(temp_label);
 		selectWindow(temp_label);
 		run("Select None");
@@ -686,7 +712,13 @@ if(marker_subtype==1)
 		//roiManager("deselect");
 		roiManager("show all");
 		//selectWindow(max_projection);
+		//add option to draw ROI on channel name OR
+		//display Hu and other channel as overlay; assign groups with different colours; 
+		//get user to click
 		waitForUser("Verify ROIs for "+channel_name+". Delete or add ROIs as needed. Press OK when done.");
+		
+		group_id+=1;
+		set_all_rois_group_id(group_id);
 		roiManager("deselect");
 		//convert roi manager to label image
 		runMacro(roi_to_label);
@@ -1355,3 +1387,14 @@ function create_ganglia_img(max_projection,ganglia_channel,cell_channel)
 	
 
 }
+
+//set group id for rois
+function set_all_rois_group_id(group_id)
+{
+	
+//select all rois in roi manager
+	selection_indexes = Array.getSequence(roiManager("count"));
+	roiManager("select", selection_indexes);
+	RoiManager.setGroup(0);
+}
+

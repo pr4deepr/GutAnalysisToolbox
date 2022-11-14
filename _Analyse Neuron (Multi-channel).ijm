@@ -483,11 +483,11 @@ run("Select None");
 print("No of "+cell_type+" in "+max_projection+" : "+cell_count);
 
 //select all rois in roi manager
-selection_indexes = Array.getSequence(roiManager("count"));
-roiManager("select", selection_indexes);
-group_id = 1;
-set_all_rois_group_id(group_id);
-roiManager("deselect");
+//selection_indexes = Array.getSequence(roiManager("count"));
+///roiManager("select", selection_indexes);
+//group_id = 1;
+//set_all_rois_group_id(group_id);
+//roiManager("deselect");
 roi_location=results_dir+cell_type+"_ROIs_"+file_name+".zip";
 roiManager("save",roi_location );
 
@@ -704,12 +704,13 @@ if(marker_subtype==1)
 		//selectWindow(temp_label);
 		selectWindow(temp_label);
 		run("Select None");
+		waitForUser;
 		runMacro(label_to_roi,temp_label);
 		close(temp_label);
 		close("label_img_temp");
 		wait(5);
 		selectWindow(max_projection);
-		//roiManager("deselect");
+		roiManager("deselect");
 		roiManager("show all");
 		//selectWindow(max_projection);
 		//add option to draw ROI on channel name OR
@@ -717,8 +718,8 @@ if(marker_subtype==1)
 		//get user to click
 		waitForUser("Verify ROIs for "+channel_name+". Delete or add ROIs as needed. Press OK when done.");
 		
-		group_id+=1;
-		set_all_rois_group_id(group_id);
+		//group_id+=1;
+		//set_all_rois_group_id(group_id);
 		roiManager("deselect");
 		//convert roi manager to label image
 		runMacro(roi_to_label);

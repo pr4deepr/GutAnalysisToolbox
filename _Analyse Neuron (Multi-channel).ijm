@@ -132,7 +132,7 @@ if(Finetune_probability_overlap==true)
   	Dialog.addSlider("Overlap threshold", 0, 1,overlap);
 	Dialog.show(); 
 	probability= Dialog.getNumber();
-	probability_subtype_manual= Dialog.getNumber();
+	probability_subtype= Dialog.getNumber();
 	overlap= Dialog.getNumber();
 	overlap_subtype=overlap;
 	//probability=probability_manual;
@@ -704,7 +704,6 @@ if(marker_subtype==1)
 		//selectWindow(temp_label);
 		selectWindow(temp_label);
 		run("Select None");
-		waitForUser;
 		runMacro(label_to_roi,temp_label);
 		close(temp_label);
 		close("label_img_temp");

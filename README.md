@@ -101,6 +101,6 @@ There are two Zenodo records, one for the software and one for the training data
 
 Software citation on Zenodo:
 
-Luke Sorensen, Ayame Saito, Sabrina Poon, Myat Noe Han, Adam Humenick, Keith Mutunduwe, Christie Glennan, Narges Mahdavian, Simon JH Brookes, Rachel M McQuade, Jaime PP Foong, Sebastian K. King, Estibaliz Gómez-de-Mariscal, Robert Haase, Simona Carbone, Nicholas A. Veldhuis, Daniel P. Poole, & Pradeep Rajasekhar (2022). Gut Analysis Toolbox (1.0.0). Zenodo. https://doi.org/10.5281/zenodo.6095590
+Sorensen, L., Saito, A., Poon, S., Noe Han, M., Humenick, A., Mutunduwe, K., Glennan, C., Mahdavian, N., JH Brookes, S., M McQuade, R., PP Foong, J., Gómez-de-Mariscal, E., Muñoz Barrutia, A., King, S. K., Haase, R., Carbone, S., A. Veldhuis, N., P. Poole, D., & Rajasekhar, P. (2022). Gut Analysis Toolbox (Version 1.0.0) [Computer software]. https://doi.org/10.5281/zenodo.6095590
 
 Upon publication, the paper will be included here.

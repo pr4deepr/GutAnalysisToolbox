@@ -27,6 +27,9 @@ if(!File.exists(label_to_roi)) exit("Cannot find label to roi script. Returning:
 var roi_to_label=gat_dir+fs+"Convert_ROI_to_Labels.ijm";
 if(!File.exists(roi_to_label)) exit("Cannot find roi to label script. Returning: "+roi_to_label);
 
+//check if spatial analysis script is present
+var spatial_single_cell_type=gat_dir+fs+"spatial_single_celltype.ijm";
+if(!File.exists(spatial_single_cell_type)) exit("Cannot find single cell spatial analysis script. Returning: "+spatial_single_cell_type);
 
 
 //open the image
@@ -74,95 +77,13 @@ wait(10);
 run("Select None");
 label_cell_img=getTitle();
 
-//define save path based on file name and create a save folder if none
-save_path=save_path+fs+"spatial_analysis"+fs;
-if(!File.exists(save_path)) File.makeDirectory(save_path);
+//run script for single cell spatial analysis
+args=cell_type+","+label_cell_img+","+ganglia_binary+","+save_path+","+label_dilation+","+save_parametric_image+","+pixelWidth;
+runMacro(spatial_single_cell_type,args);
+wait(5);
+print("Files saved at "+save_path);
 
-run("CLIJ2 Macro Extensions", "cl_device=");
-Ext.CLIJ2_clear();
-
-Ext.CLIJ2_push(label_cell_img);
-// Dilate Labels
-
-//label_dilation=9; //9 micron dilation
-//convert to pixels
-label_dilation=round(label_dilation/pixelWidth);
-print("Expansion in pixels "+label_dilation);
-//Ext.CLIJx_morphoLibJDilateLabels(label_cell_img, image_4, label_dilation);
-Ext.CLIJ2_dilateLabels(label_cell_img, image_4, label_dilation);
-Ext.CLIJ2_pull(label_cell_img);
-
-if(isOpen(ganglia_binary))
-{
-	Ext.CLIJ2_push(ganglia_binary);
-	Ext.CLIJ2_multiplyImages(image_4, ganglia_binary, label_ganglia_restrict);
-	Ext.CLIJ2_release(image_4);
-	Ext.CLIJ2_release(ganglia_binary);
-	Ext.CLIJ2_touchingNeighborCountMap(label_ganglia_restrict, neighbour_count);
-	Ext.CLIJ2_release(label_ganglia_restrict);
-}
-else 
-{
-	// Touching Neighbor Count Map
-	Ext.CLIJ2_touchingNeighborCountMap(image_4, neighbour_count);
-	
-}
-
-Ext.CLIJ2_pull(neighbour_count);
-
-run("Fire");
-
-run("Set Measurements...", "min redirect=None decimal=3");
-selectWindow(neighbour_count);
-roiManager("deselect");
-roiManager("measure");
-selectWindow("Results");
-table_name="Neighbours "+file_name;
-IJ.renameResults(table_name);
-selectWindow(table_name);
-Table.deleteColumn("Min");
-Table.renameColumn("Max", "No of immediate neighbours");
-table_name = "Neighbour_count_single_celltype_"+cell_type;
-table_path=save_path+fs+table_name+".csv";
-Table.save(table_path);
-//close();
-
-if(save_parametric_image)
-{
-	overlap_cell=get_parameteric_img(neighbour_count,label_cell_img);
-	selectWindow(overlap_cell);
-	saveAs("Tiff", save_path+fs+table_name);
-
-}
 close("*");
 
 
 exit("Neighbour Analysis complete");
-
-
-function get_parameteric_img(label_overlap_img,cell_img)
-{
-		run("CLIJ2 Macro Extensions", "cl_device=");
-		Ext.CLIJ2_push(label_overlap_img);
-		Ext.CLIJ2_push(cell_img);
-		
-		// covert label overlap img to binary
-		constant = 1.0;
-		Ext.CLIJ2_greaterOrEqualConstant(cell_img, label_bin, constant);
-		// Multiply Images
-		Ext.CLIJ2_multiplyImages(label_overlap_img, label_bin, parametric_img);
-		Ext.CLIJ2_release(label_bin);
-		Ext.CLIJ2_release(label_overlap_img);
-		if(isOpen(label_overlap_img)) close(label_overlap_img);
-		
-		Ext.CLIJ2_pull(parametric_img);
-		selectWindow(parametric_img);
-		rename(label_overlap_img);
-		parametric_img=getTitle();
-		
-		run("Fire");
-		return parametric_img;
-
-
-}
-

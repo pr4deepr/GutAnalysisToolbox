@@ -1,12 +1,12 @@
 /*
- * calculate neighb, save paramteric img and tables in folder spatial_analysis
- * Calculate the no of immediate neighbours around a user-defined radius (default: 10 micron) for 2 markers
- * Use this with Hu (pan-neuronal marker)-> ref_img and a second marker -> marker_img
-
+ * calculate number of neighbours for two markers; 
+ * code is meant for markers other than Hu, i.e., NOT pan-neuronal markers
+ * it uses labeloverlapcountmap method from CLIJ. 
+ * 
  */
 
-//Use runMacro("Directory where macro installed//spatial_two_celltype.ijm","name of marker 1, marker1_image_name,
-//name of marker 2,  marker2_image_name,, ganglia_binary,save_path,label_dilation value, save_parametric_image flag (1 or 0"),pixelWidth;
+//Use runMacro("Directory where macro installed//spatial_single_celltype.ijm","name of marker 1, marker1_image_name,
+// ganglia_binary_img_name,save_path,label_dilation value, save_parametric_image flag (1 or 0"),pixelWidth);
 
 //if no ganglia_binary, enter "NA" 
 
@@ -63,10 +63,17 @@ macro "spatial_two_celltype"
 		
 		pixelWidth = parseFloat(arg_array[8].trim());
 
-		
 		print("Running spatial analysis on "+cell_type_1+" and "+cell_type_2);
 		
 		if(cell_type_1==cell_type_2) exit("Cell names or ROI managers are the same for both celltypes");
+		
+		//convert to pixels
+		label_dilation=round(label_dilation/pixelWidth);
+		
+		//print("Expansion in pixels "+label_dilation);
+		
+		save_path=save_path+fs+"spatial_analysis"+fs;
+		if(!File.exists(save_path)) File.makeDirectory(save_path);
 		
 		
 		//binary image for ganglia
@@ -87,29 +94,15 @@ macro "spatial_two_celltype"
 			
 		}
 		else ganglia_binary="NA";
-		
-		
-		
-		//label_dilation=9; //9 micron dilation or whatever user enters
-		//convert to pixels
-		label_dilation=round(label_dilation/pixelWidth);
-		
-		//print("Expansion in pixels "+label_dilation);
-		
-		//they return values with index 0 as background, so need to delete that before saving table
-		
-		save_path=save_path+fs+"spatial_analysis"+fs;
-		if(!File.exists(save_path)) File.makeDirectory(save_path);
-		
-		no_neighbours_ref_marker=count_ref_around_marker(cell_1,cell_2,label_dilation,ganglia_binary,cell_type_1,cell_type_2);
-		counts_ref_marker = Array.deleteIndex(no_neighbours_ref_marker, 0);
-		
-		no_neighbours_marker_ref=count_marker_around_ref(cell_1,cell_2,label_dilation,ganglia_binary,cell_type_2,cell_type_1,save_path);
-		counts_marker_ref = Array.deleteIndex(no_neighbours_marker_ref, 0);
-		
-		
-		
 
+
+		// cell 2 neigbour around cell 1
+		no_neighbours_cell_2_around_1=count_neighbour_around_ref_img(cell_1,cell_2,label_dilation,ganglia_binary);
+		counts_cell_2_around_1 = Array.deleteIndex(no_neighbours_cell_2_around_1, 0);
+		
+		// cell 1 neigbour around cell 2
+		no_neighbours_cell_1_around_2=count_neighbour_around_ref_img(cell_2,cell_1,label_dilation,ganglia_binary);
+		counts_cell_1_around_2 = Array.deleteIndex(no_neighbours_cell_1_around_2, 0);
 		
 		roiManager("reset");
 		run("Clear Results");
@@ -118,28 +111,24 @@ macro "spatial_two_celltype"
 		
 		
 		Table.create("Cell_counts_overlap_"+cell_type_1+"_"+cell_type_2);
-		Table.setColumn("No of "+cell_type_1+" around "+cell_type_2, counts_ref_marker);
-		Table.setColumn("No of "+cell_type_2+" around "+cell_type_1, counts_marker_ref);
+		Table.setColumn("No of "+cell_type_2+" around "+cell_type_1, counts_cell_2_around_1);
+		Table.setColumn("No of "+cell_type_1+" around "+cell_type_2, counts_cell_1_around_2);
 		Table.update;
 		Table.save(table_path);
 		close("Cell_counts_overlap_"+cell_type_1+"_"+cell_type_2);
 		
-		
-			
-		if(save_parametric_image==true)
-		
-		
-		{
-			
-			
-			overlap_cell_1=get_parameteric_img(no_neighbours_ref_marker,cell_2,cell_type_1,cell_type_2);
-			overlap_cell_2=get_parameteric_img(no_neighbours_marker_ref,cell_1,cell_type_2,cell_type_1);
 
-		
-			selectWindow(overlap_cell_1);
+		if(save_parametric_image==true)
+				
+		{
+
+			overlap_1=get_parameteric_img(no_neighbours_cell_2_around_1,cell_1,cell_type_2,cell_type_1);
+			overlap_2=get_parameteric_img(no_neighbours_cell_1_around_2,cell_2,cell_type_1,cell_type_2);
+
+			selectWindow(overlap_1);
 			saveAs("Tiff", save_path+fs+overlap_cell_1);
 			close();
-			selectWindow(overlap_cell_2);
+			selectWindow(overlap_2);
 			saveAs("Tiff", save_path+fs+overlap_cell_2);
 			close();
 		}
@@ -149,192 +138,52 @@ macro "spatial_two_celltype"
 	}
 	print("Spatial analysis done for "+cell_type_1+" and "+cell_type_2);
 
-}
+}		
 
 
-//ref_img is hu and should label all cells
-//marker_img should be a subset
-function count_ref_around_marker(ref_img,marker_img,dilate_radius,ganglia_binary,cell_type_1,cell_type_2)
+
+function count_neighbour_around_ref_img(ref_img,marker_img,dilate_radius,ganglia_binary)
 {
-		// Init GPU
-	
 	run("Clear Results");
 	run("CLIJ2 Macro Extensions", "cl_device=");
-	//Ext.CLIJ2_clear();
-	Ext.CLIJ2_push(ref_img);
-	Ext.CLIJ2_push(marker_img);
+
 	
-	//dilate cells in ref_img
 	Ext.CLIJ2_dilateLabels(ref_img, ref_dilate, dilate_radius);
+	
 	if (isOpen(ganglia_binary))
 	{
 		Ext.CLIJ2_push(ganglia_binary);
 		Ext.CLIJ2_multiplyImages(ref_dilate, ganglia_binary, ref_dilate_ganglia_restrict);
-		//get neighbour count for each cell in ref_img
-		Ext.CLIJ2_touchingNeighborCountMap(ref_dilate_ganglia_restrict, ref_neighbour_count);
-	}
-	else 
-	{
-		Ext.CLIJ2_touchingNeighborCountMap(ref_dilate, ref_neighbour_count);
 	}
 	
-	
-	Ext.CLIJ2_reduceLabelsToCentroids(marker_img, marker_img_centroid);
-	
-	Ext.CLIJ2_statisticsOfBackgroundAndLabelledPixels(ref_neighbour_count, marker_img_centroid);
-
-	selectWindow("Results");
-	
-	//get no of neighbours from max_intensity column
-	no_neighbours = Table.getColumn("MINIMUM_INTENSITY");
-	run("Clear Results");
-	no_neighbours[0]=0;
-	
-	//Ext.CLIJ2_release(ref_img);
-	//Ext.CLIJ2_release(marker_img);
-	//Ext.CLIJ2_release(ref_dilate);
-	Ext.CLIJ2_release(ganglia_binary);
-	Ext.CLIJ2_release(ref_neighbour_count);
-	Ext.CLIJ2_release(marker_img_centroid);
-	
-	return no_neighbours;
-	
-}
-
-
-//how many cells in marker_img around ref
-function count_marker_around_ref(ref_img,marker_img,dilate_radius,ganglia_binary,cell_type_1,cell_type_2,save_path)
-{
-		// Init GPU
-	run("CLIJ2 Macro Extensions", "cl_device=");
-	//Ext.CLIJ2_clear();
-	Ext.CLIJ2_push(ref_img);
-	Ext.CLIJ2_push(marker_img);
-	
-	//dilate cells in ref_img
-	Ext.CLIJ2_dilateLabels(ref_img, ref_dilate_init, dilate_radius);
+	// Label Overlap Count Map
+	Ext.CLIJ2_labelOverlapCountMap(ref_dilate_ganglia_restrict, marker_img, label_overlap_count);
 	
 	
-	if (isOpen(ganglia_binary))
-	{
-		Ext.CLIJ2_push(ganglia_binary);
-		Ext.CLIJ2_multiplyImages(ref_dilate_init, ganglia_binary, ref_dilate);
-		
-		//get neighbour count for each cell in ref_img
-
-	}
-	else 
-	{
-		ref_dilate = ref_dilate_init;
-	}
+	// Greater Or Equal Constant
+	constant = 1.0;
+	Ext.CLIJ2_greaterOrEqualConstant(marker_img, marker_img_binary, constant);
 	
 	
-	//generate touch matrix where touching pixels that match label indices of touching cells are a value of 1
-	// for example of cell 3 and 4 touch, then pixel at (3,4)  as a value of 1
-	Ext.CLIJ2_generateTouchMatrix(ref_dilate, touch_mat);
+	// Subtract Images
+	Ext.CLIJ2_subtractImages(label_overlap_count, marker_img_binary, label_overlap_count_corrected);
+	Ext.CLIJ2_reduceLabelsToCentroids(ref_dilate_ganglia_restrict, ref_img_centroid);
 	
-	run("Clear Results");
 	
-	//get value of marker corresponding to ref_img
-	//Ext.CLIJ2_statisticsOfBackgroundAndLabelledPixels(ref_dilate, marker_img);
-	Ext.CLIJ2_reduceLabelsToCentroids(marker_img, marker_img_centroid);
-	Ext.CLIJ2_statisticsOfLabelledPixels(ref_dilate, marker_img_centroid);
-	selectWindow("Results");
+	//Ext.CLIJ2_statisticsOfLabelledPixels(image_6, image_1);
+	Ext.CLIJ2_statisticsOfBackgroundAndLabelledPixels(label_overlap_count_corrected, ref_img_centroid);
 	
-	//get labels in ref image corresponding to marker
-	//marker_ids = Table.getColumn("IDENTIFIER");
-	marker_label_ref_ids = Table.getColumn("MINIMUM_INTENSITY");
+	//get intensity at centroid/  min intensity
+	overlap_count = Table.getColumn("MINIMUM_INTENSITY");
 	//background is zero
-	//marker_label_ref_ids[0]=0;
-	//Array.show(marker_label_ref_ids);
+	overlap_count[0]=0;
 	
-	
-	run("Clear Results");
-	
-	//Ext.CLIJ2_statisticsOfLabelledPixels(hu_dilate, hu_dilate);
-	
-
-	Ext.CLIJ2_pull(touch_mat);
-	selectWindow(touch_mat);
-	img = getTitle();
-	width =getWidth();
-	height = getHeight();
-	setOption("ExpandableArrays", true);
-	
-	//get ids of all cells in ref_img
-	Ext.CLIJ2_statisticsOfBackgroundAndLabelledPixels(ref_dilate, ref_dilate);
-	selectWindow("Results");
-	ref_ids = Table.getColumn("IDENTIFIER");
-	
-	run("Clear Results");
-	
-	//rray of zeros with length ref_ids
-	counts = newArray(ref_ids.length);
-	//Array+++.show(ref_ids);
-	
-	//loop through touch matrix image of ref_img
-	//if it is ojne, check if cell is in marker_img, if so, its touching, then increment count by one for that Hu
-	for(x=0;x<width;x++)
-	{
-		for(y=0;y<height;y++)
-		{
-			
-			for (i = 0; i <ref_ids.length; i++) 
-			{
-				//check if x matches label id of ref img
-				//check if its greater than 0
-				//make sure y>x; ensures we only look at half of the matrix
-				if((x==ref_ids[i]) && (x>0) && (y>0) && (y>x))// && x>0)// 
-				{
-					val = getPixel(x,y);
-					if(val==1) 
-					{
-						marker_neighbour = val_in_arr(marker_label_ref_ids,y);//counts[i]+=1;//print(x+","+y);
-						if(marker_neighbour==1) counts[i]+=1;
-					}
-				}
-				
-			}
-		}
-	}
-	
-
-	//Array.show(counts);
-
-	run("Clear Results");
-	
-	selectWindow(touch_mat);
-	saveAs("Tiff", save_path+fs+"Touch_matrix_"+cell_type_2+"_around_"+cell_type_1);
-	close();
-	
-	
-	//Ext.CLIJ2_release(ref_img);
-	//Ext.CLIJ2_release(marker_img);
-	//Ext.CLIJ2_release(ref_dilate_init);
-	Ext.CLIJ2_release(marker_img_centroid);
-	
-	return counts;
-}
-
-
-
-
-//check if val in array, if so return 1
-function val_in_arr(arr,val)
-	{
+	return overlap_count;	
 		
-		for (i = 0; i < arr.length; i++) 
-		{
-			if (arr[i]==val)
-			{ 
-				//print(arr[i],val);
-				return 1;
-			}
-		}
-		return 0;
 }
-
-					
+	
+		
+//generate parameteric image by replacing label values for each cell in "cell_label_img" with the value for the no of neighbours
 function get_parameteric_img(no_neighbours,cell_label_img,cell_type_1,cell_type_2)
 {
 	//no of neighbours array with index 0 as background and cell label image

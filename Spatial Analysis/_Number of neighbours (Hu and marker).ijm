@@ -5,9 +5,9 @@
  * This can be interchanged as long as the names and roi manager files are selected appropriately
  * There is option to save parametric image
  */
-#@ String(value="<html>Use this for studying spatial distribution of celltypes other than Hu or a pan-neuronal marker<html>", visibility="MESSAGE") hint23
+
 #@ File (label="Select the maximum projection image") max_proj
-#@ String (label="Name of celltype 1 ", description="Cell 1",value="cell_1") cell_type_1
+#@ String (label="Name of celltype 1 (pan cell marker)", description="Pan cell marker",value="Hu") cell_type_1
 #@ File (label="Select roi manager for cell 1") roi_path_1
 #@ String (label="Name of celltype 2", description="Cell 2",value="cell_2") cell_type_2
 #@ File (label="Select roi manager for cell 2") roi_path_2
@@ -39,8 +39,8 @@ if(!File.exists(roi_to_label)) exit("Cannot find roi to label script. Returning:
 
 
 //check if spatial analysis script is present
-var spatial_two_cell_type=gat_dir+fs+"spatial_two_celltype.ijm";
-if(!File.exists(spatial_two_cell_type)) exit("Cannot find spatial analysis script. Returning: "+spatial_two_cell_type);
+var spatial_hu_marker_cell_type=gat_dir+fs+"spatial_hu_marker.ijm";
+if(!File.exists(spatial_hu_marker_cell_type)) exit("Cannot find hu_marker spatial analysis script. Returning: "+spatial_hu_marker_cell_type);
 
 
 if(cell_type_1==cell_type_2 || roi_path_1== roi_path_2) exit("Cell names or ROI managers are the same for both celltypes");
@@ -110,9 +110,19 @@ roiManager("reset");
 run("Select None");
 run("Remove Overlay");
 
+
+//label_dilation=9; //9 micron dilation or whatever user enters
+//convert to pixels
+label_dilation=round(label_dilation/pixelWidth);
+print("Expansion in pixels "+label_dilation);
+
+
+run("Clear Results");
+//run script for single cell spatial analysis
+
 args=cell_type_1+","+cell_1+","+cell_type_2+","+cell_2+","+ganglia_binary+","+save_path+","+label_dilation+","+save_parametric_image+","+pixelWidth;
-runMacro(spatial_two_cell_type,args);
+runMacro(spatial_hu_marker_cell_type,args);
 wait(5);
 
-exit("Neighbour Analysis complete (Two celltypes)");
 
+exit("Neighbour Analysis complete (Hu and marker)");

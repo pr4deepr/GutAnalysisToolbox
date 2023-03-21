@@ -87,6 +87,17 @@ var ganglia_hu_expansion=gat_dir+fs+"ganglia_hu.ijm";
 if(!File.exists(ganglia_hu_expansion)) exit("Cannot find hu expansion script. Returning: "+ganglia_hu_expansion);
 
 
+//check if spatial analysis scripts are present
+var spatial_single_cell_type=gat_dir+fs+"spatial_single_celltype.ijm";
+if(!File.exists(spatial_single_cell_type)) exit("Cannot find single cell spatial analysis script. Returning: "+spatial_single_cell_type);
+
+var spatial_two_cell_type=gat_dir+fs+"spatial_two_celltype.ijm";
+if(!File.exists(spatial_two_cell_type)) exit("Cannot find spatial analysis script. Returning: "+spatial_two_cell_type);
+
+var spatial_hu_marker_cell_type=gat_dir+fs+"spatial_hu_marker.ijm";
+if(!File.exists(spatial_hu_marker_cell_type)) exit("Cannot find hu_marker spatial analysis script. Returning: "+spatial_hu_marker_cell_type);
+
+
 fs = File.separator; //get the file separator for the computer (depending on operating system)
 
 #@ File (style="open", label="<html>Choose the image to segment.<br><b>Enter NA if field is empty.</b><html>", value=fiji_dir) path
@@ -110,27 +121,25 @@ cell_type="Hu";
 #@ boolean Cell_counts_per_ganglia (description="Use a pretrained model, Hu or manually define ganglia outline")
 #@ String(choices={"DeepImageJ","Define ganglia using Hu","Manually draw ganglia"}, style="radioButtonHorizontal") Ganglia_detection
 #@ String(label="<html> Enter the channel number for segmenting ganglia.<br/> Not valid for 'Define ganglia using Hu'.<br/> Enter NA if not using.<html> ", value="NA") ganglia_channel
-#@ String(value="<html>------------------------------------******<b>ADVANCED: Finetune analysis by changing custom parameters<b>******------------------------------------<html>",visibility="MESSAGE") hint_adv
-//#@ String(value="<html><center><b>Finetune cell detection by changing parameters below.</b></center> <html>",visibility="MESSAGE") hint_stardist
-#@ boolean Custom_Rescaling_Factor (description="Enter custom rescaling factor")
-#@ Float(label="<html>Enter rescaling factor for segmenting neurons.", value=1) scale
-if(Custom_Rescaling_Factor==true) scale=scale;
-else scale = 1;
-#@ boolean Finetune_probability_overlap
-#@ String(value="<html>---------------------------------------------------------******<b>Contribute to improving GAT<b>******-------------------------------------------<html>",visibility="MESSAGE") contrib
-#@ String(value="<html> If you are willing to contribute images and masks to improve GAT, tick the box below to save the images and masks in a custom folder.<html>",visibility="MESSAGE") contrib1
-#@ boolean Save_Image_Masks
-#@ File (style="directory", label="<html>Choose a folder to save the image and masks.<br><b>Enter NA if field is empty.</b><html>", value=fiji_dir) img_masks_path
+#@ String(value="<html>----------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") adv
+#@ boolean Perform_Spatial_Analysis(description="<html><b>If ticked, it will perform spatial analysis for all markers. Convenient than performing them individually. -> </b><html>")
+#@ boolean Finetune_Detection_Parameters(description="<html><b>Enter custom rescaling factor and probabilities</b><html>")
+#@ boolean Contribute_to_GAT(description="<html><b>Contribute to GAT by saving image and masks</b><html>") 
 
-
-if(Finetune_probability_overlap==true)
+scale = 1;
+if(Finetune_Detection_Parameters==true)
 {
 	print("Using manual probability and overlap threshold for detection");
-	Dialog.create("Change Probability and Overlap for Neuron Detection");
-  	Dialog.addSlider("Probability of detecting neurons (Hu)", 0, 1,probability );	
-  	Dialog.addSlider("Probability of detecting neuronal subtypes", 0, 1,probability);
+	Dialog.create("Advanced Parameters");
+	Dialog.addMessage("Default values shown below will be used if no changes are made");
+	Dialog.addNumber("Rescaling Factor", scale, 3, 8, "") 
+	//Dialog.addSlider("Rescaling Factor", 0, 1,1.00);
+  	Dialog.addSlider("Probability of detecting neurons (Hu)", 0, 1,probability);	
+  	Dialog.addSlider("Probability of detecting neuronal subtypes", 0, 1,probability_subtype);
   	Dialog.addSlider("Overlap threshold", 0, 1,overlap);
 	Dialog.show(); 
+	scale = Dialog.getNumber();
+	
 	probability= Dialog.getNumber();
 	probability_subtype= Dialog.getNumber();
 	overlap= Dialog.getNumber();
@@ -140,6 +149,11 @@ if(Finetune_probability_overlap==true)
 }
 
 
+if(Contribute_to_GAT==true)
+{
+	waitForUser("You can contribute to improving GAT by saving images and masks,\nand sharing it so our deep learning models have better accuracy\nGo to 'Help and Support' button under GAT to get in touch");
+	img_masks_path = getDirectory("Choose Folder to save images and masks");
+}
 //listing parameters being used for GAT
 print("Using parameters\nSegmentation pixel size:"+training_pixel_size+"\nMax neuron area (microns): "+neuron_area_limit+"\nMin Neuron Area (microns): "+neuron_seg_lower_limit+"\nMin marker area (microns): "+neuron_lower_limit);
 print("**Neuron\nProbability: "+probability+"\nOverlap threshold: "+overlap);
@@ -586,6 +600,22 @@ if(Save_Image_Masks == true)
 		runMacro(save_img_mask_macro_path,args);
 
 	}
+}
+
+//spatial analysis for Hu (gets no of neighbours around each neuron (Hu).
+
+if(Perform_Spatial_Analysis==true)
+{
+	Dialog.create("Spatial Analysis parameters");
+  	Dialog.addSlider("Cell expansion distance (microns)", 1, 15, 6.5);
+	Dialog.addCheckbox("Save parametric image/s?", true);
+  	Dialog.show(); 
+	label_dilation= Dialog.getNumber();
+	save_parametric_image = Dialog.getCheckbox();
+	
+	args=cell_type+","+neuron_label_image+","+ganglia_binary+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;
+	runMacro(spatial_single_cell_type,args);
+	print("Spatial Analysis for "+cell_type+" done");
 }
 
 

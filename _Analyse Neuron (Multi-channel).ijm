@@ -755,12 +755,26 @@ if(marker_subtype==1)
 		selectWindow("label_mapss");
 		rename("label_img_"+channel_name);
 		label_marker=getTitle();
+		
 		//store resized label images for analysing label co-expression
 		label_name = "label_"+channel_name;
 		label_rescaled_img=scale_image(label_marker,scale_factor,label_name);
-		selectWindow(label_marker);	
-			//save images and masks if user selects to save them for the marker
-			if(Save_Image_Masks == true)
+			
+		
+		//perform spatial analysis for Hu and the marker image
+		if(Perform_Spatial_Analysis==true)
+		{
+			print("Performing Spatial Analysis for "+cell_type+" and "+channel_name+" done");
+			//cell_type is Hu
+			args=cell_type+","+neuron_label_image+","+channel_name+","+label_marker+","+ganglia_binary+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;
+			runMacro(spatial_hu_marker_cell_type,args);
+			print("Spatial Done");
+			
+		}
+		
+		selectWindow(label_marker);
+		//save images and masks if user selects to save them for the marker
+		if(Save_Image_Masks == true)
 			{
 				
 				//cells_img_masks_path = img_masks_path+fs+"Cells"+fs;
@@ -771,10 +785,12 @@ if(marker_subtype==1)
 				runMacro(save_img_mask_macro_path,args);
 				close(marker_image);
 			}
-			else close(marker_image);
-			
-			//store marker name in an array to call when analysing marker combinations
-			if(no_markers>1) marker_label_arr[i]=label_rescaled_img;//label_marker;
+		else close(marker_image);
+		
+
+		
+		//store marker name in an array to call when analysing marker combinations
+		if(no_markers>1) marker_label_arr[i]=label_rescaled_img;//label_marker;
 
 			marker_count=roiManager("count"); // in case any neurons added after manual verification of markers
 			selectWindow(table_name);
@@ -1174,7 +1190,7 @@ return arr;
 }
 
 
-//function to scale imag
+//function to scale image (image to scale, scale_factor and prefix name of resulting image
 function scale_image(img,scale_factor,name)
 {
 	if(scale_factor!=1)

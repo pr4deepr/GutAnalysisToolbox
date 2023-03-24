@@ -5,7 +5,7 @@
  * This can be interchanged as long as the names and roi manager files are selected appropriately
  * There is option to save parametric image
  */
-#@ String(value="<html>Use this for studying spatial distribution of celltypes other than Hu or a pan-neuronal marker<html>", visibility="MESSAGE") hint23
+#@ String(value="<html>If using a pan-neuronal marker, make sure to assign the marker that is pan-neuronal<html>", visibility="MESSAGE") hint23
 #@ File (label="Select the maximum projection image") max_proj
 #@ String (label="Name of celltype 1 ", description="Cell 1",value="cell_1") cell_type_1
 #@ File (label="Select roi manager for cell 1") roi_path_1
@@ -13,6 +13,11 @@
 #@ File (label="Select roi manager for cell 2") roi_path_2
 #@ File (style="directory",label="Select Output Folder") save_path
 #@ File (label="Select roi manager for ganglia (Enter NA if none)",value="NA") roi_ganglia_path
+
+#@ String(value="<html>If using a pan-neuronal marker, tick the box and select the corresponding celltype<html>", visibility="MESSAGE") hint69
+#@ boolean Assign_as_pan_neuronal
+#@ String (choices={"Cell 1", "Cell 2"}, style="radioButtonHorizontal") pan_neuronal_choice
+
 #@ String(value="<html>Expand cells by a certain distance so that they touch each other <br> and then count immediate neighbours (6.5 micron is default)<html>", visibility="MESSAGE") hint
 #@ Double (value=6.5, min=1, max=15, style="slider",label="Cell expansion distance for cells (microns)") label_dilation
 #@ boolean save_parametric_image
@@ -42,9 +47,12 @@ if(!File.exists(roi_to_label)) exit("Cannot find roi to label script. Returning:
 var spatial_two_cell_type=gat_dir+fs+"spatial_two_celltype.ijm";
 if(!File.exists(spatial_two_cell_type)) exit("Cannot find spatial analysis script. Returning: "+spatial_two_cell_type);
 
+//check if spatial analysis script is present
+var spatial_hu_marker_cell_type=gat_dir+fs+"spatial_hu_marker.ijm";
+if(!File.exists(spatial_hu_marker_cell_type)) exit("Cannot find hu_marker spatial analysis script. Returning: "+spatial_hu_marker_cell_type);
+
 
 if(cell_type_1==cell_type_2 || roi_path_1== roi_path_2) exit("Cell names or ROI managers are the same for both celltypes");
-
 
 //open the image
 open(max_proj);
@@ -110,9 +118,41 @@ roiManager("reset");
 run("Select None");
 run("Remove Overlay");
 
-args=cell_type_1+","+cell_1+","+cell_type_2+","+cell_2+","+ganglia_binary+","+save_path+","+label_dilation+","+save_parametric_image+","+pixelWidth;
-runMacro(spatial_two_cell_type,args);
-wait(5);
+//Assign cells as pan-neuronal
+
+if(Assign_as_pan_neuronal) 
+{
+	print("Pan-neuronal spatial analysis enabled");
+	if(pan_neuronal_choice == "Cell 1")
+	{
+		hu_name = cell_type_1;
+		hu_label_img = cell_1;
+		
+	}
+	else
+	{
+		hu_name = cell_type_2;
+		hu_label_img = cell_2;
+		
+		cell_type_2 = cell_type_1;
+		cell_2 = cell_1;
+	}
+	args=hu_name+","+hu_label_img+","+cell_type_2+","+cell_2+","+ganglia_binary+","+save_path+","+label_dilation+","+save_parametric_image+","+pixelWidth;
+	runMacro(spatial_hu_marker_cell_type,args);
+	wait(5);
+}
+else 
+{
+	print("Spatial analysis for two celltypes");
+	args=cell_type_1+","+cell_1+","+cell_type_2+","+cell_2+","+ganglia_binary+","+save_path+","+label_dilation+","+save_parametric_image+","+pixelWidth;
+	runMacro(spatial_two_cell_type,args);
+	wait(5);
+}
+
+
+
+
+
 
 exit("Neighbour Analysis complete (Two celltypes)");
 

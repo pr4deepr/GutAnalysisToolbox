@@ -126,10 +126,10 @@ macro "spatial_two_celltype"
 			overlap_2=get_parameteric_img(no_neighbours_cell_1_around_2,cell_2,cell_type_1,cell_type_2);
 
 			selectWindow(overlap_1);
-			saveAs("Tiff", save_path+fs+overlap_cell_1);
+			saveAs("Tiff", save_path+fs+overlap_1);
 			close();
 			selectWindow(overlap_2);
-			saveAs("Tiff", save_path+fs+overlap_cell_2);
+			saveAs("Tiff", save_path+fs+overlap_2);
 			close();
 		}
 		
@@ -147,6 +147,8 @@ function count_neighbour_around_ref_img(ref_img,marker_img,dilate_radius,ganglia
 	run("Clear Results");
 	run("CLIJ2 Macro Extensions", "cl_device=");
 
+	Ext.CLIJ2_push(ref_img);
+	Ext.CLIJ2_push(marker_img);
 	
 	Ext.CLIJ2_dilateLabels(ref_img, ref_dilate, dilate_radius);
 	
@@ -154,31 +156,41 @@ function count_neighbour_around_ref_img(ref_img,marker_img,dilate_radius,ganglia
 	{
 		Ext.CLIJ2_push(ganglia_binary);
 		Ext.CLIJ2_multiplyImages(ref_dilate, ganglia_binary, ref_dilate_ganglia_restrict);
+		// Label Overlap Count Map
+		Ext.CLIJ2_labelOverlapCountMap(ref_dilate_ganglia_restrict, marker_img, label_overlap_count);
+		Ext.CLIJ2_reduceLabelsToCentroids(ref_dilate_ganglia_restrict, ref_img_centroid);
+	
 	}
+	else 
+	{
+		Ext.CLIJ2_labelOverlapCountMap(ref_dilate, marker_img, label_overlap_count);
+		Ext.CLIJ2_reduceLabelsToCentroids(ref_dilate, ref_img_centroid);
+		
+	}
+
 	
 	// Label Overlap Count Map
-	Ext.CLIJ2_labelOverlapCountMap(ref_dilate_ganglia_restrict, marker_img, label_overlap_count);
-	
+	//Ext.CLIJ2_labelOverlapCountMap(ref_dilate, marker_img, label_overlap_count);
 	
 	// Greater Or Equal Constant
 	constant = 1.0;
-	Ext.CLIJ2_greaterOrEqualConstant(marker_img, marker_img_binary, constant);
 	
+	Ext.CLIJ2_greaterOrEqualConstant(marker_img, marker_img_binary, constant);
+	Ext.CLIJ2_greaterOrEqualConstant(ref_img, ref_img_binary, constant);
 	
 	// Subtract Images
 	Ext.CLIJ2_subtractImages(label_overlap_count, marker_img_binary, label_overlap_count_corrected);
-	Ext.CLIJ2_reduceLabelsToCentroids(ref_dilate_ganglia_restrict, ref_img_centroid);
-	
-	
-	//Ext.CLIJ2_statisticsOfLabelledPixels(image_6, image_1);
 	Ext.CLIJ2_statisticsOfBackgroundAndLabelledPixels(label_overlap_count_corrected, ref_img_centroid);
+	//Ext.CLIJ2_pull(label_overlap_count);
+	//Ext.CLIJ2_pull(label_overlap_count_corrected);
 	
 	//get intensity at centroid/  min intensity
 	overlap_count = Table.getColumn("MINIMUM_INTENSITY");
 	//background is zero
 	overlap_count[0]=0;
-	
+
 	return overlap_count;	
+	
 		
 }
 	

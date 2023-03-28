@@ -49,7 +49,6 @@ overlap_subtype=parseFloat(Table.get("Values", 8));
 neuron_model_file = Table.getString("Values", 9);
 neron_subtype_file = Table.getString("Values", 10);
 run("Close");
-
 //Neuron segmentation model
 neuron_model_path=models_dir+neuron_model_file;
 //Marker segmentation model
@@ -153,6 +152,11 @@ if(Contribute_to_GAT==true)
 {
 	waitForUser("You can contribute to improving GAT by saving images and masks,\nand sharing it so our deep learning models have better accuracy\nGo to 'Help and Support' button under GAT to get in touch");
 	img_masks_path = getDirectory("Choose Folder to save images and masks");
+	Save_Image_Masks = true;
+}
+else 
+{
+	Save_Image_Masks = false;
 }
 //listing parameters being used for GAT
 print("Using parameters\nSegmentation pixel size:"+training_pixel_size+"\nMax neuron area (microns): "+neuron_area_limit+"\nMin Neuron Area (microns): "+neuron_seg_lower_limit+"\nMin marker area (microns): "+neuron_lower_limit);
@@ -607,7 +611,7 @@ if(Save_Image_Masks == true)
 if(Perform_Spatial_Analysis==true)
 {
 	Dialog.create("Spatial Analysis parameters");
-  	Dialog.addSlider("Cell expansion distance (microns)", 1, 15, 6.5);
+  	Dialog.addSlider("Cell expansion distance (microns)", 0.0, 20.0, 6.5);
 	Dialog.addCheckbox("Save parametric image/s?", true);
   	Dialog.show(); 
 	label_dilation= Dialog.getNumber();
@@ -752,7 +756,9 @@ if(marker_subtype==1)
 		roiManager("deselect");
 		//convert roi manager to label image
 		runMacro(roi_to_label);
-		selectWindow("label_mapss");
+		wait(5);
+		label_marker=getTitle();
+		selectWindow(label_marker);
 		rename("label_img_"+channel_name);
 		label_marker=getTitle();
 		
@@ -760,17 +766,6 @@ if(marker_subtype==1)
 		label_name = "label_"+channel_name;
 		label_rescaled_img=scale_image(label_marker,scale_factor,label_name);
 			
-		
-		//perform spatial analysis for Hu and the marker image
-		if(Perform_Spatial_Analysis==true)
-		{
-			print("Performing Spatial Analysis for "+cell_type+" and "+channel_name+" done");
-			//cell_type is Hu
-			args=cell_type+","+neuron_label_image+","+channel_name+","+label_marker+","+ganglia_binary+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;
-			runMacro(spatial_hu_marker_cell_type,args);
-			print("Spatial Done");
-			
-		}
 		
 		selectWindow(label_marker);
 		//save images and masks if user selects to save them for the marker
@@ -833,7 +828,19 @@ if(marker_subtype==1)
 				run("Close");
 				roiManager("reset");
 			}
-			close(label_marker);
+			
+		
+			//perform spatial analysis for Hu and the marker image
+			if(Perform_Spatial_Analysis==true)
+			{
+				print("Performing Spatial Analysis for "+cell_type+" and "+channel_name+" done");
+				//cell_type is Hu
+				args=cell_type+","+neuron_label_image+","+channel_name+","+label_marker+","+ganglia_binary+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;
+				runMacro(spatial_hu_marker_cell_type,args);
+				print("Spatial Done");
+				
+			}
+		close(label_marker);
 			
 		}
 		//if more than one marker to analyse; then it multiplies the marker labels from above to find coexpressing cells
@@ -872,6 +879,25 @@ if(marker_subtype==1)
 						rename(img1+"_"+img2);
 						result=img1+"_"+img2;
 						j=j+1;
+						if(Perform_Spatial_Analysis==true)
+						{
+							print("Performing Spatial Analysis for "+img1+" and "+img2+" done");
+							ganglia_binary_rescaled = ganglia_binary+"_resize";
+							if(!isOpen(ganglia_binary_rescaled))
+							{
+								ganglia_binary_rescaled=scale_image(ganglia_binary,scale_factor,ganglia_binary);
+							}
+							//image names are label_markername_resize; , we are exracting markername by splitting at "_"
+							img1_name_arr = split(img1, "_");
+							img1_name = img1_name_arr[1];
+							img2_name_arr = split(img2, "_");
+							img2_name = img2_name_arr[1];
+							
+							args=img1_name+","+img1+","+img2_name+","+img2+","+ganglia_binary_rescaled+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;
+							runMacro(spatial_two_cell_type,args);
+							print("Spatial Done");
+							
+						}
 						//print(j);
 				}
 				else 
@@ -893,6 +919,23 @@ if(marker_subtype==1)
 					}
 					//runMacro(label_to_roi,temp_label);
 					//close(temp_label);
+					if(Perform_Spatial_Analysis==true)
+					{
+						print("Performing Spatial Analysis for "+img1+" and "+img2+" done");
+						
+						//image names are label_markername_resize; , we are exracting markername by splitting at "_"
+						img1_name_arr = split(img1, "_");
+						img1_name = img1_name_arr[1];
+						img2_name_arr = split(img2, "_");
+						img2_name = img2_name_arr[1];
+						
+						args=img1_name+","+img1+","+img2_name+","+img2+","+ganglia_binary_rescaled+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;
+						runMacro(spatial_two_cell_type,args);
+						print("Spatial Done");
+						
+					}
+					
+					
 					close(img1);
 					close(img2);
 					wait(5);
@@ -1443,4 +1486,5 @@ function set_all_rois_group_id(group_id)
 	roiManager("select", selection_indexes);
 	RoiManager.setGroup(0);
 }
+
 

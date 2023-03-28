@@ -116,7 +116,7 @@ function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel)
 	
 	min_area_ganglia=200;  //200 microns
 	//area proportional to sqr of radius; so use square of pixelwidth as denominator
-	min_area_ganglia_pix=min_area_ganglia/Math.sqr(pixelWidth);  
+	min_area_ganglia_pix=Math.ceil(min_area_ganglia/Math.sqr(pixelWidth));
 	run("Size Opening 2D/3D", "min="+min_area_ganglia_pix);
 	ganglia_pred_processed=getTitle();
 

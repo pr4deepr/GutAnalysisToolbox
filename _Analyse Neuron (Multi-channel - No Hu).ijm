@@ -80,6 +80,8 @@ if(!File.exists(ganglia_cell_count)) exit("Cannot find ganglia cell count script
 var segment_ganglia=gat_dir+fs+"Segment_Ganglia.ijm";
 if(!File.exists(segment_ganglia)) exit("Cannot find segment ganglia script. Returning: "+segment_ganglia);
 
+var spatial_two_cell_type=gat_dir+fs+"spatial_two_celltype.ijm";
+if(!File.exists(spatial_two_cell_type)) exit("Cannot find spatial analysis script. Returning: "+spatial_two_cell_type);
 
 
 
@@ -99,20 +101,14 @@ fs = File.separator; //get the file separator for the computer (depending on ope
 #@ String(label="<html> Enter the channel NUMBER that labels neuronal/glial fibres.<br/> Enter NA if not using.<html> ", value="NA") ganglia_channel
 #@ String(label="<html> Enter the channel NUMBER for marker that labels most cells.<br/> Enter NA if not using.<html> ", value="NA") cell_channel
 #@ String(choices={"DeepImageJ","Manually draw ganglia"}, style="radioButtonHorizontal") Ganglia_detection
-#@ String(value="<html>------------------------------------******<b>ADVANCED: Finetune analysis by changing custom parameters<b>******------------------------------------<html>",visibility="MESSAGE") hint_adv
-//#@ String(value="<html><center><b>Finetune cell detection by changing parameters below.</b></center> <html>",visibility="MESSAGE") hint_stardist
-#@ boolean Custom_Rescaling_Factor (description="Enter custom rescaling factor")
-#@ Float(label="<html>Enter rescaling factor for segmenting neurons.", value=1) scale
-if(Custom_Rescaling_Factor==true) scale=scale;
-else scale = 1;
-#@ boolean Finetune_probability_overlap
-#@ String(value="<html>---------------------------------------------------------******<b>Contribute to improving GAT<b>******-------------------------------------------<html>",visibility="MESSAGE") contrib
-#@ String(value="<html> If you are willing to contribute images and masks to improve GAT, tick the box below to save the images and masks in a custom folder.<html>",visibility="MESSAGE") contrib1
-#@ boolean Save_Image_Masks
-#@ File (style="directory", label="<html>Choose a folder to save the image and masks.<br><b>Enter NA if field is empty.</b><html>", value=fiji_dir) img_masks_path
+#@ String(value="<html>----------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") adv
+#@ boolean Perform_Spatial_Analysis(description="<html><b>If ticked, it will perform spatial analysis for all markers. Convenient than performing them individually. -> </b><html>")
+#@ boolean Finetune_Detection_Parameters(description="<html><b>Enter custom rescaling factor and probabilities</b><html>")
+#@ boolean Contribute_to_GAT(description="<html><b>Contribute to GAT by saving image and masks</b><html>") 
 
 
-if(Finetune_probability_overlap==true)
+scale = 1;
+if(Finetune_Detection_Parameters==true)
 {
 	print("Using manual probability and overlap threshold for detection");
 	Dialog.create("Change Probability and Overlap for Neuron Subtype Detection");	
@@ -121,6 +117,27 @@ if(Finetune_probability_overlap==true)
 	Dialog.show(); 
 	probability_subtype_manual= Dialog.getNumber();
 	overlap_subtype= Dialog.getNumber();
+}
+
+if(Contribute_to_GAT==true)
+{
+	waitForUser("You can contribute to improving GAT by saving images and masks,\nand sharing it so our deep learning models have better accuracy\nGo to 'Help and Support' button under GAT to get in touch");
+	img_masks_path = getDirectory("Choose Folder to save images and masks");
+	Save_Image_Masks = true;
+}
+else 
+{
+	Save_Image_Masks = false;
+}
+
+if(Perform_Spatial_Analysis==true)
+{
+	Dialog.create("Spatial Analysis parameters");
+  	Dialog.addSlider("Cell expansion distance (microns)", 0.0, 20.0, 6.5);
+	Dialog.addCheckbox("Save parametric image/s?", true);
+  	Dialog.show(); 
+	label_dilation= Dialog.getNumber();
+	save_parametric_image = Dialog.getCheckbox();
 }
 
 //listing parameters being used for GAT
@@ -331,6 +348,7 @@ if (Cell_counts_per_ganglia==true)
 	 	
 	 }
 }
+else ganglia_binary = "NA";
 
 
 
@@ -526,6 +544,7 @@ for(i=0;i<channel_combinations.length;i++)
 				run("Close");
 				roiManager("reset");
 			}
+			//as there is no hu, not performing spatial analysis between Hu and marker
 		close(label_marker);
 			
 		}
@@ -552,7 +571,7 @@ for(i=0;i<channel_combinations.length;i++)
 						img2=marker_label_arr[channel_pos2];
 						//print(channel_pos2);
 						print("Processing "+img1+" * "+img2);
-						temp_label=multiply_markers(img1,img2,400,3000);
+						temp_label=multiply_markers(img1,img2,neuron_min_pixels,neuron_max_pixels);
 						selectWindow(temp_label);
 						if(scale_factor!=1)
 						{
@@ -576,14 +595,36 @@ for(i=0;i<channel_combinations.length;i++)
 						rename(img1+"_"+img2);
 						result=img1+"_"+img2;
 						j=j+1;
-						//print(j);
+					    if(Perform_Spatial_Analysis==true)
+						{
+							print("Performing Spatial Analysis for "+img1+" and "+img2+" done");
+							if(Cell_counts_per_ganglia==true)
+							{
+								ganglia_binary_rescaled = ganglia_binary+"_resize";
+								if(!isOpen(ganglia_binary_rescaled))
+								{
+									ganglia_binary_rescaled=scale_image(ganglia_binary,scale_factor,ganglia_binary);
+								}
+							}
+							else ganglia_binary_rescaled="NA";
+							//image names are label_markername_resize; , we are exracting markername by splitting at "_"
+							img1_name_arr = split(img1, "_");
+							img1_name = img1_name_arr[1];
+							img2_name_arr = split(img2, "_");
+							img2_name = img2_name_arr[1];
+							
+							args=img1_name+","+img1+","+img2_name+","+img2+","+ganglia_binary_rescaled+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;
+							runMacro(spatial_two_cell_type,args);
+							print("Spatial Done");
+							
+						}
 				}
 				else 
 				{
 					img2=marker_label_arr[channel_pos];
 					img1=result;
 					print("Processing "+img1+" * "+img2);
-					temp_label=multiply_markers(img1,img2,400,3000);
+					temp_label=multiply_markers(img1,img2,neuron_min_pixels,neuron_max_pixels);
 					selectWindow(temp_label);
 					run("Select None");
 					if(scale_factor!=1)
@@ -593,6 +634,22 @@ for(i=0;i<channel_combinations.length;i++)
 						run("Scale...", "x=- y=- width="+width+" height="+height+" interpolation=None create title="+label_temp_name);
 						close(temp_label);
 						temp_label = label_temp_name;
+					}
+					
+					if(Perform_Spatial_Analysis==true)
+					{
+						print("Performing Spatial Analysis for "+img1+" and "+img2+" done");
+						
+						//image names are label_markername_resize; , we are extracting markername by splitting at "_"
+						img1_name_arr = split(img1, "_");
+						img1_name = img1_name_arr[1];
+						img2_name_arr = split(img2, "_");
+						img2_name = img2_name_arr[1];
+						
+						args=img1_name+","+img1+","+img2_name+","+img2+","+ganglia_binary_rescaled+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;
+						runMacro(spatial_two_cell_type,args);
+						print("Spatial Done");
+						
 					}
 					close(img1);
 					close(img2);
@@ -633,7 +690,7 @@ for(i=0;i<channel_combinations.length;i++)
 
 
 				
-				roiManager("reset");
+				
 				
 				if (Cell_counts_per_ganglia==true)
 				{
@@ -667,7 +724,7 @@ for(i=0;i<channel_combinations.length;i++)
 
 				}
 
-				
+				roiManager("reset");
 
 				
 			}

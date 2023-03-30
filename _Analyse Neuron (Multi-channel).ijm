@@ -577,6 +577,7 @@ if (Cell_counts_per_ganglia==true)
 	selectWindow("cells_ganglia_count");
 	run("Close");
 }
+else ganglia_binary = "NA";
 
 //save images and masks if user selects to save them for Hu and ganglia
 if(Save_Image_Masks == true)
@@ -860,7 +861,7 @@ if(marker_subtype==1)
 						img2=marker_label_arr[channel_pos2];
 						//print(channel_pos2);
 						print("Processing "+img1+" * "+img2);
-						temp_label=multiply_markers(img1,img2,400,3000);
+						temp_label=multiply_markers(img1,img2,neuron_min_pixels,neuron_max_pixels);
 						selectWindow(temp_label);
 						run("Select None");
 						if(scale_factor!=1)
@@ -883,10 +884,11 @@ if(marker_subtype==1)
 						{
 							print("Performing Spatial Analysis for "+img1+" and "+img2+" done");
 							ganglia_binary_rescaled = ganglia_binary+"_resize";
-							if(!isOpen(ganglia_binary_rescaled))
+							if(Cell_counts_per_ganglia==true)
 							{
 								ganglia_binary_rescaled=scale_image(ganglia_binary,scale_factor,ganglia_binary);
 							}
+							else ganglia_binary_rescaled="NA";
 							//image names are label_markername_resize; , we are exracting markername by splitting at "_"
 							img1_name_arr = split(img1, "_");
 							img1_name = img1_name_arr[1];
@@ -906,7 +908,7 @@ if(marker_subtype==1)
 					img2=marker_label_arr[channel_pos];
 					img1=result;
 					//print("Processing "+img1+" * "+img2);
-					temp_label=multiply_markers(img1,img2,400,3000);
+					temp_label=multiply_markers(img1,img2,neuron_min_pixels,neuron_max_pixels);
 					selectWindow(temp_label);
 					run("Select None");
 					if(scale_factor!=1)
@@ -975,7 +977,7 @@ if(marker_subtype==1)
 
 
 				
-				roiManager("reset");
+				//
 				
 				if (Cell_counts_per_ganglia==true)
 				{
@@ -1006,9 +1008,11 @@ if(marker_subtype==1)
 	
 
 					Table.update;
+					
+
 
 				}
-
+				roiManager("reset");
 				
 
 				

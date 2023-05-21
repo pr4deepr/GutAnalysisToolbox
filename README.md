@@ -53,6 +53,7 @@ GAT requires the following update sites:
 * DeepImageJ
 * IJBP-Plugins (MorphoLibJ)
 * StarDist
+* PT-BIOP
 
 
 GAT update site: https://sites.imagej.net/GutAnalysisToolbox/

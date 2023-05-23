@@ -518,7 +518,7 @@ selectWindow(seg_image);
 //nned a single channel iamge as multichannel was throwing errors
 runMacro(roi_to_label);
 wait(5);
-waitForUser;
+
 neuron_label_image=getTitle();
 
 //using this image to detect neuron subtypes by label overlap

@@ -18,6 +18,18 @@ if(!File.exists(gat_settings_path)) exit("Cannot find settings file. Check: "+ga
 var models_dir=fiji_dir+"models"+fs;
 //var models_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Models"+fs;
 
+
+//check if label to roi macro is present
+var label_to_roi=gat_dir+fs+"Convert_Label_to_ROIs.ijm";
+if(!File.exists(label_to_roi)) exit("Cannot find label to roi script. Returning: "+label_to_roi);
+
+//check if roi to label macro is present
+var roi_to_label=gat_dir+fs+"Convert_ROI_to_Labels.ijm";
+if(!File.exists(roi_to_label)) exit("Cannot find roi to label script. Returning: "+roi_to_label);
+
+
+
+
 run("Results... ", "open="+gat_settings_path);
 training_pixel_size=parseFloat(Table.get("Values", 0)); //0.7;
 neuron_area_limit=parseFloat(Table.get("Values", 1)); //1500
@@ -173,6 +185,18 @@ idx=0;
 start = scale_factor_1*10;
 end = scale_factor_2*10;
 increment = step_scale*10;
+if(start==end)
+{
+	
+	increment=1;
+}
+//otherwise goes in infinite loop
+if(increment==0)
+{
+	increment=1;
+}
+
+
 print(start,end,increment);
 //scale_factor_2+=0.00001; //makes sure last
 
@@ -245,7 +269,9 @@ for(i=start;i<=end;i+=increment)
 	//rename("Label-killBorders_"+scale);
 	run("glasbey_on_dark");
 	//run("LabelMap to ROI Manager (2D)");
-	label_to_roi(label_filtered);
+	selectWindow(label_filtered);
+	runMacro(label_to_roi,label_filtered);
+	//label_to_roi(label_filtered);
 	wait(20);
 	selectWindow(img_seg);
 	run("From ROI Manager");
@@ -264,84 +290,3 @@ print("Verify the segmentation in the images: ");
 close(img);
 exit("Completed");
 
-function label_to_roi(label_image)
-{
-	roiManager("reset");
-	//	label_image=getTitle();
-	run("CLIJ2 Macro Extensions", "cl_device=");
-	Ext.CLIJ2_push(label_image);
-	//reindex the labels to make labels sequential
-	Ext.CLIJ2_closeIndexGapsInLabelMap(label_image, reindex);
-		//statistics of labelled pixels
-	Ext.CLIJ2_statisticsOfLabelledPixels(reindex, reindex);
-	Ext.CLIJ2_pull(label_image);
-	Ext.CLIJ2_pull(reindex);
-	Ext.CLIJ2_clear();
-
-
-	//get centroid of each label
-	selectWindow("Results");
-	x=Table.getColumn("CENTROID_X");
-	y=Table.getColumn("CENTROID_Y");
-
-	//getting the identifiers as the values correspond to the label values
-	identifier=Table.getColumn("IDENTIFIER");
-	
-	x1=Table.getColumn("BOUNDING_BOX_X");
-	y1=Table.getColumn("BOUNDING_BOX_Y");
-	x2=Table.getColumn("BOUNDING_BOX_END_X");
-	y2=Table.getColumn("BOUNDING_BOX_END_Y");
-
-	//use wand tool to create selection at each label centroid and add the selection to ROI manager
-	//will not add it if there is no selection or if the background is somehow selected
-	selectWindow(reindex);
-	for(i=0;i<x.length;i++)
-	{
-		//use wand tool; quicker than the threshold and selection method
-		doWand(x[i], y[i]);	
-		intensity=getValue(x[i], y[i]);
-		//if there is a selection and if intensity >0 (not background), add ROI
-		if(selectionType()>0 && intensity>0) { roiManager("add"); }
-		//if there is no intensity value at the centroid, its probably coz the object is not circular
-		// and centroid is not in the object
-		else{
-			//get the width of the bounding box
-			x_b=x2[i]-x1[i];
-			//get the height of the bounding box
-			y_b=y2[i]-y1[i];
-			//get y coordinate
-			//y_temp=y1[i];
-			
-			//parameters for  (Archimedean) spiral 
-			pitch = 4;
-			angle = 0; 
-			r = 0; 
-			a=0;
-			//https://forum.image.sc/t/clij-label-map-to-roi-fast-version/51356/11
-			//spiral search instead brute force search of every pixel
-			while(r <= x_b/2 || r <= y_b/2) 
-			{
-			    r = sqrt(a)*pitch;
-			    angle += atan(1/r);
-			    x_spiral = (r)*cos(angle*pitch);
-			    y_spiral = (r)*sin(angle*pitch);
-			    intensity=getValue(x[i] + x_spiral, y[i] + y_spiral);
-			    a++;
-
-			    if(intensity>0 && intensity==identifier[i])
-				{
-					doWand(x[i] + x_spiral, y[i] + y_spiral);
-					roiManager("add");
-					print(r);
-					print("AFTER");
-					r = x_b+1000;
-				}
-			}
-			if(r!=x_b+1000) print("search not successful for "+i);
-
-		}
-	}
-	close("Results");
-	close(reindex);
-	close(label_image);
-}

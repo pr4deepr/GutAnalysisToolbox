@@ -100,6 +100,7 @@ macro "check_plugins"
 				else if (plugin_command[i]=="Command From Macro") {msg="Enable the update site for StarDist and CSBDeep";}
 				else if (plugin_command[i]=="DeepImageJ Run") {msg="Add the update site for DeepImageJ: https://sites.imagej.net/DeepImageJ/";}
 				else if (plugin_command[i]=="StackReg") {msg="Enable the update site for BIG-EPFL: https://sites.imagej.net/DeepImageJ/";}
+				else if (plugin_command[i]=="Label image to ROIs"){msg="Enable the update site for PT-BIOP: https://biop.epfl.ch/Fiji-Update/";}
 				else {msg=plugin_command[i];}
 				print("Error: Install plugin: "+msg);
 				error=1;

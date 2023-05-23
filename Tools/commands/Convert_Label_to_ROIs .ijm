@@ -1,14 +1,6 @@
-	//Converts a label image into ROIs
-	//Needs CLIJ to work 
-	//check this post: https://forum.image.sc/t/clij-label-map-to-roi-fast-version/51356
-	//faster method for converting labelmap to ROI in FIJI
-	//uses doWand function and CLIJ for this.
-	//uses CLIJ to get the centroids and bounding boxes for each label
-	//use doWand at centroid of the label. If a selection is made, add to ROI Manager
-	//if not, it could be a non-circular object as centroids do not lie within the label
-	//uses (Archimedean) spiral search within the bounding box to get a selection and then add to ROI Manager
 
 //can also use this from runMacro command. 
+//using PT-BIOP version as it works better and is faster
 //Use runMacro("Directory where macro installed//Convert_Label_to_ROIs.ijm","image_name");
 macro "label_map_to_roi"
 {
@@ -26,6 +18,32 @@ macro "label_map_to_roi"
 	label_image=getArgument(); 
 	}
 	
+	selectWindow(label_image);
+	run("Select None");
+	run("Label image to ROIs");
+	roiManager("Remove Channel Info");
+	roiManager("Remove Slice Info");
+	roiManager("Remove Frame Info");
+	if(roiManager("count")==0) print("No labels or cells detected in image");
+}
+
+	
+		
+			
+	//OLD CODE For label to ROI archiving it, but keeping for reference purposes
+	//Converts a label image into ROIs
+	//Needs CLIJ to work 
+	//check this post: https://forum.image.sc/t/clij-label-map-to-roi-fast-version/51356
+	//faster method for converting labelmap to ROI in FIJI
+	//uses doWand function and CLIJ for this.
+	//uses CLIJ to get the centroids and bounding boxes for each label
+	//use doWand at centroid of the label. If a selection is made, add to ROI Manager
+	//if not, it could be a non-circular object as centroids do not lie within the label
+	//uses (Archimedean) spiral search within the bounding box to get a selection and then add to ROI Manager
+
+	
+function old_label_to_roi(label_img)
+{
 	//Checks if CLIJ is installed
 	List.setCommands;
 	clij_install=List.get("CLIJ2 Macro Extensions");

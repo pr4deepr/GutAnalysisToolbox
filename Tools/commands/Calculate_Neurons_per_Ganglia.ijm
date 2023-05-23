@@ -66,12 +66,18 @@ macro "count_cells_per_ganglia"
 	Ext.CLIJ2_release(cell_img);
 	roiManager("reset");
 	//convert labels to rois
-	Ext.CLIJ2_pullLabelsToROIManager(ganglia_labels);
+	//Ext.CLIJ2_pullLabelsToROIManager(ganglia_labels);
 	Ext.CLIJ2_pull(ganglia_labels);
+	
+	selectWindow(ganglia_labels);
+	run("Select None");
+	run("Label image to ROIs");
+	
 	
 	Ext.CLIJ2_pull(label_overlap);
 	
 	run("Set Measurements...", "min redirect=None decimal=3");
+	//each ganglia will have number of neurons calculated form labeloverlapcount command above
 	selectWindow(label_overlap);
 	if(roiManager("count")>0)
 	{
@@ -90,8 +96,9 @@ macro "count_cells_per_ganglia"
 	//Table.renameColumn(oldName, newName);
 	selectWindow("Results");
 	run("Close");
-	//close(label_overlap);
-	selectWindow(label_overlap);
+	close(label_overlap);
+	
+	selectWindow(ganglia_labels);
 	rename("label_overlap");
-	close(ganglia_labels);
+	
 }

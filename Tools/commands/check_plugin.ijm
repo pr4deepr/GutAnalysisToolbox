@@ -1,6 +1,8 @@
 //check installation of plugins
 macro "check_plugins" 
 {
+	run("Console");
+	
 	print("System Config:");
 	run("Clear Results");
 	

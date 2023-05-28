@@ -4,23 +4,35 @@
 //we only keep the first channel which has the labels
 macro "roi_to_label_map"
 {
-	
-		roiManager("show all");
-		run("ROIs to Label image");
-		wait(5);
-		temp = getTitle();
-		selectWindow(temp);
-		getDimensions(width, height, channels, slices, frames);
-		if(channels>1)
-		{
-		run("Select None");
-		run("Duplicate...", "title=label_mapss channels=1");
-		close(temp);
-		}
+		img=getTitle();
+		if(roiManager("count")==0) {print("No ROIs");}
 		else 
 		{
-			selectWindow(temp);
-			rename("label_mapss");
+			selectWindow(img);
+			roiManager("show all");
+			//to ensure overlays are there
+			run("Show Overlay");
+			
+			run("ROIs to Label image");
+			wait(10);
+			temp = getTitle();
+			if(temp==img) {exit("ROI conversion didn't work; error with plugin");}
+			else 
+			{
+				selectWindow(temp);
+				getDimensions(width, height, channels, slices, frames);
+				if(channels>1)
+				{
+				run("Select None");
+				run("Duplicate...", "title=label_mapss channels=1");
+				close(temp);
+				}
+				else 
+				{
+				selectWindow(temp);
+				rename("label_mapss");
+				}
+			}
 		}
 	resetMinAndMax();
 	run("Select None");

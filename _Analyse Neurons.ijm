@@ -388,7 +388,7 @@ print("*********Segmenting cells using StarDist********");
 //segment neurons using StarDist model
 segment_cells(max_projection,seg_image,neuron_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap);
 
-close(seg_image);
+//close(seg_image);
 
 //if cell count zero, check with user if they want to terminate the analysis
 cell_count=roiManager("count");
@@ -406,7 +406,6 @@ if(cell_count == 0)
 //manually correct or verify if needed
 waitForUser("Correct "+cell_type+" ROIs if needed. You can delete or add ROIs using ROI Manager");
 cell_count=roiManager("count");
-rename_roi(); //rename ROIs
 roiManager("deselect");
 
 
@@ -415,12 +414,15 @@ roiManager("deselect");
 roi_location=results_dir+cell_type+"_ROIs_"+file_name+".zip";
 roiManager("save",roi_location);
 
-selectWindow(max_projection);
-
-//uses roi to label macro code; clij is a dependency
+wait(5);
+//need single channel image; multichannel can throw errors
+selectWindow(seg_image);
+//uses roi to label macro code
 runMacro(roi_to_label);
 wait(5);
 neuron_label_image=getTitle();
+
+close(seg_image);
 
 selectWindow(table_name);
 Table.set("File name",row,file_name_full);
@@ -485,7 +487,9 @@ if (Cell_counts_per_ganglia==true)
 	 }
 	 
 	args=neuron_label_image+","+ganglia_binary;
+	
 	//get cell count per ganglia
+	print("Getting Cell count per ganglia. May take some time for large images.");
 	runMacro(ganglia_cell_count,args);
 
 	//make ganglia binary image with ganglia having atleast 1 neuron
@@ -505,12 +509,21 @@ if (Cell_counts_per_ganglia==true)
 	cell_count_per_ganglia=Table.getColumn("Cell counts");
 	roiManager("deselect");
 	ganglia_number=roiManager("count");
+	run("Set Measurements...", "area redirect=None decimal=3");
+	run("Clear Results");
+	roiManager("Deselect");
+	selectWindow(max_projection);
+	roiManager("Measure");
+	selectWindow("Results");
+	ganglia_area = Table.getColumn("Area");
+	
 	roi_location=results_dir+"Ganglia_ROIs_"+file_name+".zip";
 	roiManager("save",roi_location );
 	roiManager("reset");
 	selectWindow(table_name);
 	Table.set("No of ganglia",0, ganglia_number);
 	Table.setColumn("Neuron counts per ganglia", cell_count_per_ganglia);
+	Table.setColumn("Area_per_ganglia_um2", ganglia_area);
 	Table.update;
 	selectWindow("cells_ganglia_count");
 	run("Close");
@@ -578,7 +591,7 @@ selectWindow(max_projection);
 run("Remove Overlay");
 run("Select None");
 saveAs("Tiff", results_dir+max_save_name);
-
+run("Clear Results");
 
 close("*");
 print("DATA saved at "+results_dir);

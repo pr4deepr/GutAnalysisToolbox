@@ -1103,10 +1103,20 @@ file_array=Table.getColumn("Total "+cell_type);
 file_array=Array.deleteValue(file_array, 0);
 Table.setColumn("Total "+cell_type, file_array);
 
+//get ganglia area
+runMacro(label_to_roi,ganglia_label_img);
+run("Set Measurements...", "area redirect=None decimal=3");
+run("Clear Results");
+roiManager("Deselect");
+selectWindow(max_projection);
 
+roiManager("Measure");
+selectWindow("Results");
+ganglia_area = Table.getColumn("Area");
 
-
-
+
+selectWindow(table_name);
+Table.setColumn("Area_per_ganglia_um2", ganglia_area);
 
 selectWindow(table_name);
 Table.save(results_dir+"Cell_counts.csv");
@@ -1122,6 +1132,8 @@ roiManager("UseNames", "false");
 
 print("Files saved at: "+results_dir);
 close("*");
+run("Clear Results");
+
 exit("Multi-channel Neuron analysis complete");
 
 //close("Image correlation. Local region size = 3 pixels");

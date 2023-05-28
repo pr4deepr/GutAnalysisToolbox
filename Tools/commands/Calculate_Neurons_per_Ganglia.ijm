@@ -51,30 +51,38 @@ macro "count_cells_per_ganglia"
 		run("Divide...", "value=255");
 		setMinAndMax(0, 1);
 	}
+	
+	//connected components labeling using morpholibj
+	selectWindow(ganglia_binary);
+	run("Connected Components Labeling", "connectivity=8 type=[16 bits]");
+	wait(5);
+	ganglia_labels=getTitle();
 
 	run("CLIJ2 Macro Extensions", "cl_device=");
-	Ext.CLIJ2_push(ganglia_binary);
+	Ext.CLIJ2_push(ganglia_labels);
 	Ext.CLIJ2_push(cell_img);
 
 	// Flood Fill Components Labeling
-	Ext.CLIJ2_connectedComponentsLabelingDiamond(ganglia_binary, ganglia_labels);
+	//Ext.CLIJ2_connectedComponentsLabelingDiamond(ganglia_binary, ganglia_labels);
 	//Ext.CLIJx_morphoLibJFloodFillComponentsLabeling(ganglia_binary, ganglia_labels);
-	Ext.CLIJ2_release(ganglia_binary);
+	//Ext.CLIJ2_release(ganglia_binary);
 
 	// Label Overlap Count Map
 	Ext.CLIJ2_labelOverlapCountMap(ganglia_labels, cell_img, label_overlap);
 	Ext.CLIJ2_release(cell_img);
-	roiManager("reset");
+	Ext.CLIJ2_release(ganglia_labels);
+	//return a copy where ganglia are numbered sequentially; will use this as ganglia label map
+	Ext.CLIJ2_closeIndexGapsInLabelMap(label_overlap, label_overlap_ordered);
+	Ext.CLIJ2_pull(label_overlap_ordered);
+	Ext.CLIJ2_pull(label_overlap);
+	
 	//convert labels to rois
 	//Ext.CLIJ2_pullLabelsToROIManager(ganglia_labels);
-	Ext.CLIJ2_pull(ganglia_labels);
 	
-	selectWindow(ganglia_labels);
+	roiManager("reset");
+	selectWindow(label_overlap);
 	run("Select None");
 	run("Label image to ROIs");
-	
-	
-	Ext.CLIJ2_pull(label_overlap);
 	
 	run("Set Measurements...", "min redirect=None decimal=3");
 	//each ganglia will have number of neurons calculated form labeloverlapcount command above
@@ -96,9 +104,10 @@ macro "count_cells_per_ganglia"
 	//Table.renameColumn(oldName, newName);
 	selectWindow("Results");
 	run("Close");
-	close(label_overlap);
+	if(isOpen(ganglia_labels)) close(ganglia_labels);
+	if(isOpen(label_overlap)) close(label_overlap);
 	
-	selectWindow(ganglia_labels);
+	selectWindow(label_overlap_ordered);
 	rename("label_overlap");
 	
 }

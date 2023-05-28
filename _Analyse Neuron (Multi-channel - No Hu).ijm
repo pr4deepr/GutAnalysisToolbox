@@ -76,6 +76,10 @@ if(!File.exists(roi_to_label)) exit("Cannot find roi to label script. Returning:
 var ganglia_cell_count=gat_dir+fs+"Calculate_Neurons_per_Ganglia.ijm";
 if(!File.exists(ganglia_cell_count)) exit("Cannot find ganglia cell count script. Returning: "+ganglia_cell_count);
 
+//check if ganglia cell count is present
+var ganglia_label_cell_count=gat_dir+fs+"Calculate_Neurons_per_Ganglia_label.ijm";
+if(!File.exists(ganglia_label_cell_count)) exit("Cannot find ganglia label image cell count script. Returning: "+ganglia_label_cell_count)
+
 //check if ganglia prediction  macro present
 var segment_ganglia=gat_dir+fs+"Segment_Ganglia.ijm";
 if(!File.exists(segment_ganglia)) exit("Cannot find segment ganglia script. Returning: "+segment_ganglia);
@@ -443,7 +447,7 @@ for(i=0;i<channel_combinations.length;i++)
 	//get channel names as an array
 	channel_arr=split(channel_combinations[i], ",");
 	
-	if(channel_arr.length==1) //if first marker or if only one marker combination
+	if(channel_arr.length==1) //if first marker or cycles through each individual marker
 	{
 		if(no_markers==1) //if only one marker
 		{
@@ -478,7 +482,7 @@ for(i=0;i<channel_combinations.length;i++)
 			selectWindow(seg_marker_img);
 			//run("Subtract Background...", "rolling="+backgrnd_radius+" sliding");
 			segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype,overlap_subtype);
-			selectWindow(max_projection);
+			selectWindow(seg_marker_img);
 			roiManager("deselect");
 			runMacro(roi_to_label);
 			wait(5);
@@ -557,7 +561,27 @@ for(i=0;i<channel_combinations.length;i++)
 				args=label_marker+","+ganglia_binary;
 				//get cell count per ganglia
 				runMacro(ganglia_cell_count,args);
-				close("label_overlap");
+				
+				print("Getting Cell count per ganglia. May take some time for large images for very first time.");
+				//label_overlap is the ganglia where each of them are labels
+				selectWindow("label_overlap");
+				run("Select None");
+				run("Duplicate...", "title=ganglia_label_img");	
+				//using this for neuronal subtype analysis
+				ganglia_label_img = "ganglia_label_img";
+				
+				//make ganglia binary image with ganglia having atleast 1 neuron
+				selectWindow("label_overlap");
+				//getMinAndMax(min, max);
+				setThreshold(1, 65535);
+				run("Convert to Mask");
+				resetMinAndMax;
+				close(ganglia_binary);
+				selectWindow("label_overlap");
+				rename("ganglia_binary");
+				selectWindow("ganglia_binary");
+				ganglia_binary=getTitle();
+
 				selectWindow("cells_ganglia_count");
 				cell_count_per_ganglia=Table.getColumn("Cell counts");
 
@@ -725,10 +749,10 @@ for(i=0;i<channel_combinations.length;i++)
 						run("Remove Overlay");
 						run("Select None");
 						
-						args=result+","+ganglia_binary;
+						args=result+","+ganglia_label_img;
 						//get cell count per ganglia
 						runMacro(ganglia_cell_count,args);
-						close("label_overlap");
+						
 						selectWindow("cells_ganglia_count");
 						cell_count_per_ganglia=Table.getColumn("Cell counts");
 						selectWindow("cells_ganglia_count");
@@ -786,6 +810,17 @@ file_array=Table.getColumn("File name");
 file_array=Array.deleteValue(file_array, 0);
 Table.setColumn("File name", file_array);
 
+//get ganglia area
+runMacro(label_to_roi,ganglia_label_img);
+run("Set Measurements...", "area redirect=None decimal=3");
+run("Clear Results");
+roiManager("Deselect");
+//get measurements in microns
+selectWindow(max_projection);
+roiManager("Measure");
+selectWindow("Results");
+ganglia_area = Table.getColumn("Area");
+
 selectWindow(table_name);
 Table.save(results_dir+"Cell_counts.csv");
 
@@ -799,6 +834,7 @@ saveAs("Tiff", results_dir+max_save_name);
 roiManager("UseNames", "false");
 
 print("Files saved at: "+results_dir);
+run("Clear Results");
 close("*");
 exit("Multi-channel Neuron analysis complete");
 

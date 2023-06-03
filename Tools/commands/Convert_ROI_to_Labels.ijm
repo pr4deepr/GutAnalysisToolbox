@@ -5,10 +5,17 @@
 macro "roi_to_label_map"
 {
 		img=getTitle();
-		if(roiManager("count")==0) {print("No ROIs");}
+		selectWindow(img);
+		getDimensions(width, height, channels, slices, frames);
+		
+		if(roiManager("count")==0) 
+		{
+			print("No ROIs");
+			newImage("label_mapss", "8-bit black", width, height, 1);
+		}
 		else 
 		{
-			selectWindow(img);
+			
 			roiManager("show all");
 			//to ensure overlays are there
 			run("Show Overlay");

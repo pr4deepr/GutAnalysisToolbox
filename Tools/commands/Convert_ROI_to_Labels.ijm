@@ -1,7 +1,9 @@
 //Converts a ROIs to label map
-//uses PT-BIO plugin
+//uses PT-BIOP plugin
 // if a multichannel image, the label image also becomes multichannel
 //we only keep the first channel which has the labels
+//PTBIOP plugin can't handle multichannel images as of now; so create single channel image for roi to label conv
+
 macro "roi_to_label_map"
 {
 		img=getTitle();
@@ -14,13 +16,31 @@ macro "roi_to_label_map"
 			newImage("label_mapss", "8-bit black", width, height, 1);
 		}
 		else 
+		
 		{
 			
-			roiManager("show all");
-			//to ensure overlays are there
-			run("Show Overlay");
+			//handle multichannel image input
+			if(channels>1)
+			{
+				run("Select None");
+				run("Duplicate...", "title=temp channels=1");
+				selectWindow("temp");
+				roiManager("show all");
+				//to ensure overlays are there
+				run("Show Overlay");
+				run("ROIs to Label image");
+				close("temp");
+				
+			}
+			else 
+			{
+				roiManager("show all");
+				//to ensure overlays are there
+				run("Show Overlay");
+				run("ROIs to Label image");
+			}
+
 			
-			run("ROIs to Label image");
 			wait(10);
 			temp = getTitle();
 			if(temp==img) {exit("ROI conversion didn't work; error with plugin");}

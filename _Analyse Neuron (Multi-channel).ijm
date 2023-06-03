@@ -131,27 +131,6 @@ cell_type="Hu";
 #@ boolean Contribute_to_GAT(description="<html><b>Contribute to GAT by saving image and masks</b><html>") 
 
 scale = 1;
-if(Finetune_Detection_Parameters==true)
-{
-	print("Using manual probability and overlap threshold for detection");
-	Dialog.create("Advanced Parameters");
-	Dialog.addMessage("Default values shown below will be used if no changes are made");
-	Dialog.addNumber("Rescaling Factor", scale, 3, 8, "") 
-	//Dialog.addSlider("Rescaling Factor", 0, 1,1.00);
-  	Dialog.addSlider("Probability of detecting neurons (Hu)", 0, 1,probability);	
-  	Dialog.addSlider("Probability of detecting neuronal subtypes", 0, 1,probability_subtype);
-  	Dialog.addSlider("Overlap threshold", 0, 1,overlap);
-	Dialog.show(); 
-	scale = Dialog.getNumber();
-	
-	probability= Dialog.getNumber();
-	probability_subtype= Dialog.getNumber();
-	overlap= Dialog.getNumber();
-	overlap_subtype=overlap;
-	//probability=probability_manual;
-	//overlap=overlap_manual;
-}
-
 
 if(Contribute_to_GAT==true)
 {
@@ -166,7 +145,7 @@ else
 //listing parameters being used for GAT
 print("Using parameters\nSegmentation pixel size:"+training_pixel_size+"\nMax neuron area (microns): "+neuron_area_limit+"\nMin Neuron Area (microns): "+neuron_seg_lower_limit+"\nMin marker area (microns): "+neuron_lower_limit);
 print("**Neuron\nProbability: "+probability+"\nOverlap threshold: "+overlap);
-print("**Neuron subtype\nProbability: "+probability_subtype+"\nOverlap threshold: "+overlap_subtype+"\n");
+//print("**Neuron subtype\nProbability: "+probability_subtype+"\nOverlap threshold: "+overlap_subtype+"\n");
 
 
 //add an option for defining a custom scaling factor
@@ -187,6 +166,54 @@ if(marker_subtype==1 && Enter_channel_details_now==1)
 	if(marker_names_manual.length!=marker_no_manual.length) exit("Number of marker names and marker channels do not match");
 }
 
+use channel name sort code here from ~line 705
+//custom probability for subtypes
+//create dialog box based on number of markers
+probability_subtype_arr=newArray(marker_names_manual.length);
+if(Finetune_Detection_Parameters==true)
+{
+	print("Using manual probability and overlap threshold for detection");
+	Dialog.create("Advanced Parameters");
+	Dialog.addMessage("Default values shown below will be used if no changes are made");
+	Dialog.addNumber("Rescaling Factor", scale, 3, 8, "") 
+  	Dialog.addSlider("Probability of detecting neurons (Hu)", 0, 1,probability);	
+  	
+  	for ( i = 0; i < marker_names_manual.length; i++) 
+  	{
+		
+	    Dialog.addSlider("Probability for "+marker_names_manual[i], 0, 1,probability_subtype);
+	    
+	}
+	
+  	Dialog.addSlider("Overlap threshold", 0, 1,overlap);
+	Dialog.show(); 
+	scale = Dialog.getNumber();
+	
+	probability= Dialog.getNumber();
+	
+	for ( i = 0; i < marker_names_manual.length; i++) 
+  	{
+	    probability_subtype_arr[i]= Dialog.getNumber();
+	}
+	
+	overlap= Dialog.getNumber();
+	overlap_subtype=overlap;
+}
+
+else 
+{ //assign probability subtype default values to all of them
+	for ( i = 0; i < marker_names_manual.length; i++) 
+  	{
+		
+		probability_subtype_arr[i]=probability_subtype;
+	    
+	}
+}
+
+print("**Neuron subtype\nProbability for");;
+Array.print(marker_names_manual);
+Array.print(probability_subtype_arr);
+print("Overlap threshold: "+overlap_subtype+"\n");
 
 
 if(image_already_open==true)
@@ -760,7 +787,8 @@ if(marker_subtype==1)
 		print("Segmenting marker "+channel_name);
 		selectWindow(seg_marker_img);
 		//run("Subtract Background...", "rolling="+backgrnd_radius+" sliding");
-		segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype,overlap_subtype);
+		print(probability_subtype_arr[i]);
+		segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype_arr[i],overlap_subtype);
 		selectWindow(seg_marker_img);
 		roiManager("deselect");
 		runMacro(roi_to_label);

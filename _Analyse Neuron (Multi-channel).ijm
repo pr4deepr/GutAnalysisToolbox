@@ -1,7 +1,7 @@
 
 //*******
 // Author: Pradeep Rajasekhar
-// March 2021
+// March 2023
 // License: BSD3
 // 
 // Copyright 2021 Pradeep Rajasekhar, Walter and Eliza Hall Institute of Medical Research, Melbourne, Australia
@@ -19,6 +19,8 @@ setOption("ExpandableArrays", true);
 
 print("\\Clear");
 run("Clear Results");
+roiManager("reset");
+
 
 //get fiji directory and get the macro folder for GAT
 var fiji_dir=getDirectory("imagej");
@@ -166,7 +168,7 @@ if(marker_subtype==1 && Enter_channel_details_now==1)
 	if(marker_names_manual.length!=marker_no_manual.length) exit("Number of marker names and marker channels do not match");
 }
 
-use channel name sort code here from ~line 705
+//use channel name sort code here from ~line 705
 //custom probability for subtypes
 //create dialog box based on number of markers
 probability_subtype_arr=newArray(marker_names_manual.length);
@@ -762,6 +764,8 @@ if(marker_subtype==1)
 			//channel_position=channel_numbers[i];
 			channel_no=channel_numbers[i];
 			channel_name=channel_names[i];
+			probability_subtype_val = probability_subtype_arr[i];
+			
 		}
 		else  //multiple markers
 		{
@@ -770,6 +774,7 @@ if(marker_subtype==1)
 			//use index of position to get the channel number and the channel name
 			channel_no=channel_numbers[channel_idx]; //idx fro above is returned as 0 indexed, so using this indx to find channel no
 			channel_name=channel_names[channel_idx];
+			probability_subtype_val = probability_subtype_arr[channel_idx];
 		}			//Array.print(channel_position);
 
 				
@@ -777,7 +782,7 @@ if(marker_subtype==1)
 		Stack.setChannel(channel_no);
 		run("Select None");
 		run("Duplicate...", "title="+channel_name+"_segmentation");
-			//waitForUser;
+
 		marker_image=getTitle();
 
 		//scaling marker images so we can segment them using same size as images used for training the model. Also, ensures consistent size exclusion area
@@ -786,10 +791,13 @@ if(marker_subtype==1)
 		//segment cells and return image with normal scaling
 		print("Segmenting marker "+channel_name);
 		selectWindow(seg_marker_img);
+		
 		//run("Subtract Background...", "rolling="+backgrnd_radius+" sliding");
-		print(probability_subtype_arr[i]);
-		segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype_arr[i],overlap_subtype);
+		print("Probability for detection "+probability_subtype_val);
+		
+		segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype_val,overlap_subtype);
 		selectWindow(seg_marker_img);
+		waitForUser;
 		roiManager("deselect");
 		runMacro(roi_to_label);
 		rename("label_img_temp");
@@ -811,13 +819,14 @@ if(marker_subtype==1)
 		close("label_img_temp");
 		wait(5);
 		selectWindow(max_projection);
+		run("Remove Overlay");
 		roiManager("deselect");
 		roiManager("show all");
 		//selectWindow(max_projection);
 		//add option to draw ROI on channel name OR
 		//display Hu and other channel as overlay; assign groups with different colours; 
 		//get user to click
-		waitForUser("Verify ROIs for "+channel_name+". Delete or add ROIs as needed. Press OK when done.");
+		waitForUser("Verify ROIs for "+channel_name+". Delete or add ROIs as needed.\nIf no cells detected, you won't see anything.\nPress OK when done.");
 		
 		//group_id+=1;
 		//set_all_rois_group_id(group_id);
@@ -872,9 +881,12 @@ if(marker_subtype==1)
 			
 			//selectWindow(max_projection);
 			roiManager("deselect");
+			if(roiManager("count")>0)
+			{
 			//roi_file_name= String.join(channel_arr, "_");
-			roi_location_marker=results_dir+channel_name+"_ROIs.zip";
-			roiManager("save",roi_location_marker);
+				roi_location_marker=results_dir+channel_name+"_ROIs.zip";
+				roiManager("save",roi_location_marker);
+			}
 			close(seg_marker_img);
 			roiManager("reset");
 			//Array.print(marker_label_arr);
@@ -1130,21 +1142,24 @@ Table.setColumn("File name", file_array);
 file_array=Table.getColumn("Total "+cell_type); 
 file_array=Array.deleteValue(file_array, 0);
 Table.setColumn("Total "+cell_type, file_array);
+if (Cell_counts_per_ganglia==true)
+{
 
-//get ganglia area
-runMacro(label_to_roi,ganglia_label_img);
-run("Set Measurements...", "area redirect=None decimal=3");
-run("Clear Results");
-roiManager("Deselect");
-selectWindow(max_projection);
-
-roiManager("Measure");
-selectWindow("Results");
-ganglia_area = Table.getColumn("Area");
-
-
-selectWindow(table_name);
-Table.setColumn("Area_per_ganglia_um2", ganglia_area);
+	//get ganglia area
+	runMacro(label_to_roi,ganglia_label_img);
+	run("Set Measurements...", "area redirect=None decimal=3");
+	run("Clear Results");
+	roiManager("Deselect");
+	selectWindow(max_projection);
+	
+	roiManager("Measure");
+	selectWindow("Results");
+	ganglia_area = Table.getColumn("Area");
+	
+	
+	selectWindow(table_name);
+	Table.setColumn("Area_per_ganglia_um2", ganglia_area);
+}
 
 selectWindow(table_name);
 Table.save(results_dir+"Cell_counts.csv");

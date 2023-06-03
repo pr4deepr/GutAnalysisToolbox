@@ -1,7 +1,7 @@
 
 //*******
 // Author: Pradeep Rajasekhar
-// March 2022
+// March 2023
 // License: BSD3
 // 
 // Copyright 2021 Pradeep Rajasekhar, Walter and Eliza Hall Institute of Medical Research, Melbourne, Australia
@@ -84,7 +84,8 @@ if(!File.exists(ganglia_label_cell_count)) exit("Cannot find ganglia label image
 var segment_ganglia=gat_dir+fs+"Segment_Ganglia.ijm";
 if(!File.exists(segment_ganglia)) exit("Cannot find segment ganglia script. Returning: "+segment_ganglia);
 
-var spatial_two_cell_type=gat_dir+fs+"spatial_two_celltype.ijm";
+
+var spatial_two_cell_type=gat_dir+fs+"spatial_two_celltype.ijm";
 if(!File.exists(spatial_two_cell_type)) exit("Cannot find spatial analysis script. Returning: "+spatial_two_cell_type);
 
 
@@ -107,21 +108,14 @@ fs = File.separator; //get the file separator for the computer (depending on ope
 #@ String(choices={"DeepImageJ","Manually draw ganglia"}, style="radioButtonHorizontal") Ganglia_detection
 #@ String(value="<html>----------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") adv
 #@ boolean Perform_Spatial_Analysis(description="<html><b>If ticked, it will perform spatial analysis for all markers. Convenient than performing them individually. -> </b><html>")
-#@ boolean Finetune_Detection_Parameters(description="<html><b>Enter custom rescaling factor and probabilities</b><html>")
+//#@ boolean Finetune_Detection_Parameters(description="<html><b>Enter custom rescaling factor and probabilities</b><html>")
 #@ boolean Contribute_to_GAT(description="<html><b>Contribute to GAT by saving image and masks</b><html>") 
 
 
 scale = 1;
-if(Finetune_Detection_Parameters==true)
-{
-	print("Using manual probability and overlap threshold for detection");
-	Dialog.create("Change Probability and Overlap for Neuron Subtype Detection");	
-  	Dialog.addSlider("Probability of detecting neuronal subtypes", 0, 1,probability);
-  	Dialog.addSlider("Overlap threshold", 0, 1,overlap);
-	Dialog.show(); 
-	probability_subtype_manual= Dialog.getNumber();
-	overlap_subtype= Dialog.getNumber();
-}
+//adjust probabilities by default
+Finetune_Detection_Parameters=true;
+
 
 if(Contribute_to_GAT==true)
 {
@@ -156,11 +150,58 @@ marker_names_manual=trim_space_arr(marker_names_manual);
 marker_no_manual=split(marker_no_manual, ",");
 if(marker_names_manual.length!=marker_no_manual.length) exit("Number of marker names and marker channels do not match");
 
-
+//custom probability for subtypes
+//create dialog box based on number of markers
+probability_subtype_arr=newArray(marker_names_manual.length);
+if(Finetune_Detection_Parameters==true)
+{
+	print("Using manual probability and overlap threshold for detection");
+	Dialog.create("Advanced Parameters");
+	Dialog.addMessage("Default values shown below will be used if no changes are made");
+	Dialog.addNumber("Rescaling Factor", scale, 3, 8, "") 
+  	
+  	for ( i = 0; i < marker_names_manual.length; i++) 
+  	{
+		
+	    Dialog.addSlider("Probability for "+marker_names_manual[i], 0, 1,probability_subtype);
+	    
+	}
+	
+  	Dialog.addSlider("Overlap threshold", 0, 1,overlap);
+	Dialog.show(); 
+	scale = Dialog.getNumber();
+	
+
+	for ( i = 0; i < marker_names_manual.length; i++) 
+  	{
+	    probability_subtype_arr[i]= Dialog.getNumber();
+	}
+	
+	overlap= Dialog.getNumber();
+	overlap_subtype=overlap;
+}
+
+else 
+{ //assign probability subtype default values to all of them
+	for ( i = 0; i < marker_names_manual.length; i++) 
+  	{
+		
+		probability_subtype_arr[i]=probability_subtype;
+	    
+	}
+}
+
+print("**Neuron subtype\nProbability for");;
+Array.print(marker_names_manual);
+Array.print(probability_subtype_arr);
+print("Overlap threshold: "+overlap_subtype+"\n");
+
+
+
 if(image_already_open==true)
 {
 	waitForUser("Select Image. and choose output folder in next prompt");
-	file_name=getTitle(); //get file name without extension (.lif)
+	file_name_full=getTitle(); //get file name without extension (.lif)
 	dir=getDirectory("Choose Output Folder");
 	//file_name=File.nameWithoutExtension;
 }
@@ -229,7 +270,8 @@ file_name_split = split(file_name,",;_-");
 file_name =String.join(file_name_split,"_");
 img_name=getTitle();
 Stack.getDimensions(width, height, sizeC, sizeZ, frames);
-max_save_name="MAX_"+file_name;
+
+max_save_name="MAX_"+file_name;
 
 
 run("Select None");
@@ -278,7 +320,7 @@ neuron_max_pixels=neuron_area_limit/pixelWidth; //convert micron to pixels
 //using limit when segmenting neurons
 //neuron_seg_lower_limit=90;//microns
 neuron_seg_lower_limit=neuron_seg_lower_limit/pixelWidth; 
-
+
 //using limit for marker multiplication and delineation
 //neuron_lower_limit= 160;//microns
 neuron_min_pixels=neuron_lower_limit/pixelWidth; //convert micron to pixels
@@ -454,6 +496,7 @@ for(i=0;i<channel_combinations.length;i++)
 			//channel_position=channel_numbers[i];
 			channel_no=channel_numbers[i];
 			channel_name=channel_names[i];
+			probability_subtype_val = probability_subtype_arr[i];
 		}
 		else  //multiple markers
 		{
@@ -462,6 +505,7 @@ for(i=0;i<channel_combinations.length;i++)
 			//use index of position to get the channel number and the channel name
 			channel_no=channel_numbers[channel_idx]; //idx fro above is returned as 0 indexed, so using this indx to find channel no
 			channel_name=channel_names[channel_idx];
+			probability_subtype_val = probability_subtype_arr[channel_idx];
 		}			
 				
 			selectWindow(max_projection);
@@ -480,8 +524,9 @@ for(i=0;i<channel_combinations.length;i++)
 			//segment cells and return image with normal scaling
 			print("Segmenting marker "+channel_name);
 			selectWindow(seg_marker_img);
-			//run("Subtract Background...", "rolling="+backgrnd_radius+" sliding");
-			segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype,overlap_subtype);
+			print("Probability for detection "+probability_subtype_val);
+			
+			segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype_val,overlap_subtype);
 			selectWindow(seg_marker_img);
 			roiManager("deselect");
 			runMacro(roi_to_label);
@@ -499,10 +544,11 @@ for(i=0;i<channel_combinations.length;i++)
 			close("label_img_temp");
 			wait(5);
 			selectWindow(max_projection);
+			run("Remove Overlay");
 			//roiManager("deselect");
 			roiManager("show all");
 			//selectWindow(max_projection);
-			waitForUser("Verify ROIs for "+channel_name+". Delete or add ROIs as needed. Press OK when done.");
+			waitForUser("Verify ROIs for "+channel_name+". Delete or add ROIs as needed.\nIf no cells detected, you won't see anything.\nPress OK when done.");
 			roiManager("deselect");
 			//convert roi manager to label image
 			runMacro(roi_to_label);
@@ -513,7 +559,8 @@ for(i=0;i<channel_combinations.length;i++)
 			label_name = "label_"+channel_name;
 			label_rescaled_img=scale_image(label_marker,scale_factor,label_name);
 
-			selectWindow(label_marker);
+			
+selectWindow(label_marker);
 			//save images and masks if user selects to save them for the marker
 			if(Save_Image_Masks == true)
 			{
@@ -545,8 +592,11 @@ for(i=0;i<channel_combinations.length;i++)
 			//selectWindow(max_projection);
 			roiManager("deselect");
 			//roi_file_name= String.join(channel_arr, "_");
-			roi_location_marker=results_dir+channel_name+"_ROIs.zip";
-			roiManager("save",roi_location_marker);
+			if(roiManager("count")>0)
+			{
+				roi_location_marker=results_dir+channel_name+"_ROIs.zip";
+				roiManager("save",roi_location_marker);
+			}
 			close(seg_marker_img);
 			
 			roiManager("reset");
@@ -594,7 +644,8 @@ for(i=0;i<channel_combinations.length;i++)
 				roiManager("reset");
 			}
 			//as there is no hu, not performing spatial analysis between Hu and marker
-		close(label_marker);
+
+		close(label_marker);
 			
 		}
 		//if more than one marker to analyse; if more than one marker, then it multiplies the marker labels from above to find coexpressing cells
@@ -773,7 +824,8 @@ for(i=0;i<channel_combinations.length;i++)
 
 				}
 
-				roiManager("reset");
+				
+roiManager("reset");
 
 				
 			}
@@ -795,7 +847,8 @@ no_cells_marker=Array.trim(no_cells_marker,marker_comb_length);
 Table.setColumn("Number of cells per marker combination", no_cells_marker);
 
 
-//replace zeroes in divider column with divider
+
+//replace zeroes in divider column with divider
 file_array=Table.getColumn("|"); 
 file_array=replace_str_arr(file_array,0,"|");
 Table.setColumn("|", file_array);
@@ -809,17 +862,25 @@ selectWindow(table_name);
 file_array=Table.getColumn("File name"); 
 file_array=Array.deleteValue(file_array, 0);
 Table.setColumn("File name", file_array);
-
+
+
+
 //get ganglia area
-runMacro(label_to_roi,ganglia_label_img);
-run("Set Measurements...", "area redirect=None decimal=3");
-run("Clear Results");
-roiManager("Deselect");
-//get measurements in microns
-selectWindow(max_projection);
-roiManager("Measure");
-selectWindow("Results");
-ganglia_area = Table.getColumn("Area");
+if (Cell_counts_per_ganglia==true)
+{
+	
+	runMacro(label_to_roi,ganglia_label_img);
+	run("Set Measurements...", "area redirect=None decimal=3");
+	run("Clear Results");
+	roiManager("Deselect");
+	//get measurements in microns
+	selectWindow(max_projection);
+	roiManager("Measure");
+	selectWindow("Results");
+	ganglia_area = Table.getColumn("Area");
+	selectWindow(table_name);
+	Table.setColumn("Area_per_ganglia_um2", ganglia_area);
+}
 
 selectWindow(table_name);
 Table.save(results_dir+"Cell_counts.csv");

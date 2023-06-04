@@ -267,34 +267,44 @@ for(i=start;i<=end;i+=increment)
 	wait(50);
 
 	//make sure cells are detected.. if not exit macro
-	if(roiManager("count")==0) exit("No cells detected. Reduce probability or check image.\nAnalysis stopped");
-	else roiManager("reset");
-	wait(50);
-	
-	label_image=getTitle();
-	selectWindow(label_image);
-	run("Remove Overlay");
-	//remove neurons below size limit
-	run("Label Size Filtering", "operation=Greater_Than_Or_Equal size="+neuron_seg_lower_limit);
-	label_filtered=getTitle();
-	close(label_image);
-	//run("glasbey_on_dark");
-	selectWindow(label_filtered);
-	runMacro(label_to_roi,label_filtered);
-	//label_to_roi(label_filtered);
-	wait(20);
-	selectWindow(new_name);
-	run("From ROI Manager");
-	//close(label_image);
-	selectWindow(new_name);
-	img_seg_array[idx]=new_name;
-	idx+=1;
-	print("No of objects: "+roiManager("count"));
-	print("Probability: "+i);
-	close(label_filtered);
+	if(roiManager("count")==0)
+	{
+		print("No cells detected for Proability"+i);
+		label_image=getTitle();
+		selectWindow(new_name);
+		run("Remove Overlay");
+		roiManager("reset");
+		close(label_image);
+	}
+	else 
+	{
+		roiManager("reset");
+	 	wait(10);
+		
+		label_image=getTitle();
+		selectWindow(label_image);
+		run("Remove Overlay");
+		//remove neurons below size limit
+		run("Label Size Filtering", "operation=Greater_Than_Or_Equal size="+neuron_seg_lower_limit);
+		label_filtered=getTitle();
+		close(label_image);
+		//run("glasbey_on_dark");
+		selectWindow(label_filtered);
+		runMacro(label_to_roi,label_filtered);
+		//label_to_roi(label_filtered);
+		wait(20);
+		selectWindow(new_name);
+		run("From ROI Manager");
+		//close(label_image);
+		selectWindow(new_name);
+		img_seg_array[idx]=new_name;
+		idx+=1;
+		print("Probability: "+i);
+		print("No of objects: "+roiManager("count"));
+		close(label_filtered);
+	}
 }
-
-run("Cascade");
+run("Tile");
 print("Verify the segmentation in the images: ");
 close(img);
 

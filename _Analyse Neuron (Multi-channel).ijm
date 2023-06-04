@@ -542,7 +542,7 @@ cell_count=roiManager("count");
 //for large images, this takes a while..
 //rename_roi(); //rename ROIs
 roiManager("deselect");
-selectWindow(seg_image);
+selectWindow(max_projection);
 //uses roi to label macro code
 //nned a single channel iamge as multichannel was throwing errors
 runMacro(roi_to_label);
@@ -553,7 +553,7 @@ neuron_label_image=getTitle();
 //using this image to detect neuron subtypes by label overlap
 selectWindow(neuron_label_image);
 max_save_name="MAX_"+file_name;
-saveAs("Tiff", results_dir+cell_type+"n_label_"+max_save_name);
+saveAs("Tiff", results_dir+cell_type+"_label_"+max_save_name);
 rename("Neuron_label"); //saving the file will change the name, so renaming it and getting image name again
 neuron_label_image=getTitle();
 selectWindow(neuron_label_image);
@@ -796,8 +796,7 @@ if(marker_subtype==1)
 		print("Probability for detection "+probability_subtype_val);
 		
 		segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype_val,overlap_subtype);
-		selectWindow(seg_marker_img);
-		waitForUser;
+		selectWindow(max_projection);
 		roiManager("deselect");
 		runMacro(roi_to_label);
 		rename("label_img_temp");
@@ -846,8 +845,6 @@ if(marker_subtype==1)
 		//store resized label images for analysing label co-expression
 		label_name = "label_"+channel_name;
 		label_rescaled_img=scale_image(label_marker,scale_factor,label_name);
-			
-		
 		selectWindow(label_marker);
 		//save images and masks if user selects to save them for the marker
 		if(Save_Image_Masks == true)
@@ -1346,6 +1343,8 @@ function scale_image(img,scale_factor,name)
 	if(scale_factor!=1)
 		{	
 			selectWindow(img);
+			run("Remove Overlay");
+			run("Select None");
 			Stack.getDimensions(width, height, channels, slices, frames);
 			new_width=round(width*scale_factor); 
 			new_height=round(height*scale_factor);

@@ -527,7 +527,7 @@ for(i=0;i<channel_combinations.length;i++)
 			print("Probability for detection "+probability_subtype_val);
 			
 			segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype_val,overlap_subtype);
-			selectWindow(seg_marker_img);
+			selectWindow(max_projection);
 			roiManager("deselect");
 			runMacro(roi_to_label);
 			wait(5);

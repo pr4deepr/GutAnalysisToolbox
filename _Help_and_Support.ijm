@@ -23,4 +23,4 @@ Table.set(column,7,"Github Repository, which you need to create a github account
 Table.set(column,8,"https://github.com/pr4deepr/GutAnalysisToolbox/issues");
 Table.set(column,9,"You can also post in the imagesc forum: https://forum.image.sc/ , just tag or include @pr4deepr in the post so we are notified");
 Table.set(column,10,"Thank you for using GAT!");
-
+Table.set(column,11,"GAT v0.5");

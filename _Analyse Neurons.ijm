@@ -416,7 +416,7 @@ roiManager("save",roi_location);
 
 wait(5);
 //need single channel image; multichannel can throw errors
-selectWindow(seg_image);
+selectWindow(max_projection);
 //uses roi to label macro code
 runMacro(roi_to_label);
 wait(5);

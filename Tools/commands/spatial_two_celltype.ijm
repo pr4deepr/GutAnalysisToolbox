@@ -103,7 +103,7 @@ macro "spatial_two_celltype"
 		// cell 1 neigbour around cell 2
 		no_neighbours_cell_1_around_2=count_neighbour_around_ref_img(cell_2,cell_1,label_dilation,ganglia_binary);
 		counts_cell_1_around_2 = Array.deleteIndex(no_neighbours_cell_1_around_2, 0);
-		
+
 		roiManager("reset");
 		run("Clear Results");
 		table_name = "Neighbour_count_"+cell_type_1+"_"+cell_type_2;

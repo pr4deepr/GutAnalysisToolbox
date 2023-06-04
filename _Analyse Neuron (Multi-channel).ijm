@@ -512,8 +512,15 @@ if(scale_factor!=1)
 	close(seg_image);
 	selectWindow("img_resize");
 	seg_image=getTitle();
+	getPixelSize(unit, rescaled_pixelWidth, rescaled_pixelHeight);
 
 }
+else 
+{
+	rescaled_pixelWidth=pixelWidth;
+	rescaled_pixelHeight=pixelHeight;
+}
+
 
 roiManager("UseNames", "false");
 
@@ -918,6 +925,7 @@ if(marker_subtype==1)
 			{
 				print("Performing Spatial Analysis for "+cell_type+" and "+channel_name+" done");
 				//cell_type is Hu
+				//label_marker is original scale so default pixelWidth
 				args=cell_type+","+neuron_label_image+","+channel_name+","+label_marker+","+ganglia_binary+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;
 				runMacro(spatial_hu_marker_cell_type,args);
 				print("Spatial Done");
@@ -976,8 +984,8 @@ if(marker_subtype==1)
 							img1_name = img1_name_arr[1];
 							img2_name_arr = split(img2, "_");
 							img2_name = img2_name_arr[1];
-							
-							args=img1_name+","+img1+","+img2_name+","+img2+","+ganglia_binary_rescaled+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;
+							//rescaled images being passed here so, we need to change pixelWidth to make sure label dilation in pixels is accurate
+							args=img1_name+","+img1+","+img2_name+","+img2+","+ganglia_binary_rescaled+","+results_dir+","+label_dilation+","+save_parametric_image+","+rescaled_pixelWidth;
 							runMacro(spatial_two_cell_type,args);
 							print("Spatial Done");
 							
@@ -1012,8 +1020,8 @@ if(marker_subtype==1)
 						img1_name = img1_name_arr[1];
 						img2_name_arr = split(img2, "_");
 						img2_name = img2_name_arr[1];
-						
-						args=img1_name+","+img1+","+img2_name+","+img2+","+ganglia_binary_rescaled+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;
+						//rescaled images being passed here so, we need to change pixelWidth to make sure label dilation in pixels is accurate
+						args=img1_name+","+img1+","+img2_name+","+img2+","+ganglia_binary_rescaled+","+results_dir+","+label_dilation+","+save_parametric_image+","+rescaled_pixelWidth;
 						runMacro(spatial_two_cell_type,args);
 						print("Spatial Done");
 						

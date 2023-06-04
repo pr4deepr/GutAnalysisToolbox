@@ -524,6 +524,7 @@ for(i=0;i<channel_combinations.length;i++)
 			//segment cells and return image with normal scaling
 			print("Segmenting marker "+channel_name);
 			selectWindow(seg_marker_img);
+			getPixelSize(unit, rescaled_pixelWidth, rescaled_pixelHeight);
 			print("Probability for detection "+probability_subtype_val);
 			
 			segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype_val,overlap_subtype);
@@ -560,7 +561,7 @@ for(i=0;i<channel_combinations.length;i++)
 			label_rescaled_img=scale_image(label_marker,scale_factor,label_name);
 
 			
-selectWindow(label_marker);
+			selectWindow(label_marker);
 			//save images and masks if user selects to save them for the marker
 			if(Save_Image_Masks == true)
 			{
@@ -713,7 +714,7 @@ selectWindow(label_marker);
 							img2_name_arr = split(img2, "_");
 							img2_name = img2_name_arr[1];
 							
-							args=img1_name+","+img1+","+img2_name+","+img2+","+ganglia_binary_rescaled+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;
+							args=img1_name+","+img1+","+img2_name+","+img2+","+ganglia_binary_rescaled+","+results_dir+","+label_dilation+","+save_parametric_image+","+rescaled_pixelWidth;
 							runMacro(spatial_two_cell_type,args);
 							print("Spatial Done");
 							
@@ -746,7 +747,7 @@ selectWindow(label_marker);
 						img2_name_arr = split(img2, "_");
 						img2_name = img2_name_arr[1];
 						
-						args=img1_name+","+img1+","+img2_name+","+img2+","+ganglia_binary_rescaled+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;
+						args=img1_name+","+img1+","+img2_name+","+img2+","+ganglia_binary_rescaled+","+results_dir+","+label_dilation+","+save_parametric_image+","+rescaled_pixelWidth;
 						runMacro(spatial_two_cell_type,args);
 						print("Spatial Done");
 						

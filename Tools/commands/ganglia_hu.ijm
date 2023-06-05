@@ -63,7 +63,7 @@ macro "ganglia_hu"
 		run("Duplicate...", "title=ganglia_hu duplicate channels="+cell_channel);
 		Dialog.create("Choose cell expansion distance (um)");
 		Dialog.addMessage("Choose cell expansion distance to define the ganglia");
-	  	Dialog.addNumber("Cell expansion (um)", 10);
+	  	Dialog.addNumber("Cell expansion (um)", 12);
 	  	Dialog.show(); 
 	  	cell_expansion=Dialog.getNumber();
 	  	

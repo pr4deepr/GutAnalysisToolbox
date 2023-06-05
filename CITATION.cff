@@ -13,7 +13,11 @@ authors:
 - family-names: "Noe Han"
   given-names: "Myat"
   orcid: "https://orcid.org/0000-0003-3028-7359"
-  
+
+- family-names: "Hamnett"
+  given-names: "Ryan"
+  orcid: "https://orcid.org/0000-0002-9118-1585"
+
 - family-names: "Humenick"
   given-names: "Adam"
   
@@ -44,7 +48,10 @@ authors:
 
 - family-names: "Muñoz Barrutia"
   given-names: "Arrate"
-
+  
+- family-names: "Kaltschmidt"
+  given-names: "Julia A."
+  
 - family-names: "King"
   given-names: "Sebastian K."
   orcid: "https://orcid.org/0000-0001-5396-0265"

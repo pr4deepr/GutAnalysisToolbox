@@ -50,7 +50,9 @@ overlap_subtype=parseFloat(Table.get("Values", 8));
 //get paths of model files
 neuron_model_file = Table.getString("Values", 9);
 neron_subtype_file = Table.getString("Values", 10);
+selectWindow("Results");
 run("Close");
+
 //Neuron segmentation model
 neuron_model_path=models_dir+neuron_model_file;
 //Marker segmentation model
@@ -254,15 +256,17 @@ if (!File.exists(analysis_dir)) File.makeDirectory(analysis_dir);
 save_location_exists = 1;
 do
 {
-	if(file_name_length>50)
+	if(file_name_length>50 ||save_location_exists == 1)
 	{
 	
 		file_name=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
-		suffix = getString("File name is too long, will be shortened. Enter custom name or if lif file, enter series num.", "_1");
+		suffix = getString("Enter custom name or if lif file, enter series num.", "_1");
 		file_name = file_name+suffix;
+		save_location_exists = 0;
 	   }
 
 	else file_name=file_name_full;
+	
 	results_dir=analysis_dir+file_name+fs; //directory to save images
 	//if file exists in location, create one and set save_location_exists flag to zero to exit the loop
 	if (!File.exists(results_dir)) 
@@ -273,6 +277,7 @@ do
 	else 
 	{
 		waitForUser("Folder exists, enter new name in next prompt");
+		save_location_exists = 1;
 	}
 	
 
@@ -551,10 +556,10 @@ cell_count=roiManager("count");
 roiManager("deselect");
 selectWindow(max_projection);
 //uses roi to label macro code
-//nned a single channel iamge as multichannel was throwing errors
 runMacro(roi_to_label);
 wait(5);
 
+//original scaling
 neuron_label_image=getTitle();
 
 //using this image to detect neuron subtypes by label overlap

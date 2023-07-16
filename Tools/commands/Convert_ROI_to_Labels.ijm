@@ -8,12 +8,15 @@ macro "roi_to_label_map"
 {
 		img=getTitle();
 		selectWindow(img);
+		if(bitDepth()==255) img_bit = "8-bit";
+		else if(bitDepth()==65535) img_bit = "16-bit";
+		else img_bit = "32-bit";
 		getDimensions(width, height, channels, slices, frames);
 		
 		if(roiManager("count")==0) 
 		{
 			print("No ROIs");
-			newImage("label_mapss", "8-bit black", width, height, 1);
+			newImage("label_mapss", img_bit+" black", width, height, 1);
 		}
 		else 
 		

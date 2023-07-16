@@ -973,7 +973,7 @@ if(marker_subtype==1)
 			//perform spatial analysis for Hu and the marker image
 			if(Perform_Spatial_Analysis==true)
 			{
-				"Performing Spatial Analysis for "+cell_type+" and "+channel_name+" done");
+				print("Performing Spatial Analysis for "+cell_type+" and "+channel_name+" done");
 				//cell_type is Hu
 				//label_marker is original scale so default pixelWidth
 				args=cell_type+","+neuron_label_image+","+channel_name+","+label_marker+","+ganglia_binary+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;

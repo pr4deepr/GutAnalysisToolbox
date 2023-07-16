@@ -4,7 +4,7 @@
 // March 2023
 // License: BSD3
 // 
-// Copyright 2021 Pradeep Rajasekhar, Walter and Eliza Hall Institute of Medical Research, Melbourne, Australia
+// Copyright 2023 Pradeep Rajasekhar, Walter and Eliza Hall Institute of Medical Research, Melbourne, Australia
 // 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 // 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
@@ -104,6 +104,10 @@ if(!File.exists(spatial_two_cell_type)) exit("Cannot find spatial analysis scrip
 
 var spatial_hu_marker_cell_type=gat_dir+fs+"spatial_hu_marker.ijm";
 if(!File.exists(spatial_hu_marker_cell_type)) exit("Cannot find hu_marker spatial analysis script. Returning: "+spatial_hu_marker_cell_type);
+ 
+//check if import custom ganglia rois script is present
+var ganglia_custom_roi=gat_dir+fs+"ganglia_custom_roi.ijm";
+if(!File.exists(ganglia_custom_roi)) exit("Cannot find single ganglia custom roi script. Returning: "+ganglia_custom_roi);
 
 
 fs = File.separator; //get the file separator for the computer (depending on operating system)
@@ -127,8 +131,8 @@ cell_type="Hu";
 #@ String(value="<html><center><b>DETERMINE GANGLIA OUTLINE</b></center> <html>",visibility="MESSAGE") hint_ganglia
 #@ String(value="<html> Cell counts per ganglia will be calculated<br/>Requires a neuron channel & second channel that labels the neuronal fibres.<html>",visibility="MESSAGE") hint4
 #@ boolean Cell_counts_per_ganglia (description="Use a pretrained model, Hu or manually define ganglia outline")
-#@ String(choices={"DeepImageJ","Define ganglia using Hu","Manually draw ganglia"}, style="radioButtonHorizontal") Ganglia_detection
-#@ String(label="<html> Enter the channel number for segmenting ganglia.<br/> Not valid for 'Define ganglia using Hu'.<br/> Enter NA if not using.<html> ", value="NA") ganglia_channel
+#@ String(choices={"DeepImageJ","Define ganglia using Hu","Manually draw ganglia","Import custom ROI"}, style="radioButtonHorizontal") Ganglia_detection
+#@ String(label="<html> Enter the channel number for segmenting ganglia.<br/> Not valid for 'Define ganglia using Hu and Import custom ROI'.<br/> Enter NA if not using.<html> ", value="NA") ganglia_channel
 #@ String(value="<html>----------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") adv
 #@ boolean Perform_Spatial_Analysis(description="<html><b>If ticked, it will perform spatial analysis for all markers. Convenient than performing them individually. -> </b><html>")
 #@ boolean Finetune_Detection_Parameters(description="<html><b>Enter custom rescaling factor and probabilities</b><html>")
@@ -174,6 +178,7 @@ if(marker_subtype==1 && Enter_channel_details_now==1)
 //custom probability for subtypes
 //create dialog box based on number of markers
 probability_subtype_arr=newArray(marker_names_manual.length);
+custom_roi_subtype_arr=newArray(marker_names_manual.length);
 if(Finetune_Detection_Parameters==true)
 {
 	print("Using manual probability and overlap threshold for detection");
@@ -181,11 +186,16 @@ if(Finetune_Detection_Parameters==true)
 	Dialog.addMessage("Default values shown below will be used if no changes are made");
 	Dialog.addNumber("Rescaling Factor", scale, 3, 8, "") 
   	Dialog.addSlider("Probability of detecting neurons (Hu)", 0, 1,probability);	
+  	//add checkbox to same row as slider
+  	Dialog.addToSameRow();
+  	Dialog.addCheckbox("Custom ROI", 0);
   	
   	for ( i = 0; i < marker_names_manual.length; i++) 
   	{
 		
 	    Dialog.addSlider("Probability for "+marker_names_manual[i], 0, 1,probability_subtype);
+	    Dialog.addToSameRow();
+  		Dialog.addCheckbox("Custom ROI", 0);
 	    
 	}
 	
@@ -194,10 +204,12 @@ if(Finetune_Detection_Parameters==true)
 	scale = Dialog.getNumber();
 	
 	probability= Dialog.getNumber();
+	custom_roi_hu = Dialog.getCheckbox();
 	
 	for ( i = 0; i < marker_names_manual.length; i++) 
   	{
 	    probability_subtype_arr[i]= Dialog.getNumber();
+	    custom_roi_subtype_arr[i]=Dialog.getCheckbox();
 	}
 	
 	overlap= Dialog.getNumber();
@@ -215,8 +227,8 @@ else
 }
 
 print("**Neuron subtype\nProbability for");;
-Array.print(marker_names_manual);
-Array.print(probability_subtype_arr);
+//Array.print(marker_names_manual);
+//Array.print(probability_subtype_arr);
 print("Overlap threshold: "+overlap_subtype+"\n");
 
 
@@ -478,25 +490,22 @@ selectWindow(max_projection);
 rename(max_save_name);
 
 max_projection = max_save_name;
-
-
-
-//Segment Neurons
 selectWindow(max_projection);
 run("Select None");
 run("Remove Overlay");
-
+	
 //if more than one channel, set on cell_channel or reference channel
 if(sizeC>1)
 {
 	Stack.setChannel(cell_channel);
 }
-
+	
 roiManager("show none");
 run("Duplicate...", "title="+cell_type+"_segmentation");
 seg_image=getTitle();
 roiManager("reset");
 
+//even if importing custom rois still calculating rescaling as we need rescaled pixelwidth and height later
 //calculate no. of tiles
 new_width=round(width*scale_factor); 
 new_height=round(height*scale_factor);
@@ -506,7 +515,7 @@ if(new_width>5000 || new_height>5000) n_tiles=8;
 else if (new_width>9000 || new_height>5000) n_tiles=12;
 
 print("No. of tiles: "+n_tiles);
-
+	
 //scale image if scaling factor is not equal to 1
 if(scale_factor!=1)
 {	
@@ -519,21 +528,32 @@ if(scale_factor!=1)
 	seg_image=getTitle();
 	getPixelSize(unit, rescaled_pixelWidth, rescaled_pixelHeight);
 
-}
+	}
 else 
 {
 	rescaled_pixelWidth=pixelWidth;
 	rescaled_pixelHeight=pixelHeight;
 }
 
-
 roiManager("UseNames", "false");
 
 selectWindow("Log");
-print("*********Segmenting cells using StarDist********");
 
-//segment neurons using StarDist model
-segment_cells(max_projection,seg_image,neuron_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap);
+//if custom ROIs for Hu, import ROI here
+if(custom_roi_hu)
+{
+	print("Importing ROIs for Hu");
+	custom_hu_roi_path = File.openDialog("Choose custom ROI for Hu");
+	roiManager("open", custom_hu_roi_path);
+}
+else
+{	
+	//Segment Neurons with StarDist
+	print("*********Segmenting cells using StarDist********");
+	//segment neurons using StarDist model
+	segment_cells(max_projection,seg_image,neuron_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap);
+}
+
 
 //if cell count zero, check with user if they want to terminate the analysis
 cell_count=roiManager("count");
@@ -547,7 +567,8 @@ if(cell_count == 0)
 		exit("Analysis stopped as no cells detected");
 	}
 }
-
+selectWindow(max_projection);
+roiManager("show all without labels");
 //manually correct or verify if needed
 waitForUser("Correct "+cell_type+" ROIs if needed. You can delete or add ROIs using ROI Manager");
 cell_count=roiManager("count");
@@ -616,6 +637,14 @@ if (Cell_counts_per_ganglia==true)
 		wait(5);
 		ganglia_binary=getTitle();
 		draw_ganglia_outline(ganglia_binary,true);
+	 }
+	 else if(Ganglia_detection=="Import custom ROI")
+	 {
+		args1=max_projection;
+		//get ganglia outline
+		runMacro(ganglia_custom_roi,args1);
+		ganglia_binary=getTitle();
+	 	
 	 }
 	 else ganglia_binary=draw_ganglia_outline(ganglia_img,false);
 	 
@@ -797,38 +826,54 @@ if(marker_subtype==1)
 
 		marker_image=getTitle();
 
-		//scaling marker images so we can segment them using same size as images used for training the model. Also, ensures consistent size exclusion area
-		seg_marker_img=scale_image(marker_image,scale_factor,channel_name);
-		roiManager("reset");
-		//segment cells and return image with normal scaling
-		print("Segmenting marker "+channel_name);
-		selectWindow(seg_marker_img);
 		
-		//run("Subtract Background...", "rolling="+backgrnd_radius+" sliding");
-		print("Probability for detection "+probability_subtype_val);
-		
-		segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype_val,overlap_subtype);
-		selectWindow(max_projection);
-		roiManager("deselect");
-		runMacro(roi_to_label);
-		rename("label_img_temp");
-		run("glasbey_on_dark");
-		//selectWindow("label_mapss");
-		run("Select None");
-		roiManager("reset");
-		
-		//multiply with HU to verify if its a neuron. multiply above label image with image of Neuron label
-		//if Hu and marker are present, keeps label, else it becomes background
-		//keep objects within size range 400 to 3000; may need to alter this later depending on cell size
-		//Manual step to verify
-		temp_label=multiply_markers(neuron_label_image,"label_img_temp",neuron_min_pixels,neuron_max_pixels);//getting smaller objects, so inc min size to 400
-		
-		//selectWindow(temp_label);
-		selectWindow(temp_label);
-		runMacro(label_to_roi,temp_label);
-		//close(temp_label);
-		close("label_img_temp");
-		wait(5);
+		if(custom_roi_subtype_arr[i])
+		{
+			print("Importing ROIs for "+channel_name);
+			custom_subtype_roi_path = File.openDialog("Choose custom ROI for "+channel_name);
+			roiManager("open", custom_subtype_roi_path);
+			runMacro(roi_to_label);
+			wait(5);
+			rename("sub_marker_temp");
+			temp_label =getTitle();
+		}
+		else
+		{
+			//scaling marker images so we can segment them using same size as images used for training the model. Also, ensures consistent size exclusion area
+			seg_marker_img=scale_image(marker_image,scale_factor,channel_name);
+			roiManager("reset");
+			//segment cells and return image with normal scaling
+			print("Segmenting marker "+channel_name);
+			selectWindow(seg_marker_img);
+			
+			//run("Subtract Background...", "rolling="+backgrnd_radius+" sliding");
+			print("Probability for detection "+probability_subtype_val);
+			
+			segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype_val,overlap_subtype);
+			selectWindow(max_projection);
+			roiManager("deselect");
+			runMacro(roi_to_label);
+			rename("label_img_temp");
+			run("glasbey_on_dark");
+			//selectWindow("label_mapss");
+			run("Select None");
+			roiManager("reset");
+			
+			//multiply with HU to verify if its a neuron. multiply above label image with image of Neuron label
+			//if Hu and marker are present, keeps label, else it becomes background
+			//keep objects within size range 400 to 3000; may need to alter this later depending on cell size
+			//Manual step to verify
+			temp_label=multiply_markers(neuron_label_image,"label_img_temp",neuron_min_pixels,neuron_max_pixels);//getting smaller objects, so inc min size to 400
+			
+			//selectWindow(temp_label);
+			selectWindow(temp_label);
+			runMacro(label_to_roi,temp_label);
+			//close(temp_label);
+			close("label_img_temp");
+			wait(5);
+			close(seg_marker_img);
+
+		}
 		selectWindow(max_projection);
 		run("Remove Overlay");
 		roiManager("deselect");
@@ -896,7 +941,7 @@ if(marker_subtype==1)
 				roi_location_marker=results_dir+channel_name+"_ROIs.zip";
 				roiManager("save",roi_location_marker);
 			}
-			close(seg_marker_img);
+			
 			roiManager("reset");
 			//Array.print(marker_label_arr);
 
@@ -928,7 +973,7 @@ if(marker_subtype==1)
 			//perform spatial analysis for Hu and the marker image
 			if(Perform_Spatial_Analysis==true)
 			{
-				print("Performing Spatial Analysis for "+cell_type+" and "+channel_name+" done");
+				"Performing Spatial Analysis for "+cell_type+" and "+channel_name+" done");
 				//cell_type is Hu
 				//label_marker is original scale so default pixelWidth
 				args=cell_type+","+neuron_label_image+","+channel_name+","+label_marker+","+ganglia_binary+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;

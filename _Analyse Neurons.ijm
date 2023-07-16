@@ -37,6 +37,7 @@ probability=parseFloat(Table.get("Values", 5)); //prob neuron
 overlap= parseFloat(Table.get("Values", 7));
 //get paths of model files
 neuron_model_file = Table.getString("Values", 9);
+selectWindow("Results");
 run("Close");
 
 
@@ -75,6 +76,13 @@ var spatial_single_cell_type=gat_dir+fs+"spatial_single_celltype.ijm";
 if(!File.exists(spatial_single_cell_type)) exit("Cannot find single cell spatial analysis script. Returning: "+spatial_single_cell_type);
 
 
+ 
+//check if import custom ganglia rois script is present
+var ganglia_custom_roi=gat_dir+fs+"ganglia_custom_roi.ijm";
+if(!File.exists(ganglia_custom_roi)) exit("Cannot find single ganglia custom roi script. Returning: "+ganglia_custom_roi);
+
+
+
 #@ File (style="open", label="<html>Choose the image to segment.<br><b>Enter NA if image is open or if field is empty.</b><html>", value=fiji_dir) path
 #@ boolean image_already_open
 #@ String(value="<html>If image is already open, tick above box.<html>", visibility="MESSAGE") hint1
@@ -85,11 +93,11 @@ cell_type="Neuron";
 #@ String(value="<html><center><b>DETERMINE GANGLIA OUTLINE</b></center> <html>",visibility="MESSAGE") hint_ganglia
 #@ String(value="<html> Cell counts per ganglia will be calculated<br/>Requires a neuron channel & second channel that labels the neuronal fibres.<html>",visibility="MESSAGE") hint4
 #@ boolean Cell_counts_per_ganglia (description="Use a pretrained deepImageJ model to predict ganglia outline")
-#@ String(choices={"DeepImageJ","Define ganglia using Hu","Manually draw ganglia"}, style="radioButtonHorizontal") Ganglia_detection
-#@ String(label="<html> Enter the channel number for segmenting ganglia.<br/> Not valid for 'Define ganglia using Hu'.<br/> Enter NA if not using.<html> ", value="NA") ganglia_channel
+#@ String(choices={"DeepImageJ","Define ganglia using Hu","Manually draw ganglia","Import custom ROI"}, style="radioButtonHorizontal") Ganglia_detection
+#@ String(label="<html> Enter the channel number for segmenting ganglia.<br/> Not valid for 'Define ganglia using Hu and Import custom ROI'.<br/> Enter NA if not using.<html> ", value="NA") ganglia_channel
 #@ String(value="<html>----------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") adv
 #@ boolean Perform_Spatial_Analysis(description="<html><b>If ticked, it will perform spatial analysis for all markers. Convenient than performing them individually. -> </b><html>")
-#@ boolean Finetune_Detection_Parameters(description="<html><b>Enter custom rescaling factor and probabilities</b><html>")
+#@ boolean Finetune_Detection_Parameters(description="<html><b>Adjust Probabilities or import custom ROIs</b><html>")
 #@ boolean Contribute_to_GAT(description="<html><b>Contribute to GAT by saving image and masks</b><html>") 
 
 scale = 1;
@@ -102,9 +110,13 @@ if(Finetune_Detection_Parameters==true)
 	//Dialog.addSlider("Rescaling Factor", 0, 1,1.00);
   	Dialog.addSlider("Probability of detecting neurons (Hu)", 0, 1,probability);	
   	Dialog.addSlider("Overlap threshold", 0, 1,overlap);
+  	//add checkbox to same row as slider
+  	Dialog.addToSameRow();
+  	Dialog.addCheckbox("Custom ROI", 0);
 	Dialog.show(); 
 	scale = Dialog.getNumber();
 	probability= Dialog.getNumber();
+	custom_roi_hu = Dialog.getCheckbox();
 	overlap= Dialog.getNumber();
 }
 
@@ -383,10 +395,22 @@ if(scale_factor!=1)
 roiManager("UseNames", "false");
 
 selectWindow("Log");
-print("*********Segmenting cells using StarDist********");
 
-//segment neurons using StarDist model
-segment_cells(max_projection,seg_image,neuron_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap);
+//if custom ROIs for Hu, import ROI here
+if(custom_roi_hu)
+{
+	print("Importing ROIs for Hu");
+	custom_hu_roi_path = File.openDialog("Choose custom ROI for Hu");
+	roiManager("open", custom_hu_roi_path);
+}
+else
+{
+
+	print("*********Segmenting cells using StarDist********");
+
+	//segment neurons using StarDist model
+	segment_cells(max_projection,seg_image,neuron_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap);
+}
 
 //close(seg_image);
 
@@ -403,6 +427,8 @@ if(cell_count == 0)
 	}
 }
 
+selectWindow(max_projection);
+roiManager("show all");
 //manually correct or verify if needed
 waitForUser("Correct "+cell_type+" ROIs if needed. You can delete or add ROIs using ROI Manager");
 cell_count=roiManager("count");
@@ -480,6 +506,14 @@ if (Cell_counts_per_ganglia==true)
 		Ext.CLIJ2_release(dilated);
 		Ext.CLIJ2_pull(ganglia_binary);
 		Ext.CLIJ2_pull(neuron_label_image);*/
+	 }
+	 else if(Ganglia_detection=="Import custom ROI")
+	 {
+		args1=max_projection;
+		//get ganglia outline
+		runMacro(ganglia_custom_roi,args1);
+		ganglia_binary=getTitle();
+	 	
 	 }
 	 else
 	 {

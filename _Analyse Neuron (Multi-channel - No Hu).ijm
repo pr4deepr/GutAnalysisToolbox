@@ -51,6 +51,7 @@ overlap_subtype=parseFloat(Table.get("Values", 8));
 
 
 neron_subtype_file = Table.getString("Values", 10);
+selectWindow("Results");
 run("Close");
 
 
@@ -88,6 +89,9 @@ if(!File.exists(segment_ganglia)) exit("Cannot find segment ganglia script. Retu
 var spatial_two_cell_type=gat_dir+fs+"spatial_two_celltype.ijm";
 if(!File.exists(spatial_two_cell_type)) exit("Cannot find spatial analysis script. Returning: "+spatial_two_cell_type);
 
+//check if import custom ganglia rois script is present
+var ganglia_custom_roi=gat_dir+fs+"ganglia_custom_roi.ijm";
+if(!File.exists(ganglia_custom_roi)) exit("Cannot find single ganglia custom roi script. Returning: "+ganglia_custom_roi);
 
 
 fs = File.separator; //get the file separator for the computer (depending on operating system)
@@ -105,8 +109,9 @@ fs = File.separator; //get the file separator for the computer (depending on ope
 #@ boolean Cell_counts_per_ganglia (description="Use a pretrained deepImageJ model to predict ganglia outline")
 #@ String(label="<html> Enter the channel NUMBER that labels neuronal/glial fibres.<br/> Enter NA if not using.<html> ", value="NA") ganglia_channel
 #@ String(label="<html> Enter the channel NUMBER for marker that labels most cells.<br/> Enter NA if not using.<html> ", value="NA") cell_channel
-#@ String(choices={"DeepImageJ","Manually draw ganglia"}, style="radioButtonHorizontal") Ganglia_detection
+#@ String(choices={"DeepImageJ","Manually draw ganglia","Import custom ROI"}, style="radioButtonHorizontal") Ganglia_detection
 #@ String(value="<html>----------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") adv
+#@ String(value="<html>Finetune detection parameters are enabled by default<html>",visibility="MESSAGE") finentune_hint
 #@ boolean Perform_Spatial_Analysis(description="<html><b>If ticked, it will perform spatial analysis for all markers. Convenient than performing them individually. -> </b><html>")
 //#@ boolean Finetune_Detection_Parameters(description="<html><b>Enter custom rescaling factor and probabilities</b><html>")
 #@ boolean Contribute_to_GAT(description="<html><b>Contribute to GAT by saving image and masks</b><html>") 
@@ -153,6 +158,7 @@ if(marker_names_manual.length!=marker_no_manual.length) exit("Number of marker n
 //custom probability for subtypes
 //create dialog box based on number of markers
 probability_subtype_arr=newArray(marker_names_manual.length);
+custom_roi_subtype_arr=newArray(marker_names_manual.length);
 if(Finetune_Detection_Parameters==true)
 {
 	print("Using manual probability and overlap threshold for detection");
@@ -164,7 +170,8 @@ if(Finetune_Detection_Parameters==true)
   	{
 		
 	    Dialog.addSlider("Probability for "+marker_names_manual[i], 0, 1,probability_subtype);
-	    
+	    Dialog.addToSameRow();
+  		Dialog.addCheckbox("Custom ROI", 0);	    
 	}
 	
   	Dialog.addSlider("Overlap threshold", 0, 1,overlap);
@@ -175,6 +182,7 @@ if(Finetune_Detection_Parameters==true)
 	for ( i = 0; i < marker_names_manual.length; i++) 
   	{
 	    probability_subtype_arr[i]= Dialog.getNumber();
+	    custom_roi_subtype_arr[i]=Dialog.getCheckbox();
 	}
 	
 	overlap= Dialog.getNumber();
@@ -237,12 +245,13 @@ if (!File.exists(analysis_dir)) File.makeDirectory(analysis_dir);
 save_location_exists = 1;
 do
 {
-	if(file_name_length>50)
+	if(file_name_length>50 ||save_location_exists == 1)
 	{
 	
 		file_name=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
 		suffix = getString("File name is too long, will be shortened. Enter custom name or if lif file, enter series num.", "_1");
 		file_name = file_name+suffix;
+		save_location_exists = 0;
 	   }
 
 	else file_name=file_name_full;
@@ -256,6 +265,7 @@ do
 	else 
 	{
 		waitForUser("Folder exists, enter new name in next prompt");
+		save_location_exists = 1;
 	}
 	
 
@@ -413,14 +423,35 @@ if (Cell_counts_per_ganglia==true)
 	 	//draw_ganglia_outline(ganglia_binary,true);
 	 	
 	 }
+	 else if(Ganglia_detection=="Import custom ROI")
+	 {
+		args1=max_projection;
+		//get ganglia outline
+		runMacro(ganglia_custom_roi,args1);
+		ganglia_binary=getTitle();
+	 	
+	 }
 	 else 
 	 {
 	 	ganglia_binary=draw_ganglia_outline(max_projection,cell_channel,ganglia_channel,false);
 	 	
 	 }
+	 
+
+	selectWindow(ganglia_binary);	
+	run("Connected Components Labeling", "connectivity=8 type=[16 bits]");
+	wait(5);
+	ganglia_label = getTitle();
+	runMacro(label_to_roi,ganglia_label);
+	roiManager("deselect");
+	ganglia_number=roiManager("count");
+	roi_location=results_dir+"Ganglia_ROIs_"+file_name+".zip";
+	roiManager("save",roi_location );
+	roiManager("reset");
+	close(ganglia_label);
+	
 }
 else ganglia_binary = "NA";
-
 
 
 
@@ -515,8 +546,6 @@ for(i=0;i<channel_combinations.length;i++)
 			run("Duplicate...", "title="+channel_name+"_segmentation");
 			//waitForUser;
 			marker_image=getTitle();
-			//print(marker_image);
-			//waitForUser;
 			
 			//scaling marker images so we can segment them using same size as images used for training the model. Also, ensures consistent size exclusion area
 			seg_marker_img=scale_image(marker_image,scale_factor,channel_name);
@@ -525,14 +554,33 @@ for(i=0;i<channel_combinations.length;i++)
 			print("Segmenting marker "+channel_name);
 			selectWindow(seg_marker_img);
 			getPixelSize(unit, rescaled_pixelWidth, rescaled_pixelHeight);
-			print("Probability for detection "+probability_subtype_val);
 			
+
+			
+			if(custom_roi_subtype_arr[i])
+			{
+				print("Importing ROIs for "+channel_name);
+				custom_subtype_roi_path = File.openDialog("Choose custom ROI for "+channel_name);
+				roiManager("open", custom_subtype_roi_path);
+				runMacro(roi_to_label);
+				wait(5);
+				rename("label_img_temp");
+			}
+			else
+			{
+			
+			print("Probability for detection "+probability_subtype_val);
 			segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype_val,overlap_subtype);
 			selectWindow(max_projection);
 			roiManager("deselect");
 			runMacro(roi_to_label);
 			wait(5);
 			rename("label_img_temp");
+						
+			}
+			close(seg_marker_img);
+			
+			selectWindow("label_img_temp");
 			run("glasbey_on_dark");
 			//selectWindow("label_mapss");
 			run("Select None");
@@ -544,6 +592,7 @@ for(i=0;i<channel_combinations.length;i++)
 			runMacro(label_to_roi,"label_img_temp");
 			close("label_img_temp");
 			wait(5);
+
 			selectWindow(max_projection);
 			run("Remove Overlay");
 			//roiManager("deselect");
@@ -551,6 +600,7 @@ for(i=0;i<channel_combinations.length;i++)
 			//selectWindow(max_projection);
 			waitForUser("Verify ROIs for "+channel_name+". Delete or add ROIs as needed.\nIf no cells detected, you won't see anything.\nPress OK when done.");
 			roiManager("deselect");
+			
 			//convert roi manager to label image
 			runMacro(roi_to_label);
 			selectWindow("label_mapss");
@@ -559,9 +609,10 @@ for(i=0;i<channel_combinations.length;i++)
 			//store resized label images for analysing label co-expression
 			label_name = "label_"+channel_name;
 			label_rescaled_img=scale_image(label_marker,scale_factor,label_name);
-
+			
 			
 			selectWindow(label_marker);
+			
 			//save images and masks if user selects to save them for the marker
 			if(Save_Image_Masks == true)
 			{
@@ -598,7 +649,7 @@ for(i=0;i<channel_combinations.length;i++)
 				roi_location_marker=results_dir+channel_name+"_ROIs.zip";
 				roiManager("save",roi_location_marker);
 			}
-			close(seg_marker_img);
+			
 			
 			roiManager("reset");
 			//Array.print(marker_label_arr);
@@ -610,10 +661,11 @@ for(i=0;i<channel_combinations.length;i++)
 				run("Select None");
 				
 				args=label_marker+","+ganglia_binary;
+				
 				//get cell count per ganglia
 				runMacro(ganglia_cell_count,args);
-				
 				print("Getting Cell count per ganglia. May take some time for large images for very first time.");
+				
 				//label_overlap is the ganglia where each of them are labels
 				selectWindow("label_overlap");
 				run("Select None");
@@ -635,8 +687,11 @@ for(i=0;i<channel_combinations.length;i++)
 
 				selectWindow("cells_ganglia_count");
 				cell_count_per_ganglia=Table.getColumn("Cell counts");
+				//cell_count_per_ganglia=Array.deleteValue(cell_count_per_ganglia, 0);
 
+				
 				selectWindow(table_name);
+				Table.set("No of ganglia",0, ganglia_number);
 				Table.setColumn(channel_name+" counts per ganglia", cell_count_per_ganglia);
 				Table.update;
 				

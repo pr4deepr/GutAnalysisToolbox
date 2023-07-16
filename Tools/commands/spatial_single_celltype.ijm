@@ -136,6 +136,7 @@ function nearest_neighbour_single_cell(ref_img,dilate_radius,ganglia_binary,cell
 		Ext.CLIJ2_multiplyImages(ref_dilate, ganglia_binary, ref_dilate_ganglia_restrict);
 		//get neighbour count for each cell in ref_img
 		Ext.CLIJ2_touchingNeighborCountMap(ref_dilate_ganglia_restrict, ref_neighbour_count);
+		Ext.CLIJ2_release(ganglia_binary);
 	}
 	else 
 	{
@@ -154,7 +155,7 @@ function nearest_neighbour_single_cell(ref_img,dilate_radius,ganglia_binary,cell
 	run("Clear Results");
 	no_neighbours[0]=0;
 	
-	Ext.CLIJ2_release(ganglia_binary);
+	
 	Ext.CLIJ2_release(ref_neighbour_count);
 	Ext.CLIJ2_release(ref_img_centroid);
 	

@@ -109,6 +109,10 @@ if(!File.exists(spatial_hu_marker_cell_type)) exit("Cannot find hu_marker spatia
 var ganglia_custom_roi=gat_dir+fs+"ganglia_custom_roi.ijm";
 if(!File.exists(ganglia_custom_roi)) exit("Cannot find single ganglia custom roi script. Returning: "+ganglia_custom_roi);
 
+//check if import save centroids script is present
+var save_centroids=gat_dir+fs+"save_centroids.ijm";
+if(!File.exists(save_centroids)) exit("Cannot find save_centroids custom roi script. Returning: "+save_centroids);
+
 
 fs = File.separator; //get the file separator for the computer (depending on operating system)
 
@@ -179,6 +183,7 @@ if(marker_subtype==1 && Enter_channel_details_now==1)
 //create dialog box based on number of markers
 probability_subtype_arr=newArray(marker_names_manual.length);
 custom_roi_subtype_arr=newArray(marker_names_manual.length);
+
 if(Finetune_Detection_Parameters==true)
 {
 	print("Using manual probability and overlap threshold for detection");
@@ -218,10 +223,12 @@ if(Finetune_Detection_Parameters==true)
 
 else 
 { //assign probability subtype default values to all of them
+	custom_roi_hu =false;
 	for ( i = 0; i < marker_names_manual.length; i++) 
   	{
 		
 		probability_subtype_arr[i]=probability_subtype;
+		custom_roi_subtype_arr[i]=false;
 	    
 	}
 }
@@ -731,7 +738,16 @@ if(Perform_Spatial_Analysis==true)
 	
 	args=cell_type+","+neuron_label_image+","+ganglia_binary+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;
 	runMacro(spatial_single_cell_type,args);
+	
+	//save centroids of rois; this can be used for spatial analysis
+	selectWindow(neuron_label_image);
+	setVoxelSize(pixelWidth, pixelHeight, 1, unit);
+	args=results_dir+","+cell_type+","+neuron_label_image;
+	runMacro(save_centroids,args);
+	
 	print("Spatial Analysis for "+cell_type+" done");
+	
+	
 }
 
 
@@ -826,16 +842,19 @@ if(marker_subtype==1)
 
 		marker_image=getTitle();
 
+		roiManager("reset");
 		
 		if(custom_roi_subtype_arr[i])
 		{
 			print("Importing ROIs for "+channel_name);
 			custom_subtype_roi_path = File.openDialog("Choose custom ROI for "+channel_name);
 			roiManager("open", custom_subtype_roi_path);
-			runMacro(roi_to_label);
+			print("ROI file: "+custom_subtype_roi_path);
 			wait(5);
-			rename("sub_marker_temp");
-			temp_label =getTitle();
+			//runMacro(roi_to_label);
+			//wait(5);
+			//rename("sub_marker_temp");
+			//temp_label =getTitle();
 		}
 		else
 		{
@@ -849,31 +868,35 @@ if(marker_subtype==1)
 			//run("Subtract Background...", "rolling="+backgrnd_radius+" sliding");
 			print("Probability for detection "+probability_subtype_val);
 			
+			//will get roi manager 
 			segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype_val,overlap_subtype);
-			selectWindow(max_projection);
-			roiManager("deselect");
-			runMacro(roi_to_label);
-			rename("label_img_temp");
-			run("glasbey_on_dark");
-			//selectWindow("label_mapss");
-			run("Select None");
-			roiManager("reset");
-			
-			//multiply with HU to verify if its a neuron. multiply above label image with image of Neuron label
-			//if Hu and marker are present, keeps label, else it becomes background
-			//keep objects within size range 400 to 3000; may need to alter this later depending on cell size
-			//Manual step to verify
-			temp_label=multiply_markers(neuron_label_image,"label_img_temp",neuron_min_pixels,neuron_max_pixels);//getting smaller objects, so inc min size to 400
-			
-			//selectWindow(temp_label);
-			selectWindow(temp_label);
-			runMacro(label_to_roi,temp_label);
-			//close(temp_label);
-			close("label_img_temp");
 			wait(5);
 			close(seg_marker_img);
-
 		}
+		selectWindow(max_projection);
+		run("Select None");
+		
+		roiManager("deselect");
+		runMacro(roi_to_label);
+		rename("label_img_temp");
+		run("glasbey_on_dark");
+		//selectWindow("label_mapss");
+		run("Select None");
+		roiManager("reset");
+			
+		//multiply with HU to verify if its a neuron. multiply above label image with image of Neuron label
+		//if Hu and marker are present, keeps label, else it becomes background
+		//keep objects within size range 400 to 3000; may need to alter this later depending on cell size
+		//Manual step to verify
+		temp_label=multiply_markers(neuron_label_image,"label_img_temp",neuron_min_pixels,neuron_max_pixels);//getting smaller objects, so inc min size to 400
+			
+		
+		selectWindow(temp_label);
+		runMacro(label_to_roi,temp_label);
+		close("label_img_temp");
+		wait(5);
+		
+
 		selectWindow(max_projection);
 		run("Remove Overlay");
 		roiManager("deselect");
@@ -978,6 +1001,14 @@ if(marker_subtype==1)
 				//label_marker is original scale so default pixelWidth
 				args=cell_type+","+neuron_label_image+","+channel_name+","+label_marker+","+ganglia_binary+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;
 				runMacro(spatial_hu_marker_cell_type,args);
+				
+				//save centroids of rois; this can be used for spatial analysis
+				//get centroids in microns
+				selectWindow(label_marker);
+				setVoxelSize(pixelWidth, pixelHeight, 1, unit);
+				args=results_dir+","+channel_name+","+label_marker;
+				runMacro(save_centroids,args);
+				
 				print("Spatial Done");
 				
 			}

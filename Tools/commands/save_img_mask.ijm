@@ -62,7 +62,7 @@ function generate_file_name(path,name,ext)
 		do 
 		{
 			new_name=name+"_"+no;
-			print(new_name);
+			//print(new_name);
 			no+=1;
 		}
 		while(File.exists(path+new_name+ext))

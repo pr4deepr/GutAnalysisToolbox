@@ -81,6 +81,11 @@ if(!File.exists(spatial_single_cell_type)) exit("Cannot find single cell spatial
 var ganglia_custom_roi=gat_dir+fs+"ganglia_custom_roi.ijm";
 if(!File.exists(ganglia_custom_roi)) exit("Cannot find single ganglia custom roi script. Returning: "+ganglia_custom_roi);
 
+//check if import save centroids script is present
+var save_centroids=gat_dir+fs+"save_centroids.ijm";
+if(!File.exists(save_centroids)) exit("Cannot find save_centroids custom roi script. Returning: "+save_centroids);
+
+
 
 
 #@ File (style="open", label="<html>Choose the image to segment.<br><b>Enter NA if image is open or if field is empty.</b><html>", value=fiji_dir) path
@@ -101,6 +106,7 @@ cell_type="Neuron";
 #@ boolean Contribute_to_GAT(description="<html><b>Contribute to GAT by saving image and masks</b><html>") 
 
 scale = 1;
+
 if(Finetune_Detection_Parameters==true)
 {
 	print("Using manual probability and overlap threshold for detection");
@@ -119,6 +125,7 @@ if(Finetune_Detection_Parameters==true)
 	custom_roi_hu = Dialog.getCheckbox();
 	overlap= Dialog.getNumber();
 }
+else custom_roi_hu=false;
 
 if(Contribute_to_GAT==true)
 {
@@ -617,6 +624,14 @@ if(Perform_Spatial_Analysis==true)
 	save_parametric_image = Dialog.getCheckbox();
 	args=cell_type+","+neuron_label_image+","+ganglia_binary+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;
 	runMacro(spatial_single_cell_type,args);
+	
+	//save centroids of rois; this can be used for spatial analysis
+	selectWindow(neuron_label_image);
+	setVoxelSize(pixelWidth, pixelHeight, 1, unit);
+	args=results_dir+","+cell_type+","+neuron_label_image;
+	runMacro(save_centroids,args);	
+	
+	
 	print("Spatial Analysis for "+cell_type+" done");
 }
 

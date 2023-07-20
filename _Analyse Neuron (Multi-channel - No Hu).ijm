@@ -93,6 +93,10 @@ if(!File.exists(spatial_two_cell_type)) exit("Cannot find spatial analysis scrip
 var ganglia_custom_roi=gat_dir+fs+"ganglia_custom_roi.ijm";
 if(!File.exists(ganglia_custom_roi)) exit("Cannot find single ganglia custom roi script. Returning: "+ganglia_custom_roi);
 
+//check if import save centroids script is present
+var save_centroids=gat_dir+fs+"save_centroids.ijm";
+if(!File.exists(save_centroids)) exit("Cannot find save_centroids custom roi script. Returning: "+save_centroids);
+
 
 fs = File.separator; //get the file separator for the computer (depending on operating system)
 
@@ -193,7 +197,7 @@ else
 { //assign probability subtype default values to all of them
 	for ( i = 0; i < marker_names_manual.length; i++) 
   	{
-		
+		custom_roi_subtype_arr[i]=false;
 		probability_subtype_arr[i]=probability_subtype;
 	    
 	}

@@ -141,7 +141,8 @@ macro "spatial_two_celltype"
 }		
 
 
-
+//For each cell in marker_img, how many cells around it in ref_img
+//use labeloverlapcountmap in CLIJ2 for counting overlapping labels
 function count_neighbour_around_ref_img(ref_img,marker_img,dilate_radius,ganglia_binary)
 {
 	run("Clear Results");

@@ -1,4 +1,5 @@
 //THIS IS DIFFERENT FROM Calculate_Neurons_per_Ganglia.ijm as it expects ganglia image to be label image
+//also used for neuronal subtype calculations
 //Counts number of cells in different ganglia
 //Uses ganglia label image 
 //Uses CLIJ overlap count to measure no of objects in each label image

@@ -70,17 +70,11 @@ macro "count_cells_per_ganglia"
 	// Label Overlap Count Map
 	Ext.CLIJ2_labelOverlapCountMap(ganglia_labels, cell_img, label_overlap);
 	Ext.CLIJ2_release(cell_img);
-	Ext.CLIJ2_release(ganglia_labels);
-	//return a copy where ganglia are numbered sequentially; will use this as ganglia label map
-	Ext.CLIJ2_closeIndexGapsInLabelMap(label_overlap, label_overlap_ordered);
-	Ext.CLIJ2_pull(label_overlap_ordered);
+	Ext.CLIJ2_pull(ganglia_labels);
 	Ext.CLIJ2_pull(label_overlap);
 	
-	//convert labels to rois
-	//Ext.CLIJ2_pullLabelsToROIManager(ganglia_labels);
-	
 	roiManager("reset");
-	selectWindow(label_overlap);
+	selectWindow(label_overlap); //this command is usually for Hu, so we use label_overlap to make sure if for some reason there are ganglia with no Hu they get eliminated
 	run("Select None");
 	run("Label image to ROIs");
 	
@@ -104,10 +98,10 @@ macro "count_cells_per_ganglia"
 	//Table.renameColumn(oldName, newName);
 	selectWindow("Results");
 	run("Close");
-	if(isOpen(ganglia_labels)) close(ganglia_labels);
+	//if(isOpen(ganglia_labels)) close(ganglia_labels);
 	if(isOpen(label_overlap)) close(label_overlap);
 	
-	selectWindow(label_overlap_ordered);
-	rename("label_overlap");
+	selectWindow(ganglia_labels);
+	rename("label_overlap"); //keeping this part same so the rest of the main code doesn't need to be changed
 	
 }

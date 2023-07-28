@@ -39,23 +39,33 @@ macro "ganglia_custom_roi"
 
 	if(getArgument()=="")
 	{
-	 waitForUser("Select image corresponding to ROIs");
-	 max_projection=getTitle();
+	 //waitForUser("Select image corresponding to ROIs");
+	 //max_projection=getTitle();
+	 
+	 waitForUser("Select label image or max projection");
+	 neuron_label_img=getTitle();
+	 selectWindow(neuron_label_img);
 	}
 	else 
 	{
 		args=getArgument();
 		arg_array=split(args, ",");
-		max_projection=arg_array[0];
-		selectWindow(max_projection);
+		//max_projection=arg_array[0];
+		neuron_label_img = arg_array[0];
+		selectWindow(neuron_label_img);
 	}
-		ganglia_roi_path = File.openDialog("Choose ROI Manager for Ganglia");
-	 	roiManager("open", ganglia_roi_path);
-	 	roiManager("show all without labels");
-	 	waitForUser("Verify if ganglia outline is correct. If not, go to More ->Open to choose another ROI file");
-	 	roiManager("deselect");
-	 	runMacro(roi_to_label);
-		wait(5);
+	getDimensions(width, height, channels, slices, frames);
+	ganglia_roi_path = File.openDialog("Choose ROI Manager for Ganglia");
+	roiManager("open", ganglia_roi_path);
+	roiManager("show all without labels");
+	waitForUser("Verify if ganglia outline is correct. If not, go to More ->Open to choose another ROI file");
+	roiManager("deselect");
+	runMacro(roi_to_label);
+	wait(5);
+	
+	//multichannel image being passed (neuronal subtype analysis)
+	if(channels>1)
+	{	
 		rename("ganglia_binary");
 		ganglia_binary = getTitle();
 		run("8-bit");
@@ -64,8 +74,6 @@ macro "ganglia_custom_roi"
 		roiManager("deselect");
 		roiManager("Fill");
 		roiManager("reset");
-		selectWindow(max_projection);
-		run("Remove Overlay");
 		
 		//8-bit conversion above doesn't always work, so ensuring its 8 bit binary
 		selectWindow(ganglia_binary);
@@ -73,5 +81,59 @@ macro "ganglia_custom_roi"
 		setOption("BlackBackground", true);
 		run("Convert to Mask");
 		selectWindow(ganglia_binary);
+		
+		selectWindow(neuron_label_img);
+		run("Remove Overlay");
+		setOption("BlackBackground", true);
+	}
+	else if (channels==1)
+	{
+		rename("ganglia_temp");
+		ganglia_temp = getTitle();
+		// if its one large roi for ganglia, label image will only have value of 1
+		selectWindow(ganglia_temp);
+		run("Connected Components Labeling", "connectivity=8 type=[16 bits]");
+		//custom ROI may have ganglia with no cells; so filter those ganglia out
+	 	ganglia_label_img =getTitle();
+	 	close(ganglia_temp);
+	 	
+	 	
+	 	ganglia_binary = "ganglia_binary";
+	 	run("CLIJ2 Macro Extensions", "cl_device=");
+	 	Ext.CLIJ2_push(neuron_label_img);
+	 	Ext.CLIJ2_push(ganglia_label_img);
+	 	
+	 	Ext.CLIJ2_labelOverlapCountMap(ganglia_label_img, neuron_label_img, label_overlap);
+	 	Ext.CLIJ2_release(neuron_label_img);
+	 	Ext.CLIJ2_release(ganglia_label_img);
+	 	
+	 	Ext.CLIJ2_greaterOrEqualConstant(label_overlap, ganglia_temp, 1.0);
+	 	Ext.CLIJ2_release(label_overlap);
+	 	
+	 	Ext.CLIJ2_convertUInt8(ganglia_temp, ganglia_binary);
+	 	Ext.CLIJ2_release(ganglia_temp);
+	 	//Ext.CLIJ2_multiplyImages(ganglia_label_img, label_binary, ganglia_binary);
+	 	
+	 	Ext.CLIJ2_pull(ganglia_binary);
+	 	
+		wait(5);
+		close(ganglia_label_img);
+		//convert to imagej binar
+		selectWindow(ganglia_binary);
+		setThreshold(1, 255);
+		setOption("BlackBackground", true);
+		run("Convert to Mask");
+		
+		selectWindow(neuron_label_img);
+		run("Remove Overlay");
+		setOption("BlackBackground", true);
+		
+		//active window is ganglia binary image
+		selectWindow(ganglia_binary);
+	}
+
+	 	
+
+		
 	
 }

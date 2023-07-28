@@ -647,7 +647,7 @@ if (Cell_counts_per_ganglia==true)
 	 }
 	 else if(Ganglia_detection=="Import custom ROI")
 	 {
-		args1=max_projection;
+		args1=neuron_label_image;
 		//get ganglia outline
 		runMacro(ganglia_custom_roi,args1);
 		ganglia_binary=getTitle();

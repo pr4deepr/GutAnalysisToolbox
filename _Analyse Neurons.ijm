@@ -1,10 +1,10 @@
 
 //*******
 // Author: Pradeep Rajasekhar
-// March 2021
+// March 2023
 // License: BSD3
 // 
-// Copyright 2021 Pradeep Rajasekhar, Walter and Eliza Hall Institute of Medical Research, Melbourne, Australia
+// Copyright 2023 Pradeep Rajasekhar, Walter and Eliza Hall Institute of Medical Research, Melbourne, Australia
 // 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 // 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
@@ -516,7 +516,7 @@ if (Cell_counts_per_ganglia==true)
 	 }
 	 else if(Ganglia_detection=="Import custom ROI")
 	 {
-		args1=max_projection;
+		args1=neuron_label_image;
 		//get ganglia outline
 		runMacro(ganglia_custom_roi,args1);
 		ganglia_binary=getTitle();

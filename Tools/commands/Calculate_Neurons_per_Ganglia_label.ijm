@@ -48,14 +48,14 @@ macro "count_cells_per_ganglia_label"
 	// Label Overlap Count Map
 	Ext.CLIJ2_labelOverlapCountMap(ganglia_label_img, cell_img, label_overlap);
 	Ext.CLIJ2_release(cell_img);
-	Ext.CLIJ2_pull(ganglia_label_img);
+	Ext.CLIJ2_release(ganglia_label_img);
 	Ext.CLIJ2_pull(label_overlap);
 	
 	run("Set Measurements...", "min redirect=None decimal=3");
 	//we get ganglia roi from ganglia label image
 	selectWindow(ganglia_label_img);
 	run("Select None");
-	run("Label image to ROIs");
+	run("Label image to composite ROIs");
 	
 	//measure it from the label-overlap img
 	selectWindow(label_overlap);

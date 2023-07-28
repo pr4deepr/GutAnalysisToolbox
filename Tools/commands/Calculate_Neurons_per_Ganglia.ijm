@@ -60,7 +60,7 @@ macro "count_cells_per_ganglia"
 
 	run("CLIJ2 Macro Extensions", "cl_device=");
 	Ext.CLIJ2_push(ganglia_labels);
-	Ext.CLIJ2_push(cell_img);
+	Ext.CLIJ2_push(cell_img); 
 
 	// Flood Fill Components Labeling
 	//Ext.CLIJ2_connectedComponentsLabelingDiamond(ganglia_binary, ganglia_labels);
@@ -70,13 +70,13 @@ macro "count_cells_per_ganglia"
 	// Label Overlap Count Map
 	Ext.CLIJ2_labelOverlapCountMap(ganglia_labels, cell_img, label_overlap);
 	Ext.CLIJ2_release(cell_img);
-	Ext.CLIJ2_pull(ganglia_labels);
+	Ext.CLIJ2_release(ganglia_labels);
 	Ext.CLIJ2_pull(label_overlap);
 	
 	roiManager("reset");
-	selectWindow(label_overlap); //this command is usually for Hu, so we use label_overlap to make sure if for some reason there are ganglia with no Hu they get eliminated
+	selectWindow(ganglia_labels); //this command is  for Hu
 	run("Select None");
-	run("Label image to ROIs");
+	run("Label image to composite ROIs");
 	
 	run("Set Measurements...", "min redirect=None decimal=3");
 	//each ganglia will have number of neurons calculated form labeloverlapcount command above

@@ -652,8 +652,8 @@ if (Cell_counts_per_ganglia==true)
 		runMacro(ganglia_custom_roi,args1);
 		ganglia_binary=getTitle();
 	 	
-	 }
-	 else ganglia_binary=draw_ganglia_outline(ganglia_img,false);
+	 } //draw ganglia outline
+	 else ganglia_binary=draw_ganglia_outline(max_projection,false);
 	 
 	args=neuron_label_image+","+ganglia_binary;
 	

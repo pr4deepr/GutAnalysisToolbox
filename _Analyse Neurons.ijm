@@ -524,7 +524,7 @@ if (Cell_counts_per_ganglia==true)
 	 }
 	 else
 	 {
-	 	ganglia_binary=draw_ganglia_outline(ganglia_img,false);
+	 	ganglia_binary=draw_ganglia_outline(max_projection,false);
 	 }
 	 
 	args=neuron_label_image+","+ganglia_binary;
@@ -752,6 +752,7 @@ function draw_ganglia_outline(ganglia_img,edit_flag)
 		roiManager("reset");
 		setTool("freehand");
 		selectWindow(ganglia_img);
+		Stack.setDisplayMode("composite");
 		Stack.getDimensions(width, height, channels, slices, frames);
 		waitForUser("Ganglia outline", "Draw outline of the ganglia. Press T every time you finish drawing an outline");
 		roiManager("Deselect");

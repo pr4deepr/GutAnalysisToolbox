@@ -4,7 +4,7 @@
 // March 2023
 // License: BSD3
 // 
-// Copyright 2021 Pradeep Rajasekhar, Walter and Eliza Hall Institute of Medical Research, Melbourne, Australia
+// Copyright 2023 Pradeep Rajasekhar, Walter and Eliza Hall Institute of Medical Research, Melbourne, Australia
 // 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 // 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
@@ -14,8 +14,7 @@
 //FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
 //BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-//Analyse ENS images without Hu
-
+//Get neuronal counts from multichannel images without Hu
 
 
 var fs=File.separator;
@@ -515,6 +514,8 @@ marker_label_arr=newArray(); //store names of label images generated from StarDi
 selectWindow(max_projection);
 Stack.setDisplayMode("color");
 row=0;
+//array to store the channel names displayed in table
+display_ch_names = newArray();
 
 //iterate through all the channel combinations
 //perform segmentation and update table
@@ -636,12 +637,13 @@ for(i=0;i<channel_combinations.length;i++)
 
 			marker_count=roiManager("count"); // in case any neurons added after manual verification of markers
 			selectWindow(table_name);
-			//Table.set("Total "+cell_type, row, cell_count);
-			Table.set("Marker Combinations", row, channel_name);
-			Table.set("Number of cells per marker combination", row, marker_count);
-			Table.set("|", row, "|");
-
-			//Table.set(""+cell_type, row, marker_count/cell_count);
+			
+			//Table.set("Marker Combinations", row, channel_name);
+			//Table.set("Number of cells per marker combination", row, marker_count);
+			//Table.set("|", row, "|");
+			Table.set(channel_name, 0,marker_count);
+			display_ch_names[i]=channel_name;
+			
 			Table.update;
 			row+=1;
 			
@@ -840,11 +842,8 @@ for(i=0;i<channel_combinations.length;i++)
 
 				marker_count=roiManager("count"); // in case any neurons added after analysis of markers
 				selectWindow(table_name);
-				//Table.set("Total "+cell_type, row, cell_count);
-				Table.set("Marker Combinations", row, roi_file_name);
-				Table.set("Number of cells per marker combination", row, marker_count);
-				Table.set("|", row, "|");
-				//Table.set(""+cell_type, row, marker_count/cell_count);
+				Table.set(roi_file_name, 0, marker_count);
+				display_ch_names[i]=roi_file_name;
 				Table.update;
 				row+=1;
 
@@ -894,28 +893,26 @@ roiManager("reset");
 	  }
    }
 
-//remove zeroes in the array
-selectWindow(table_name);
-marker_combinations=Table.getColumn("Marker Combinations"); 
-marker_combinations=Array.deleteValue(marker_combinations, 0);
-Table.setColumn("Marker Combinations", marker_combinations);
-
-//trim marker combination column to remove zeroes
-marker_comb_length=marker_combinations.length;
-no_cells_marker=Table.getColumn("Number of cells per marker combination");
-no_cells_marker=Array.trim(no_cells_marker,marker_comb_length);
-Table.setColumn("Number of cells per marker combination", no_cells_marker);
-
-
-
-//replace zeroes in divider column with divider
-file_array=Table.getColumn("|"); 
-file_array=replace_str_arr(file_array,0,"|");
-Table.setColumn("|", file_array);
-Table.update;
-
 
 close("label_img_*");
+
+//remove zeroes in the array
+//Array.show(display_ch_names);
+print(display_ch_names.length);
+for(name=0;name<display_ch_names.length;name++)
+{
+	//remove zeroes in the array
+	selectWindow(table_name);
+	//print(name);
+	//print(display_ch_names[name]);
+	marker_combinations=Table.getColumn(display_ch_names[name]); 
+	marker_combinations=Array.deleteValue(marker_combinations, 0);
+	//if all values zero, make sure first value is set to 0 (for the table)
+	if(marker_combinations.length==0) marker_combinations[0]=0;
+	Table.setColumn(display_ch_names[name], marker_combinations);
+}
+
+
 
 //remove zeroes in the file name
 selectWindow(table_name);

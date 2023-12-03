@@ -1228,6 +1228,9 @@ for(name=0;name<display_ch_names.length;name++)
 	//print(display_ch_names[name]);
 	marker_combinations=Table.getColumn(display_ch_names[name]); 
 	marker_combinations=Array.deleteValue(marker_combinations, 0);
+	//if all values zero, make sure first value is set to 0 (for the table)
+	if(marker_combinations.length==0) marker_combinations[0]=0;
+	
 	Table.setColumn(display_ch_names[name], marker_combinations);
 }
 
@@ -1243,7 +1246,11 @@ Table.setColumn("File name", file_array);
 //remove zeroes in neuron array
 file_array=Table.getColumn("Total "+cell_type); 
 file_array=Array.deleteValue(file_array, 0);
+
+//if all values zero, make sure first value is set to 0 (for the table)
+if(file_array.length==0) file_array[0]=0;
 Table.setColumn("Total "+cell_type, file_array);
+
 if (Cell_counts_per_ganglia==true)
 {
 

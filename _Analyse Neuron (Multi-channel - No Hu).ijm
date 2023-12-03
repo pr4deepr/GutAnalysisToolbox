@@ -706,7 +706,17 @@ for(i=0;i<channel_combinations.length;i++)
 				roiManager("reset");
 			}
 			//as there is no hu, not performing spatial analysis between Hu and marker
-
+			//only save centroids
+			if(Perform_Spatial_Analysis==true)
+			{
+				//save centroids of rois; this can be used for spatial analysis
+				//get centroids in microns
+				selectWindow(label_marker);
+				setVoxelSize(pixelWidth, pixelHeight, 1, unit);
+				args=results_dir+","+channel_name+","+label_marker;
+				runMacro(save_centroids,args);
+				print("Centroids savede");
+			}
 		close(label_marker);
 			
 		}
@@ -818,6 +828,7 @@ for(i=0;i<channel_combinations.length;i++)
 
 					wait(5);
 					result="img "+d2s(j,0);
+					selectWindow(temp_label);
 					rename(result);
 					
 				}
@@ -859,9 +870,11 @@ for(i=0;i<channel_combinations.length;i++)
 						run("Remove Overlay");
 						run("Select None");
 						
+						//pass label image for ganglia
 						args=result+","+ganglia_label_img;
+						///use label image from above
 						//get cell count per ganglia
-						runMacro(ganglia_cell_count,args);
+						runMacro(ganglia_label_cell_count,args);
 						
 						selectWindow("cells_ganglia_count");
 						cell_count_per_ganglia=Table.getColumn("Cell counts");

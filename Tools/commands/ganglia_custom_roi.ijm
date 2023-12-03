@@ -85,6 +85,10 @@ macro "ganglia_custom_roi"
 		selectWindow(neuron_label_img);
 		run("Remove Overlay");
 		setOption("BlackBackground", true);
+		
+		//active window is ganglia binary image
+		selectWindow(ganglia_binary);
+
 	}
 	else if (channels==1)
 	{

@@ -808,6 +808,9 @@ if(marker_subtype==1)
 	selectWindow(max_projection);
 	Stack.setDisplayMode("color");
 	row=0;
+	//array to store the channel names displayed in table
+	display_ch_names = newArray();
+	
 	for(i=0;i<channel_combinations.length;i++)
 	{
 	print("Getting counts for cells positive for marker/s: "+channel_combinations[i]);
@@ -948,9 +951,14 @@ if(marker_subtype==1)
 			marker_count=roiManager("count"); // in case any neurons added after manual verification of markers
 			selectWindow(table_name);
 			//Table.set("Total "+cell_type, row, cell_count);
-			Table.set("Marker Combinations", row, channel_name);
-			Table.set("Number of cells per marker combination", row, marker_count);
-			Table.set("|", row, "|");
+			//Table.set("Marker Combinations", row, channel_name);
+			//Table.set("Number of cells per marker combination", row, marker_count);
+			//
+			Table.set(channel_name, 0,marker_count);
+			
+			//get names of channels in table to remove trailing zeroes later
+			display_ch_names[i]=channel_name;
+			//Table.set("|", row, "|");
 
 			//Table.set(""+cell_type, row, marker_count/cell_count);
 			Table.update;
@@ -1140,9 +1148,12 @@ if(marker_subtype==1)
 				marker_count=roiManager("count"); // in case any neurons added after analysis of markers
 				selectWindow(table_name);
 				//Table.set("Total "+cell_type, row, cell_count);
-				Table.set("Marker Combinations", row, roi_file_name);
-				Table.set("Number of cells per marker combination", row, marker_count);
-				Table.set("|", row, "|");
+				//Table.set("Marker Combinations", 0, roi_file_name);
+				Table.set(roi_file_name, 0, marker_count);
+				
+				display_ch_names[i]=roi_file_name;
+				//Table.set("Number of cells per marker combination", row, marker_count);
+				//Table.set("|", row, "|");
 				//Table.set(""+cell_type, row, marker_count/cell_count);
 				Table.update;
 				row+=1;
@@ -1194,29 +1205,34 @@ if(marker_subtype==1)
 		close(result);
 	  }
    }
+   
+//
 
-//remove zeroes in the array
-selectWindow(table_name);
-marker_combinations=Table.getColumn("Marker Combinations"); 
-marker_combinations=Array.deleteValue(marker_combinations, 0);
-Table.setColumn("Marker Combinations", marker_combinations);
-
-//trim marker combination column to remove zeroes
-marker_comb_length=marker_combinations.length;
-no_cells_marker=Table.getColumn("Number of cells per marker combination");
-no_cells_marker=Array.trim(no_cells_marker,marker_comb_length);
-Table.setColumn("Number of cells per marker combination", no_cells_marker);
-
-
+//remove zeroes at the end of marker combination column
 //replace zeroes in divider column with divider
-file_array=Table.getColumn("|"); 
-file_array=replace_str_arr(file_array,0,"|");
-Table.setColumn("|", file_array);
+//file_array=Table.getColumn("|"); 
+//file_array=replace_str_arr(file_array,0,"|");
+//Table.setColumn("|", file_array);
 Table.update;
-
 
 }
 close("label_img_*");
+
+//Array.show(display_ch_names);
+print(display_ch_names.length);
+for(name=0;name<display_ch_names.length;name++)
+{
+	//remove zeroes in the array
+	selectWindow(table_name);
+	//print(name);
+	//print(display_ch_names[name]);
+	marker_combinations=Table.getColumn(display_ch_names[name]); 
+	marker_combinations=Array.deleteValue(marker_combinations, 0);
+	Table.setColumn(display_ch_names[name], marker_combinations);
+}
+
+
+
 
 //remove zeroes in the file name
 selectWindow(table_name);

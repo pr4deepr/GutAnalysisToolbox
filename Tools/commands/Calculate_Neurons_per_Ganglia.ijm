@@ -61,17 +61,14 @@ macro "count_cells_per_ganglia"
 	run("CLIJ2 Macro Extensions", "cl_device=");
 	Ext.CLIJ2_push(ganglia_labels);
 	Ext.CLIJ2_push(cell_img); 
-
-	// Flood Fill Components Labeling
-	//Ext.CLIJ2_connectedComponentsLabelingDiamond(ganglia_binary, ganglia_labels);
-	//Ext.CLIJx_morphoLibJFloodFillComponentsLabeling(ganglia_binary, ganglia_labels);
-	//Ext.CLIJ2_release(ganglia_binary);
-
+
 	// Label Overlap Count Map
+	//count overlap between ganglia and neurons to count how many neurons in each ganglia
 	Ext.CLIJ2_labelOverlapCountMap(ganglia_labels, cell_img, label_overlap);
 	Ext.CLIJ2_release(cell_img);
 	Ext.CLIJ2_release(ganglia_labels);
 	Ext.CLIJ2_pull(label_overlap);
+	
 	
 	roiManager("reset");
 	selectWindow(ganglia_labels); //this command is  for Hu

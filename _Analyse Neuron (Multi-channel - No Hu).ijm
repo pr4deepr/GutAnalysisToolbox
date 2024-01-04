@@ -966,6 +966,10 @@ roiManager("UseNames", "false");
 
 print("Files saved at: "+results_dir);
 run("Clear Results");
+
+selectWindow("Log");
+saveAs("Text", results_dir+"Log.txt");
+
 close("*");
 exit("Multi-channel Neuron analysis complete");
 

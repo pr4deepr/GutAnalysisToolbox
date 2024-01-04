@@ -85,6 +85,9 @@ if(!File.exists(ganglia_custom_roi)) exit("Cannot find single ganglia custom roi
 var save_centroids=gat_dir+fs+"save_centroids.ijm";
 if(!File.exists(save_centroids)) exit("Cannot find save_centroids custom roi script. Returning: "+save_centroids);
 
+//check if import ganglia fix missing neurons script is present
+var ganglia_fix_missing_neurons=gat_dir+fs+"ganglia_fix_missing_neurons.ijm";
+if(!File.exists(ganglia_fix_missing_neurons)) exit("Cannot find ganglia_fix_missing_neurons custom roi script. Returning: "+ganglia_fix_missing_neurons);
 
 
 
@@ -532,7 +535,49 @@ if (Cell_counts_per_ganglia==true)
 	//get cell count per ganglia
 	print("Getting Cell count per ganglia. May take some time for large images.");
 	runMacro(ganglia_cell_count,args);
+	
+	//label_overlap is the ganglia where each of them are labels
+	selectWindow("label_overlap");
+	run("Select None");
+	
+	selectWindow("cells_ganglia_count");
+	cell_count_per_ganglia=Table.getColumn("Cell counts");
+	
+	//check if neuron count per ganglia matches total neuron count;
+	sum_cells_ganglia = sum_arr_values(cell_count_per_ganglia);
+	if(sum_cells_ganglia!=cell_count)
+	{
+		print("No of neurons in ganglia "+sum_cells_ganglia+" do not match the total neurons detected "+cell_count+".\nThis means that the ganglia outlines are not accurate and missing neurons");
+		print("Using neuron detection to fix ganglia outline");
+		close(ganglia_binary);//getting new ganglia binary from script
+		selectWindow("cells_ganglia_count");
+     	run("Close");
 
+		neuron_dilate_px = 6.5/pixelWidth; //using 6.5 micron for dilating cells
+		args=neuron_label_image+",label_overlap,"+neuron_seg_lower_limit+","+neuron_dilate_px;
+		//return modified ganglia_binary image
+		runMacro(ganglia_fix_missing_neurons,args);	
+		selectWindow("ganglia_binary");
+		ganglia_binary = getTitle();
+		args=neuron_label_image+","+ganglia_binary;
+		print("Getting Cell count per ganglia again.");
+		//get cell count per ganglia and returns a table as well as ganglia label window
+		runMacro(ganglia_cell_count,args);
+		
+		//label_overlap is the ganglia where each of them are labels
+		selectWindow("label_overlap");
+		run("Select None");
+	
+		selectWindow("cells_ganglia_count");
+		cell_count_per_ganglia=Table.getColumn("Cell counts");
+		sum_cells_ganglia = sum_arr_values(cell_count_per_ganglia);
+		print("No of neurons in ganglia "+sum_cells_ganglia+" and total neurons detected: "+cell_count);
+		
+	}	
+	
+	//label_overlap is the ganglia where each of them are labels
+	selectWindow("label_overlap");
+	run("Select None");
 	//make ganglia binary image with ganglia having atleast 1 neuron
 	selectWindow("label_overlap");
 	//getMinAndMax(min, max);
@@ -546,8 +591,7 @@ if (Cell_counts_per_ganglia==true)
 	ganglia_binary=getTitle();
 
 
-	selectWindow("cells_ganglia_count");
-	cell_count_per_ganglia=Table.getColumn("Cell counts");
+	
 	roiManager("deselect");
 	ganglia_number=roiManager("count");
 	run("Set Measurements...", "area redirect=None decimal=3");
@@ -641,6 +685,10 @@ run("Remove Overlay");
 run("Select None");
 saveAs("Tiff", results_dir+max_save_name);
 run("Clear Results");
+
+selectWindow("Log");
+saveAs("Text", results_dir+"Log.txt");
+
 
 close("*");
 print("DATA saved at "+results_dir);
@@ -850,4 +898,15 @@ function create_ganglia_img(max_projection,ganglia_channel,cell_channel)
 	return ganglia_rgb;
 	
 
+}
+
+//get sum of all values in an array
+function sum_arr_values(arr)
+{
+	sum_val = 0;
+	for (i = 0; i < arr.length; i++)
+	{
+		sum_val+=arr[i];
+	}
+return sum_val;
 }

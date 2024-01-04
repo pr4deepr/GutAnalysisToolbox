@@ -113,6 +113,11 @@ if(!File.exists(ganglia_custom_roi)) exit("Cannot find single ganglia custom roi
 var save_centroids=gat_dir+fs+"save_centroids.ijm";
 if(!File.exists(save_centroids)) exit("Cannot find save_centroids custom roi script. Returning: "+save_centroids);
 
+//check if import ganglia fix missing neurons script is present
+var ganglia_fix_missing_neurons=gat_dir+fs+"ganglia_fix_missing_neurons.ijm";
+if(!File.exists(ganglia_fix_missing_neurons)) exit("Cannot find ganglia_fix_missing_neurons custom roi script. Returning: "+ganglia_fix_missing_neurons);
+
+
 
 fs = File.separator; //get the file separator for the computer (depending on operating system)
 
@@ -656,11 +661,54 @@ if (Cell_counts_per_ganglia==true)
 	 else ganglia_binary=draw_ganglia_outline(max_projection,false);
 	 
 	args=neuron_label_image+","+ganglia_binary;
-	
+	//get cell count per ganglia
+	//check if ganglia neuron count and total neuron count match. if not, modify outline
+	//highlight neurons missing in a separate image; get neuron label image
+	//
 	print("Getting Cell count per ganglia. May take some time for large images.");
 	//get cell count per ganglia and returns a table as well as ganglia label window
 	runMacro(ganglia_cell_count,args);
 	
+	//label_overlap is the ganglia where each of them are labels
+	selectWindow("label_overlap");
+	run("Select None");
+	
+
+	selectWindow("cells_ganglia_count");
+	cell_count_per_ganglia=Table.getColumn("Cell counts");
+	
+	//check if neuron count per ganglia matches total neuron count;
+	sum_cells_ganglia = sum_arr_values(cell_count_per_ganglia);
+	if(sum_cells_ganglia!=cell_count)
+	{
+		print("No of neurons in ganglia "+sum_cells_ganglia+" do not match the total neurons detected "+cell_count+".\nThis means that the ganglia outlines are not accurate and missing neurons");
+		print("Using neuron detection to fix ganglia outline");
+		close(ganglia_binary);//getting new ganglia binary from script
+		selectWindow("cells_ganglia_count");
+     	run("Close");
+
+		neuron_dilate_px = 6.5/pixelWidth; //using 6.5 micron for dilating cells
+		args=neuron_label_image+",label_overlap,"+neuron_seg_lower_limit+","+neuron_dilate_px;
+		//return modified ganglia_binary image
+		runMacro(ganglia_fix_missing_neurons,args);	
+		selectWindow("ganglia_binary");
+		ganglia_binary = getTitle();
+		args=neuron_label_image+","+ganglia_binary;
+		print("Getting Cell count per ganglia again.");
+		//get cell count per ganglia and returns a table as well as ganglia label window
+		runMacro(ganglia_cell_count,args);
+		
+		//label_overlap is the ganglia where each of them are labels
+		selectWindow("label_overlap");
+		run("Select None");
+	
+		selectWindow("cells_ganglia_count");
+		cell_count_per_ganglia=Table.getColumn("Cell counts");
+		sum_cells_ganglia = sum_arr_values(cell_count_per_ganglia);
+		print("No of neurons in ganglia "+sum_cells_ganglia+" and total neurons detected: "+cell_count);
+		
+	}
+	
 	//label_overlap is the ganglia where each of them are labels
 	selectWindow("label_overlap");
 	run("Select None");
@@ -680,9 +728,12 @@ if (Cell_counts_per_ganglia==true)
 	selectWindow("ganglia_binary");
 	ganglia_binary=getTitle();
 
-	selectWindow("cells_ganglia_count");
-	cell_count_per_ganglia=Table.getColumn("Cell counts");
-	cell_count_per_ganglia=Array.deleteValue(cell_count_per_ganglia, 0);
+	
+	
+	//get row indexes were neuron count per ganglia is zero.
+	//idx_zero_arr = get_zero_indices(cell_count_per_ganglia);
+	//cell_count_per_ganglia=Array.deleteValue(cell_count_per_ganglia, 0);
+	
 	roiManager("deselect");
 	ganglia_number=roiManager("count");
 	roi_location=results_dir+"Ganglia_ROIs_"+file_name+".zip";
@@ -990,6 +1041,8 @@ if(marker_subtype==1)
 				//close("label_overlap");
 				selectWindow("cells_ganglia_count");
 				cell_count_per_ganglia=Table.getColumn("Cell counts");
+				//delete rows where neuron count per ganglia was zero originally
+				//cell_count_per_ganglia = del_zero_idx(cell_count_per_ganglia,idx_zero_arr);
 
 				selectWindow(table_name);
 				Table.setColumn(channel_name+" counts per ganglia", cell_count_per_ganglia);
@@ -1177,6 +1230,9 @@ if(marker_subtype==1)
 						runMacro(ganglia_label_cell_count,args);
 						selectWindow("cells_ganglia_count");
 						cell_count_per_ganglia=Table.getColumn("Cell counts");
+						//delete rows where neuron count per ganglia was zero originally
+						//cell_count_per_ganglia = del_zero_idx(cell_count_per_ganglia,idx_zero_arr);
+						
 						selectWindow("cells_ganglia_count");
 						run("Close");
 						roiManager("reset");
@@ -1264,7 +1320,7 @@ Table.setColumn("Total "+cell_type, file_array);
 	roiManager("Measure");
 	selectWindow("Results");
 	ganglia_area = Table.getColumn("Area");
-	
+	//ganglia_area = del_zero_idx(ganglia_area,idx_zero_arr);
 	
 	selectWindow(table_name);
 	Table.setColumn("Area_per_ganglia_um2", ganglia_area);
@@ -1285,6 +1341,9 @@ roiManager("UseNames", "false");
 print("Files saved at: "+results_dir);
 close("*");
 run("Clear Results");
+
+selectWindow("Log");
+saveAs("Text", results_dir+"Log.txt");
 
 exit("Multi-channel Neuron analysis complete");
 
@@ -1437,6 +1496,18 @@ function add_value_array(arr,val)
 	}
 return arr;
 }
+
+//get sum of all values in an array
+function sum_arr_values(arr)
+{
+	sum_val = 0;
+	for (i = 0; i < arr.length; i++)
+	{
+		sum_val+=arr[i];
+	}
+return sum_val;
+}
+
 
 //convert arr to int
 function convert_array_int(arr)
@@ -1609,7 +1680,7 @@ function draw_ganglia_outline(ganglia_img,edit_flag)
 		setTool(3);//set freehand tool
 		//setting paintbrush tool earlier may cause user to draw on image unknowingly
 		//setTool(19); //set paintbrush tool
-		//waitForUser("Verify if ganglia outline is satisfactory?. Use paintbrush tool to fill or delete areas. Press OK when done.");
+		waitForUser("Verify if ganglia outline is satisfactory. If not, you can delete ROI from ROI manager and draw an outline. Press OK when done.");
 		
 	}
 	
@@ -1706,3 +1777,38 @@ function set_all_rois_group_id(group_id)
 }
 
 
+
+
+//functions below can be used for finding indexes in an array with zero value
+//this can be used in a second array to delete corresponding indices
+
+//get indexes with zero and pass an array
+function get_zero_indices(arr)
+{
+	idx_zero_arr = newArray();
+	idx=0;
+	for (i = 0; i < arr.length; i++)
+	{
+		if(arr[i]==0)
+		{
+			idx_zero_arr[idx]=i;
+			idx+=1;
+		}
+	}
+return idx_zero_arr;
+}
+
+//delete idx from arr based on list of indexes in idx_zero_arr
+//meant for deleting indexes where arr value is zero, but any index list can be passed
+function del_zero_idx(arr,idx_zero_arr)
+{
+	del_idx = 0;
+	for (i = idx_zero_arr.length-1; i >=0 ; i--)
+	{
+		idx_delete = idx_zero_arr[i];
+		print(idx_delete);
+		arr = Array.deleteIndex(arr, idx_delete);
+		Array.print(arr);
+	}
+	return arr;
+}

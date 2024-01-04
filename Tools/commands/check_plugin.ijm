@@ -2,7 +2,8 @@
 macro "check_plugins" 
 {
 	run("Console");
-	
+	getDateAndTime(year, month, dayOfWeek, dayOfMonth, hour, minute, second, msec);
+	print("Date:"+year+"/"+month+1+"/"+dayOfMonth+" Time:"+hour+":"+minute);
 	print("System Config:");
 	run("Clear Results");
 	

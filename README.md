@@ -77,7 +77,7 @@ The GAT models are located in `Fiji.app/models` folder and contains 3 separate m
   * Delta-opioid receptor (DOR) reporter (GFP)
   * Choline acetyltransferase (ChAT)
   * Neurofilament (NFM)
-- **Ganglia model folder: 2D_enteric_ganglia_v2.bioimage.io.model**
+- **Ganglia model folder: 2D_Ganglia_RGB_v2**
   
   DeepImageJ-based UNet model to segment ganglia. Needs both Hu and a neuronal/glial marker labelling the ganglia
 

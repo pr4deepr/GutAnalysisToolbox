@@ -100,7 +100,8 @@ function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel)
 	close(composite_img);
 	
 	selectWindow(ganglia_rgb);
-	
+	print("*********Segmenting cells using DeepImageJ********");
+	print("When running for the first time, it may take a while to download the required files. Check Window -> Console for progress");
 	print("If you are getting an error during ganglia prediction, please download a new ganglia model or check DeepImageJ version. It should be > v3");
 	run("DeepImageJ Run", "model=2D_Ganglia_RGB_v2 format=Tensorflow preprocessing=[per_sample_scale_range.ijm] postprocessing=[ganglia_binarise.ijm] axes=X,Y,C tile=768,768,3 logging=Normal");
 	wait(10);

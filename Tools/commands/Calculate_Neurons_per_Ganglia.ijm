@@ -71,7 +71,8 @@ macro "count_cells_per_ganglia"
 	
 	
 	roiManager("reset");
-	selectWindow(ganglia_labels); //this command is  for Hu
+	//selectWindow(ganglia_labels); //this command is  for Hu
+	selectWindow(label_overlap); //selecting label_overlap so only ganglia with neurons are included
 	run("Select None");
 	run("Label image to composite ROIs");
 	

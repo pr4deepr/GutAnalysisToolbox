@@ -98,10 +98,4 @@ To download the training data, notebooks and associated models please go to the 
 **********************
 ## Citing
 
-There are two Zenodo records, one for the software and one for the training data and models
-
-Software citation on Zenodo:
-
-Sorensen, L., Saito, A., Poon, S., Noe Han, M., Hamnett, R., Neckel, P, Humenick, A., Mutunduwe, K., Glennan, C., Mahdavian, N., JH Brookes, S., M McQuade, R., PP Foong, J., Gómez-de-Mariscal, E., Muñoz Barrutia, A., Kaltschmidt, J. A., King, S. K., Haase, R., Carbone, S., A. Veldhuis, N., P. Poole, D., & Rajasekhar, P. (2022). Gut Analysis Toolbox [Computer software]. https://doi.org/10.5281/zenodo.6095590
-
-Upon publication, the paper will be included here.
+Sorensen, L., A. Humenick, S. S. B. Poon, M. N. Han, N. S. Mahdavian, R. Hamnett, E. Gómez-de-Mariscal, P. H. Neckel, A. Saito, K. Mutunduwe, C. Glennan, R. Haase, R. M. McQuade, J. P. P. Foong, S. J. H. Brookes, J. A. Kaltschmidt, A. Muñoz-Barrutia, S. K. King, N. A. Veldhuis, S. E. Carbone, D. P. Poole and P. Rajasekhar (2024). "Gut Analysis Toolbox: Automating quantitative analysis of enteric neurons." bioRxiv: 2024.2001.2017.576140.

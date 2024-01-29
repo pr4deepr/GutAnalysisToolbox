@@ -98,4 +98,4 @@ To download the training data, notebooks and associated models please go to the 
 **********************
 ## Citing
 
-Sorensen, L., A. Humenick, S. S. B. Poon, M. N. Han, N. S. Mahdavian, R. Hamnett, E. Gómez-de-Mariscal, P. H. Neckel, A. Saito, K. Mutunduwe, C. Glennan, R. Haase, R. M. McQuade, J. P. P. Foong, S. J. H. Brookes, J. A. Kaltschmidt, A. Muñoz-Barrutia, S. K. King, N. A. Veldhuis, S. E. Carbone, D. P. Poole and P. Rajasekhar (2024). "Gut Analysis Toolbox: Automating quantitative analysis of enteric neurons." bioRxiv: 2024.2001.2017.576140.
+[Sorensen, L., A. Humenick, S. S. B. Poon, M. N. Han, N. S. Mahdavian, R. Hamnett, E. Gómez-de-Mariscal, P. H. Neckel, A. Saito, K. Mutunduwe, C. Glennan, R. Haase, R. M. McQuade, J. P. P. Foong, S. J. H. Brookes, J. A. Kaltschmidt, A. Muñoz-Barrutia, S. K. King, N. A. Veldhuis, S. E. Carbone, D. P. Poole and P. Rajasekhar (2024). "Gut Analysis Toolbox: Automating quantitative analysis of enteric neurons." bioRxiv: 2024.2001.2017.576140.](https://www.biorxiv.org/content/10.1101/2024.01.17.576140v1)

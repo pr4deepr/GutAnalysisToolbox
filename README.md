@@ -1,6 +1,5 @@
 # Gut Analysis Toolbox
-
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6095590.svg)](https://doi.org/10.5281/zenodo.6095590)
+[![DOI:10.1101/2024.01.17.576140](http://img.shields.io/badge/DOI-10.1101/2024.01.17.576140-B31B1B.svg)](https://doi.org/10.1101/2024.01.17.576140)
 
 
 **To get started with using GAT, please go to the** [**Documentation**](https://gut-analysis-toolbox.gitbook.io/docs/).

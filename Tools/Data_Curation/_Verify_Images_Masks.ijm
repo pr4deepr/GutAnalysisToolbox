@@ -92,24 +92,28 @@ function processFile(input, output, save_path_image, save_path_mask,Use_Scaling,
 		run("Remove Overlay");
 		run("Remap Labels");
 		resetMinAndMax;	
-		run("LabelMap to ROI Manager (2D)");
+		run("Label image to composite ROIs");
 		wait(10);
 		roiManager("deselect");
 	}
 	else exit("Unrecognised extension for output file");
 	roiManager("show none");
-	
+	selectWindow(stack);
 	if(channels>1)
 	{
 		waitForUser("Multi-channel image detected. Verify the channels and enter the channel number of celltype in the next box");
 		ch=getNumber("Enter channel", 3);
 		run("Duplicate...", "title=celltype duplicate channels=&ch");
 	  	ref=getTitle();
-	  	if(slices>1)
-	  	{
-	  		
-	  	}
+
 	}
+	else if(!is("grayscale")) // "RGB = NOT (grayscale)"
+	{
+		run("RGB Stack");
+		ref=stack;
+
+	}
+
 	else 
 	{
 		ref=stack;
@@ -135,7 +139,8 @@ function processFile(input, output, save_path_image, save_path_mask,Use_Scaling,
 	//run("Select All");
 	//setBackgroundColor(0, 0, 0);
 	//run("Clear", "slice");
-	run("ROI Manager to LabelMap(2D)");	
+	//run("ROI Manager to LabelMap(2D)");	
+	run("ROIs to Label image");
 	wait(10);
 	mask_processed=getTitle();
 	}

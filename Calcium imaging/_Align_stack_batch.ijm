@@ -24,10 +24,33 @@ print("Please install this template plugin if you haven't already: https://sites
 //Clears the Results window
 print ("\\Clear");
 
+
 //function to run image registration; can be modified to pass parameters
-function align_sift()
+//explanation of sift parameters: http://www.ini.uzh.ch/~acardona/howto.html#sift_parameters
+//https://imagej.net/plugins/feature-extraction#parameters
+function align_sift(sizeX, sizeY,default)
 {
-	run("Linear Stack Alignment with SIFT", "initial_gaussian_blur=1.60 steps_per_scale_octave=3 minimum_image_size=64 maximum_image_size=1024 feature_descriptor_size=4 feature_descriptor_orientation_bins=8 closest/next_closest_ratio=0.92 maximal_alignment_error=25 inlier_ratio=0.05 expected_transformation=Affine interpolate");
+	
+	size=minOf(sizeX, sizeY);
+	maximal_alignment_error = Math.ceil(0.1*size);	
+	if(!default)
+	{
+	//maximal_alignment_error = 5; 
+	inlier_ratio=0.7;
+	if(size<500) 
+	{ //for smaller images these parameters worked well
+		feature_desc_size=8;
+		maximal_alignment_error = 5;
+		inlier_ratio=0.9;
+	}
+	else feature_desc_size=4;
+	run("Linear Stack Alignment with SIFT", "initial_gaussian_blur=1.60 steps_per_scale_octave=4 minimum_image_size=64 maximum_image_size="+size+" feature_descriptor_size="+feature_desc_size+" feature_descriptor_orientation_bins=8 closest/next_closest_ratio=0.92 maximal_alignment_error="+maximal_alignment_error+" inlier_ratio="+inlier_ratio+" expected_transformation=Affine");
+	}
+	else 
+	{
+		maximal_alignment_error = Math.ceil(0.1*size);	
+		run("Linear Stack Alignment with SIFT", "initial_gaussian_blur=1.60 steps_per_scale_octave=3 minimum_image_size=64 maximum_image_size="+size+" feature_descriptor_size=4 feature_descriptor_orientation_bins=8 closest/next_closest_ratio=0.92 maximal_alignment_error="+maximal_alignment_error+" inlier_ratio=0.05 expected_transformation=Affine");
+	}
 }
 
 html="<html>"
@@ -36,26 +59,32 @@ html="<html>"
      +"If selecting Template matching, install plugin from website:<a href=https://sites.google.com/site/qingzongtseng/template-matching-ij-plugin#install>Installation</a> <br>"
      +"</font>";
 
-items=newArray("Linear Alignment with SIFT","Template Matching","StackReg");
+
+
+items=newArray("Template Matching","StackReg");
+
 //create directory lists
 input = getDirectory("Choose Input Directory with images ");
 Dialog.create("Alignment options");
-Dialog.addRadioButtonGroup("Alignment options", items, 1, items.length, items[0]);
+Dialog.addCheckbox("Linear Alignment with SIFT", true);
+Dialog.addRadioButtonGroup("Alignment in XY (no warping). Choose one", items, 1, items.length, items[0]);
 //Dialog.addCheckbox("Linear Alignment with SIFT", true);
 //Dialog.addCheckbox("Template Matching", true);
 //Dialog.addCheckbox("StackReg", true);
-Dialog.addMessage("Use Linear Alignment with SIFT if your\nimages have warping and lots of deformation. If you only have movement in the\nXY direction (sideways) and no warping, use Template Matching and ");
-Dialog.addMessage("If using Template Matching, the plugin can be installed using the Help button");
+Dialog.addMessage("Use Linear Alignment with SIFT if your\nimages have warping and lots of deformation. If you only have movement in the\nXY direction (sideways) and no warping, use either Template Matching or StackReg ");
 Dialog.addNumber("Choose reference slice for aligning stacks", 1);
 Dialog.addMessage("Alignment plugins need a reference image/frame to align the rest of\nthe images. Set the frame here or first frame will be used as reference");
+Dialog.addMessage("If alignment is not satisfactory, try ticking this box.");
+Dialog.addCheckbox("Default settings", false);
 Dialog.addString("File extension: ", ".tif");
 Dialog.addMessage("If the files are Leica .lif files, each series within the file will be aligned");
 Dialog.addHelp(html);
 Dialog.show();
-//sift=Dialog.getCheckbox();
+sift=Dialog.getCheckbox();
 //template_matching=Dialog.getCheckbox();
 alignment_choice=Dialog.getRadioButton();
 frame_ref=Dialog.getNumber();
+default_settings = Dialog.getCheckbox();
 file_ext=Dialog.getString();
 
 
@@ -151,7 +180,7 @@ function process_file_align(name,input,frame_ref,alignment_choice)
 		{
 			aligned=align_images(name,alignment_choice,sizeX,sizeY,sizeT,frame_ref);
 			selectWindow(aligned);
-			print("Saving"+input+name+"_aligned");
+			print("Saving"+input+name+"_aligned.tif");
 			saveAs("Tiff", input+name+"_aligned");
 			close(name+"_aligned.tif");
 		}
@@ -167,15 +196,16 @@ function align_images(name,alignment_choice,sizeX,sizeY,sizeT,frame_ref)
 	selectWindow(name);
 	setBatchMode(true); //batchmode set to True
 	//run alignment with SIFT
-	if(alignment_choice=="Linear Alignment with SIFT")
+	if(sift)
 	{
+		print("Running SIFT");
 		Stack.setFrame(frame_ref);
-		align_sift();
+		align_sift(sizeX, sizeY,default_settings);
 		wait(100);
 		close(name);
 		selectWindow("Aligned "+sizeT+" of "+sizeT);
 	}
-	else if(alignment_choice=="Template Matching")
+	if(alignment_choice=="Template Matching")
 	{
 		Stack.setFrame(frame_ref);
 		x_size=floor(sizeX*0.7);	

@@ -19,7 +19,7 @@
 //
 
 
-print("Please install this template plugin if you haven't already: https://sites.google.com/site/qingzongtseng/template-matching-ij-plugin#install");
+print("Please install this template plugin if you are getting an error: https://sites.google.com/site/qingzongtseng/template-matching-ij-plugin#install");
 
 //Clears the Results window
 print ("\\Clear");
@@ -28,14 +28,30 @@ var fs=File.separator;
 
 //function to run image registration; can be modified to pass parameters
 //explanation of sift parameters: http://www.ini.uzh.ch/~acardona/howto.html#sift_parameters
-function align_sift(sizeX, sizeY)
+//https://imagej.net/plugins/feature-extraction#parameters
+function align_sift(sizeX, sizeY,default)
 {
-	size=sizeX;
-	if(sizeY>sizeX) size=sizeY;
-	//min=round(size/16);
-	//if(min<16) min = 16;
-	//if images are not aligned well, then either check frames for empty slices or fine-tune parameters here.
-	run("Linear Stack Alignment with SIFT", "initial_gaussian_blur=1.60 steps_per_scale_octave=3 minimum_image_size=64 maximum_image_size="+size+" feature_descriptor_size=4 feature_descriptor_orientation_bins=8 closest/next_closest_ratio=0.92 maximal_alignment_error=25 inlier_ratio=0.05 expected_transformation=Affine interpolate");
+	
+	size=minOf(sizeX, sizeY);
+	maximal_alignment_error = Math.ceil(0.1*size);	
+	if(!default)
+	{
+	//maximal_alignment_error = 5; 
+	inlier_ratio=0.7;
+	if(size<500) 
+	{ //for smaller images these parameters worked well
+		feature_desc_size=8;
+		maximal_alignment_error = 5;
+		inlier_ratio=0.9;
+	}
+	else feature_desc_size=4;
+	run("Linear Stack Alignment with SIFT", "initial_gaussian_blur=1.60 steps_per_scale_octave=4 minimum_image_size=64 maximum_image_size="+size+" feature_descriptor_size="+feature_desc_size+" feature_descriptor_orientation_bins=8 closest/next_closest_ratio=0.92 maximal_alignment_error="+maximal_alignment_error+" inlier_ratio="+inlier_ratio+" expected_transformation=Affine");
+	}
+	else 
+	{
+		maximal_alignment_error = Math.ceil(0.1*size);	
+		run("Linear Stack Alignment with SIFT", "initial_gaussian_blur=1.60 steps_per_scale_octave=3 minimum_image_size=64 maximum_image_size="+size+" feature_descriptor_size=4 feature_descriptor_orientation_bins=8 closest/next_closest_ratio=0.92 maximal_alignment_error="+maximal_alignment_error+" inlier_ratio=0.05 expected_transformation=Affine");
+	}
 }
 
 html="<html>"
@@ -64,13 +80,17 @@ Dialog.addCheckbox("Linear Alignment with SIFT", true);
 Dialog.addCheckbox("Template Matching", true);
 Dialog.addMessage("Atleast one option is required. Use first and second option if your\nimages have warping and lots of deformation. If you only have movement in the\nXY direction (sideways) and no warping, use only the second option");
 Dialog.addMessage("If using Template Matching, the plugin can be installed using the Help button");
-Dialog.addNumber("Choose reference slice for aligning stacks", 1);
 Dialog.addMessage("Alignment plugins need a reference image/frame to align the rest of\nthe images. Set the frame here or first frame will be used as reference");
+Dialog.addNumber("Choose reference slice for aligning stacks", 1);
+Dialog.addMessage("If alignment is not satisfactory, try ticking this box.");
+Dialog.addCheckbox("Default settings", false);
+Dialog.addMessage("If there are empty slices, it may affect alignment");
 Dialog.addHelp(html);
 Dialog.show();
 sift=Dialog.getCheckbox();
 template_matching=Dialog.getCheckbox();
 frame_ref=Dialog.getNumber();
+default_settings = Dialog.getCheckbox();
 
 if(sift==false && template_matching==false) exit("Choose atleast one option");
 
@@ -82,7 +102,7 @@ if(sizeT>10) //only if it has greater than 10 frames
 		//Split channel, discard channel 2 and keep channel 1
 		channel_array=Array.getSequence(sizeC);
 		waitForUser("Multple channels detected. Please verify the channel to be aligned");
-		Dialog.create("Choose channal to be aligned");
+		Dialog.create("Choose channel to be aligned");
 		Dialog.addChoice("Channel", channel_array);
 		Dialog.show();
 		channel_align=Dialog.getChoice();
@@ -97,7 +117,7 @@ if(sizeT>10) //only if it has greater than 10 frames
 		//setBatchMode(true); //batchmode set to True
 		if(sift==true)
 		{
-			align_sift();
+			align_sift(sizeX, sizeY,default_settings);
 			wait(100);
 			close(name);
 			selectWindow("Aligned "+sizeT+" of "+sizeT);
@@ -124,7 +144,7 @@ if(sizeT>10) //only if it has greater than 10 frames
 		//run alignment with SIFT
 		if(sift==true)
 		{
-			align_sift(sizeX, sizeY);
+			align_sift(sizeX, sizeY,default_settings);
 			wait(100);
 			close(name);
 			selectWindow("Aligned "+sizeT+" of "+sizeT);
@@ -146,3 +166,4 @@ if(sizeT>10) //only if it has greater than 10 frames
 }
 else{ print("No time series "+"Series: "+s); close(name);}
 call("java.lang.System.gc"); //garbage collector
+exit("Done");

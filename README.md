@@ -1,6 +1,5 @@
 # Gut Analysis Toolbox
-
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6095590.svg)](https://doi.org/10.5281/zenodo.6095590)
+[![DOI:10.1101/2024.01.17.576140](http://img.shields.io/badge/DOI-10.1101/2024.01.17.576140-B31B1B.svg)](https://doi.org/10.1101/2024.01.17.576140)
 
 
 **To get started with using GAT, please go to the** [**Documentation**](https://gut-analysis-toolbox.gitbook.io/docs/).
@@ -77,7 +76,7 @@ The GAT models are located in `Fiji.app/models` folder and contains 3 separate m
   * Delta-opioid receptor (DOR) reporter (GFP)
   * Choline acetyltransferase (ChAT)
   * Neurofilament (NFM)
-- **Ganglia model folder: 2D_enteric_ganglia_v2.bioimage.io.model**
+- **Ganglia model folder: 2D_Ganglia_RGB_v2**
   
   DeepImageJ-based UNet model to segment ganglia. Needs both Hu and a neuronal/glial marker labelling the ganglia
 
@@ -98,10 +97,4 @@ To download the training data, notebooks and associated models please go to the 
 **********************
 ## Citing
 
-There are two Zenodo records, one for the software and one for the training data and models
-
-Software citation on Zenodo:
-
-Sorensen, L., Saito, A., Poon, S., Noe Han, M., Hamnett, R., Neckel, P, Humenick, A., Mutunduwe, K., Glennan, C., Mahdavian, N., JH Brookes, S., M McQuade, R., PP Foong, J., Gómez-de-Mariscal, E., Muñoz Barrutia, A., Kaltschmidt, J. A., King, S. K., Haase, R., Carbone, S., A. Veldhuis, N., P. Poole, D., & Rajasekhar, P. (2022). Gut Analysis Toolbox [Computer software]. https://doi.org/10.5281/zenodo.6095590
-
-Upon publication, the paper will be included here.
+[Sorensen, L., A. Humenick, S. S. B. Poon, M. N. Han, N. S. Mahdavian, R. Hamnett, E. Gómez-de-Mariscal, P. H. Neckel, A. Saito, K. Mutunduwe, C. Glennan, R. Haase, R. M. McQuade, J. P. P. Foong, S. J. H. Brookes, J. A. Kaltschmidt, A. Muñoz-Barrutia, S. K. King, N. A. Veldhuis, S. E. Carbone, D. P. Poole and P. Rajasekhar (2024). "Gut Analysis Toolbox: Automating quantitative analysis of enteric neurons." bioRxiv: 2024.2001.2017.576140.](https://www.biorxiv.org/content/10.1101/2024.01.17.576140v1)

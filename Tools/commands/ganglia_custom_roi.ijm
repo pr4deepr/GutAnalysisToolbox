@@ -55,7 +55,14 @@ macro "ganglia_custom_roi"
 		selectWindow(neuron_label_img);
 	}
 	getDimensions(width, height, channels, slices, frames);
-	ganglia_roi_path = File.openDialog("Choose ROI Manager for Ganglia");
+	if(arg_array.length>1)
+	{
+		ganglia_roi_path= arg_array[1];
+	}
+	else 
+	{
+		ganglia_roi_path = File.openDialog("Choose ROI Manager for Ganglia");
+	}
 	roiManager("open", ganglia_roi_path);
 	roiManager("show all without labels");
 	waitForUser("Verify if ganglia outline is correct. If not, go to More ->Open to choose another ROI file");

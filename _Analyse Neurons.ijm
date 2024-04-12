@@ -107,10 +107,32 @@ cell_type="Neuron";
 #@ boolean Perform_Spatial_Analysis(description="<html><b>If ticked, it will perform spatial analysis for all markers. Convenient than performing them individually. -> </b><html>")
 #@ boolean Finetune_Detection_Parameters(description="<html><b>Adjust Probabilities or import custom ROIs</b><html>")
 #@ boolean Contribute_to_GAT(description="<html><b>Contribute to GAT by saving image and masks</b><html>") 
+#@ String(description="<html><b>Used for batch analysis, leave as NA</b><html>",value="NA") batch_parameters
 
 scale = 1;
 
-if(Finetune_Detection_Parameters==true)
+
+//option to accept parameters if calling from a macro/script and want to use batch mode as these values are entered interactively
+if(batch_parameters!="NA")
+{
+//batch parameters are expected in the order
+//custom_ganglia_roi_path, label_dilation, save_parameteric_image,scale,probability,overlap,img_masks_path, batch_analysis
+ batch_array = split(batch_parameters, ",");
+ print("RUNNING IN BATCH MODE");
+ print("BATCH "+batch_array.length);
+ ganglia_roi_path = batch_array[0];
+ label_dilation = batch_array[1];
+ save_parametric_image = batch_array[2];
+ scale = batch_array[3];
+ probability= batch_array[4];
+ overlap=batch_array[5];
+ img_masks_path=batch_array[6];
+ batch_mode=batch_array[7];
+}
+else batch_mode=false;
+
+
+if(Finetune_Detection_Parameters==true && batch_parameters=="NA")
 {
 	print("Using manual probability and overlap threshold for detection");
 	Dialog.create("Advanced Parameters");
@@ -165,6 +187,7 @@ else
 	}
 	else if (endsWith(path, ".tif")|| endsWith(path, ".tiff")) open(path);
 	else exit("File type not recognised.  Tif, Lif and Czi files supported.");
+	
 	dir=File.directory;
 	file_name_full=File.nameWithoutExtension; //get file name without extension (.lif)
 }
@@ -329,8 +352,16 @@ if(sizeZ>1)
 {
 		print(img_name+" is a stack");
 		roiManager("reset");
-		waitForUser("Verify the type of image projection you'd like (MIP or Extended depth of field\nYou can select in the next prompt.");
-		projection_method=getBoolean("3D stack detected. Which projection method would you like?", "Maximum Intensity Projection", "Extended Depth of Field (Variance)");
+		
+		//in batch mode MIP is used by default
+		if(batch_mode==true) projection_method=1;
+		else
+		{
+			waitForUser("Verify the type of image projection you'd like (MIP or Extended depth of field\nYou can select in the next prompt.");
+			projection_method=getBoolean("3D stack detected. Which projection method would you like?", "Maximum Intensity Projection", "Extended Depth of Field (Variance)");
+		
+		}
+		
 		if(projection_method==1)
 		{
 			waitForUser("Note the start and end of the stack.\nPress OK when done");
@@ -426,21 +457,26 @@ else
 
 //if cell count zero, check with user if they want to terminate the analysis
 cell_count=roiManager("count");
-if(cell_count == 0)
+if(batch_mode==false)
 {
-	print("No cells detected");
-	proceed = getBoolean("NO cells detected, do you still want to continue analysis?");
-	if(!proceed) 
+	if(cell_count == 0)
 	{
-		print("Analysis stopped as no cells detected");
-		exit("Analysis stopped as no cells detected");
+		print("No cells detected");
+		proceed = getBoolean("NO cells detected, do you still want to continue analysis?");
+		if(!proceed) 
+		{
+			print("Analysis stopped as no cells detected");
+			exit("Analysis stopped as no cells detected");
+		}
 	}
-}
+else print("No cells detected");
 
 selectWindow(max_projection);
 roiManager("show all");
-//manually correct or verify if needed
-waitForUser("Correct "+cell_type+" ROIs if needed. You can delete or add ROIs using ROI Manager");
+
+//manually correct or verify if needed (only if not batch mode)
+if(batch_mode==false) waitForUser("Correct "+cell_type+" ROIs if needed. You can delete or add ROIs using ROI Manager");
+
 cell_count=roiManager("count");
 roiManager("deselect");
 
@@ -519,7 +555,8 @@ if (Cell_counts_per_ganglia==true)
 	 }
 	 else if(Ganglia_detection=="Import custom ROI")
 	 {
-		args1=neuron_label_image;
+		if(batch_mode==true) args1=neuron_label_image+","+ganglia_roi_path;
+		else args1=neuron_label_image;
 		//get ganglia outline
 		runMacro(ganglia_custom_roi,args1);
 		ganglia_binary=getTitle();
@@ -659,13 +696,16 @@ if(Save_Image_Masks == true)
 //spatial analysis for Hu (gets no of neighbours around each neuron (Hu).
 
 if(Perform_Spatial_Analysis==true)
-{
-	Dialog.create("Spatial Analysis parameters");
-  	Dialog.addSlider("Cell expansion distance (microns)", 0.0, 20.0, 6.5);
-	Dialog.addCheckbox("Save parametric image/s?", true);
-  	Dialog.show(); 
-	label_dilation= Dialog.getNumber();
-	save_parametric_image = Dialog.getCheckbox();
+{	
+	if(batch_parameters!="NA")
+	{
+		Dialog.create("Spatial Analysis parameters");
+	  	Dialog.addSlider("Cell expansion distance (microns)", 0.0, 20.0, 6.5);
+		Dialog.addCheckbox("Save parametric image/s?", true);
+	  	Dialog.show(); 
+		label_dilation= Dialog.getNumber();
+		save_parametric_image = Dialog.getCheckbox();
+	}
 	args=cell_type+","+neuron_label_image+","+ganglia_binary+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;
 	runMacro(spatial_single_cell_type,args);
 	
@@ -692,8 +732,11 @@ saveAs("Text", results_dir+"Log.txt");
 
 close("*");
 print("DATA saved at "+results_dir);
-exit("Neuron analysis complete");
 
+if(batch_mode==true)
+{
+	exit("Neuron analysis complete");
+}
 
 //function to segment cells using max projection, image to segment, model file location
 //no of tiles for stardist, width and height of image
@@ -710,8 +753,9 @@ function segment_cells(max_projection,img_seg,model_file,n_tiles,width,height,sc
 	roiManager("reset");
 	//model_file="D:\\\\Gut analysis toolbox\\\\models\\\\2d_enteric_neuron\\\\TF_SavedModel.zip";
 	selectWindow(img_seg);
-	run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Both', 'modelFile':'"+model_file+"', 'nTiles':'"+n_tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
 	
+	
+	run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Both', 'modelFile':'"+model_file+"', 'nTiles':'"+n_tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
 	//make sure cells are detected for Hu.. if not exit macro
 	if(roiManager("count")==0) exit("No cells detected. Reduce probability or check image.\nAnalysis stopped");
 	else roiManager("reset");

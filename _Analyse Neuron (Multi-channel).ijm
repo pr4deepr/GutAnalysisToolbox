@@ -132,7 +132,7 @@ fs = File.separator; //get the file separator for the computer (depending on ope
 #@ boolean Calculate_Neuron_Subtype
 // File (style="open", label="<html>Choose the StarDist model for subtype segmentation.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") subtype_model_path 
 cell_type="Hu";
-#@ String(value="<html> Channel details must be entered if calculating neuron subtype<br/> The order of channel numbers MUST match with channel name order.<html>",visibility="MESSAGE") hint5
+#@ String(value="<html> Channel details should be entered if calculating neuron subtype<br/> The order of channel numbers MUST match with channel name order.<html>",visibility="MESSAGE") hint5
 //Enter_channel_details_now=true;
 #@ boolean Enter_channel_details_now
 #@ String(label="Enter channel names followed by a comma (,). Enter NA if not using.", value="NA") marker_names_manual

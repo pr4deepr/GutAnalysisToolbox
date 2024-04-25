@@ -95,21 +95,32 @@ if(!File.exists(ganglia_fix_missing_neurons)) exit("Cannot find ganglia_fix_miss
 #@ boolean image_already_open
 #@ String(value="<html>If image is already open, tick above box.<html>", visibility="MESSAGE") hint1
 #@ String(label="Enter channel number for Hu if you know. Enter NA if not using.", value="NA") cell_channel
-// File (style="open", label="<html>Choose the StarDist model file if segmenting neurons.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") neuron_model_path 
-cell_type="Neuron";
 #@ String(value="<html>----------------------------------------------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") hint_star
 #@ String(value="<html><center><b>DETERMINE GANGLIA OUTLINE</b></center> <html>",visibility="MESSAGE") hint_ganglia
 #@ String(value="<html> Cell counts per ganglia will be calculated<br/>Requires a neuron channel & second channel that labels the neuronal fibres.<html>",visibility="MESSAGE") hint4
-#@ boolean Cell_counts_per_ganglia (description="Use a pretrained deepImageJ model to predict ganglia outline")
+#@ boolean(description="<html> Use a pretrained deepImageJ model to predict ganglia outline <html>") Cell_counts_per_ganglia
 #@ String(choices={"DeepImageJ","Define ganglia using Hu","Manually draw ganglia","Import custom ROI"}, style="radioButtonHorizontal") Ganglia_detection
 #@ String(label="<html> Enter the channel number for segmenting ganglia.<br/> Not valid for 'Define ganglia using Hu and Import custom ROI'.<br/> Enter NA if not using.<html> ", value="NA") ganglia_channel
 #@ String(value="<html>----------------------------------------------------------------------------------------------------<html>",visibility="MESSAGE") adv
-#@ boolean Perform_Spatial_Analysis(description="<html><b>If ticked, it will perform spatial analysis for all markers. Convenient than performing them individually. -> </b><html>")
-#@ boolean Finetune_Detection_Parameters(description="<html><b>Adjust Probabilities or import custom ROIs</b><html>")
-#@ boolean Contribute_to_GAT(description="<html><b>Contribute to GAT by saving image and masks</b><html>") 
-#@ String(description="<html><b>Used for batch analysis, leave as NA</b><html>",value="NA") batch_parameters
+#@ boolean(description="<html><b>If ticked, it will perform spatial analysis for all markers. Convenient than performing them individually. -> </b><html>") Perform_Spatial_Analysis
+#@ boolean (description="<html><b>Adjust Probabilities or import custom ROIs</b><html>") Finetune_Detection_Parameters
+#@ boolean(description="<html><b>Contribute to GAT by saving image and masks</b><html>") Contribute_to_GAT
+#@ String(description="<html><b>Used for batch analysis, leave as NA if not using</b><html>",value="NA",persist=false) batch_parameters
 
+cell_type="Neuron";
 scale = 1;
+
+//print all arguments passed
+print("Image path: "+path);
+print("Channel for cell: "+cell_channel);
+print("Calculate cell count per ganglia: "+Cell_counts_per_ganglia);
+print("Ganglia detection method: "+Ganglia_detection);
+print("Channel for ganglia: "+ganglia_channel);
+print("Perform spatial analysis: "+Perform_Spatial_Analysis);
+print("Contribute image masks to GAT?: "+Contribute_to_GAT);
+print("Finetune detection parameters: "+Finetune_Detection_Parameters);
+print("Batch parameters passed: "+batch_parameters);
+print("\n");
 
 
 //option to accept parameters if calling from a macro/script and want to use batch mode as these values are entered interactively
@@ -118,21 +129,38 @@ if(batch_parameters!="NA")
 //batch parameters are expected in the order
 //custom_ganglia_roi_path, label_dilation, save_parameteric_image,scale,probability,overlap,img_masks_path, batch_analysis
  batch_array = split(batch_parameters, ",");
- print("RUNNING IN BATCH MODE");
- print("BATCH "+batch_array.length);
+ print("Running in batch mode: ");
+ print("Arguments passed");
+
+ //print("BATCH "+batch_array.length);
+ batch_length = batch_array.length;
+ if(batch_length<7) exit("Batch arguments must be 8. If not using batch mode, leave the batch parameters as NA.\nGot "+batch_length+" parameters and batch arguments:\n "+batch_parameters);
  ganglia_roi_path = batch_array[0];
  label_dilation = batch_array[1];
+ label_dilation= parseFloat(label_dilation);
  save_parametric_image = batch_array[2];
  scale = batch_array[3];
+ scale=parseFloat(scale);
  probability= batch_array[4];
+ probability=parseFloat(probability);
  overlap=batch_array[5];
+ overlap=parseFloat(overlap);
  img_masks_path=batch_array[6];
- batch_mode=batch_array[7];
+ batch_mode=true;
+
+ print("Ganglia ROI path: "+ganglia_roi_path);
+ print("Label dilation value: "+label_dilation);
+ print("Save parameteric image from spatial analysis: "+save_parametric_image);
+ print("Probability value for segmentation: "+probability);
+ print("Overlap factor for segmentation: "+overlap);
+ print("If contribute to GAT is selected, path to save image masks: "+img_masks_path);
+ 
+  
 }
 else batch_mode=false;
 
 
-if(Finetune_Detection_Parameters==true && batch_parameters=="NA")
+if(Finetune_Detection_Parameters==true || batch_parameters=="NA")
 {
 	print("Using manual probability and overlap threshold for detection");
 	Dialog.create("Advanced Parameters");
@@ -169,8 +197,11 @@ print("**Neuron\nProbability: "+probability+"\nOverlap threshold: "+overlap);
 
 if(image_already_open==true)
 {
-	waitForUser("Select Image and choose output folder in next prompt");
+	waitForUser("Select Image to analyze");
 	file_name_full=getTitle(); //get file name without extension (.lif)
+	selectWindow(file_name_full);
+	close_other_images = getBoolean("Close any other open images?", "Close others", "Keep other images open");
+	if(close_other_images)	close("\\Others");
 	dir=getDirectory("Choose Output Folder");
 }
 else
@@ -454,9 +485,10 @@ else
 }
 
 //close(seg_image);
-
+wait(10);
 //if cell count zero, check with user if they want to terminate the analysis
 cell_count=roiManager("count");
+
 if(batch_mode==false)
 {
 	if(cell_count == 0)
@@ -469,13 +501,20 @@ if(batch_mode==false)
 			exit("Analysis stopped as no cells detected");
 		}
 	}
-else print("No cells detected");
+}
+else 
+{
+	if(cell_count==0) print("No cells detected");
+}
 
 selectWindow(max_projection);
 roiManager("show all");
 
-//manually correct or verify if needed (only if not batch mode)
-if(batch_mode==false) waitForUser("Correct "+cell_type+" ROIs if needed. You can delete or add ROIs using ROI Manager");
+
+if(batch_mode==false) 
+{
+	waitForUser("Correct "+cell_type+" ROIs if needed. You can delete or add ROIs using ROI Manager");
+}
 
 cell_count=roiManager("count");
 roiManager("deselect");
@@ -504,11 +543,14 @@ Table.update;
 selectWindow(max_projection);
 run("Select None");
 run("Remove Overlay");
+print("Ganglia condition start");
 if (Cell_counts_per_ganglia==true)
 {
+	print("Ganglia segmentation");
 	roiManager("reset");
 	if(Ganglia_detection=="DeepImageJ")
 	 {
+	 	print("Using pretrained model in DeepImageJ for segmentation");
 	 	args=max_projection+","+cell_channel+","+ganglia_channel;
 		//get ganglia outline
 		runMacro(segment_ganglia,args);
@@ -519,7 +561,7 @@ if (Cell_counts_per_ganglia==true)
 	 }
 	 else if(Ganglia_detection=="Define ganglia using Hu")
 	 {
-	 	
+	 	print("Defining ganglia using Hu");
 	 	selectWindow(max_projection);
 	 	args1=max_projection+","+cell_channel+","+neuron_label_image+","+pixelWidth;
 		//get ganglia outline
@@ -555,20 +597,24 @@ if (Cell_counts_per_ganglia==true)
 	 }
 	 else if(Ganglia_detection=="Import custom ROI")
 	 {
-		if(batch_mode==true) args1=neuron_label_image+","+ganglia_roi_path;
-		else args1=neuron_label_image;
+		print("Importing custom ROI");
+		if(batch_parameters!="NA"){args1=neuron_label_image+","+ganglia_roi_path;}
+		else {args1=neuron_label_image;}
+		print(args1);
 		//get ganglia outline
 		runMacro(ganglia_custom_roi,args1);
 		ganglia_binary=getTitle();
 	 	
 	 }
-	 else
+	 else if(Ganglia_detection=="Manually draw ganglia")
 	 {
+	 	print("Manually draw ganglia");
 	 	ganglia_binary=draw_ganglia_outline(max_projection,false);
 	 }
+	 else exit("Ganglia detection method not valid. Got "+Ganglia_detection);
 	 
 	args=neuron_label_image+","+ganglia_binary;
-	
+	print("all ganglia conditions finished");
 	//get cell count per ganglia
 	print("Getting Cell count per ganglia. May take some time for large images.");
 	runMacro(ganglia_cell_count,args);
@@ -697,7 +743,7 @@ if(Save_Image_Masks == true)
 
 if(Perform_Spatial_Analysis==true)
 {	
-	if(batch_parameters!="NA")
+	if(batch_parameters=="NA")
 	{
 		Dialog.create("Spatial Analysis parameters");
 	  	Dialog.addSlider("Cell expansion distance (microns)", 0.0, 20.0, 6.5);
@@ -714,9 +760,7 @@ if(Perform_Spatial_Analysis==true)
 	setVoxelSize(pixelWidth, pixelHeight, 1, unit);
 	args=results_dir+","+cell_type+","+neuron_label_image;
 	runMacro(save_centroids,args);	
-	
-	
-	print("Spatial Analysis for "+cell_type+" done");
+
 }
 
 //save max projection if its scaled image, can use this for further processing later
@@ -733,10 +777,12 @@ saveAs("Text", results_dir+"Log.txt");
 close("*");
 print("DATA saved at "+results_dir);
 
-if(batch_mode==true)
+if(batch_mode==false)
 {
 	exit("Neuron analysis complete");
 }
+else print("Neuron analysis complete");
+
 
 //function to segment cells using max projection, image to segment, model file location
 //no of tiles for stardist, width and height of image
@@ -752,10 +798,15 @@ function segment_cells(max_projection,img_seg,model_file,n_tiles,width,height,sc
 	choice=0;
 	roiManager("reset");
 	//model_file="D:\\\\Gut analysis toolbox\\\\models\\\\2d_enteric_neuron\\\\TF_SavedModel.zip";
+
+	//arg_stardist = "probability=["+probability+"], overlap=["+overlap+"], model_file=["+model_file+"], n_tiles="+n_tiles;
 	selectWindow(img_seg);
-	
-	
+	wait(10);
+
+	//runMacro(gat_dir+fs+"gat_stardist_batch.py",arg_stardist); //this downloads jython.. see if this doesn't exit script
+	//run("gat stardist batch",arg_stardist);
 	run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Both', 'modelFile':'"+model_file+"', 'nTiles':'"+n_tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
+	wait(10);
 	//make sure cells are detected for Hu.. if not exit macro
 	if(roiManager("count")==0) exit("No cells detected. Reduce probability or check image.\nAnalysis stopped");
 	else roiManager("reset");
@@ -802,6 +853,7 @@ function segment_cells(max_projection,img_seg,model_file,n_tiles,width,height,sc
 	selectWindow(max_projection);
 	roiManager("show all");
 	close(label_filter);
+	print("Segmentation done");
 }
 
 //rename ROIs as consecutive numbers

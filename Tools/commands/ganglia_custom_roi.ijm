@@ -49,15 +49,20 @@ macro "ganglia_custom_roi"
 	else 
 	{
 		args=getArgument();
+		print("Segmenting ganglia using custom ROI");
+		print(args);
 		arg_array=split(args, ",");
+		Array.show(arg_array);
 		//max_projection=arg_array[0];
 		neuron_label_img = arg_array[0];
 		selectWindow(neuron_label_img);
 	}
 	getDimensions(width, height, channels, slices, frames);
-	if(arg_array.length>1)
+	arg_array_length = arg_array.length;
+	if(arg_array_length>1)
 	{
 		ganglia_roi_path= arg_array[1];
+		print("Ganglia path: "+ganglia_roi_path);
 	}
 	else 
 	{
@@ -65,7 +70,8 @@ macro "ganglia_custom_roi"
 	}
 	roiManager("open", ganglia_roi_path);
 	roiManager("show all without labels");
-	waitForUser("Verify if ganglia outline is correct. If not, go to More ->Open to choose another ROI file");
+	//arg_array>1 means batch mode
+	if(arg_array.length==1) {waitForUser("Verify if ganglia outline is correct. If not, go to More ->Open to choose another ROI file");}
 	roiManager("deselect");
 	runMacro(roi_to_label);
 	wait(5);
@@ -142,9 +148,5 @@ macro "ganglia_custom_roi"
 		//active window is ganglia binary image
 		selectWindow(ganglia_binary);
 	}
-
-	 	
-
-		
 	
 }

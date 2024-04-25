@@ -136,6 +136,10 @@ else
 	Save_Image_Masks = false;
 }
 
+//error catch if channel name or number is empty
+if(Enter_channel_details_now==true && marker_names_manual=="NA" || marker_names_manual=="") exit("Enter channel name or untick Enter channel details option");
+if(Enter_channel_details_now==true && marker_no_manual=="NA" || marker_no_manual=="") exit("Enter channel numbers or untick Enter channel details option");
+
 if(Perform_Spatial_Analysis==true)
 {
 	Dialog.create("Spatial Analysis parameters");
@@ -150,62 +154,6 @@ if(Perform_Spatial_Analysis==true)
 print("Using parameters\nSegmentation pixel size:"+training_pixel_size+"\nMax neuron area (microns): "+neuron_area_limit+"\nMin marker area (microns): "+neuron_lower_limit);
 print("**Neuron subtype\nProbability: "+probability_subtype+"\nOverlap threshold: "+overlap_subtype+"\n");
 
-//get user-entered markers into a array of strings
-marker_names_manual=split(marker_names_manual, ",");
-//trim space from names
-marker_names_manual=trim_space_arr(marker_names_manual);
-//get channel numbers into an array
-marker_no_manual=split(marker_no_manual, ",");
-if(marker_names_manual.length!=marker_no_manual.length) exit("Number of marker names and marker channels do not match");
-
-//custom probability for subtypes
-//create dialog box based on number of markers
-probability_subtype_arr=newArray(marker_names_manual.length);
-custom_roi_subtype_arr=newArray(marker_names_manual.length);
-if(Finetune_Detection_Parameters==true)
-{
-	print("Using manual probability and overlap threshold for detection");
-	Dialog.create("Advanced Parameters");
-	Dialog.addMessage("Default values shown below will be used if no changes are made");
-	Dialog.addNumber("Rescaling Factor", scale, 3, 8, "") 
-  	
-  	for ( i = 0; i < marker_names_manual.length; i++) 
-  	{
-		
-	    Dialog.addSlider("Probability for "+marker_names_manual[i], 0, 1,probability_subtype);
-	    Dialog.addToSameRow();
-  		Dialog.addCheckbox("Custom ROI", 0);	    
-	}
-	
-  	Dialog.addSlider("Overlap threshold", 0, 1,overlap);
-	Dialog.show(); 
-	scale = Dialog.getNumber();
-	
-
-	for ( i = 0; i < marker_names_manual.length; i++) 
-  	{
-	    probability_subtype_arr[i]= Dialog.getNumber();
-	    custom_roi_subtype_arr[i]=Dialog.getCheckbox();
-	}
-	
-	overlap= Dialog.getNumber();
-	overlap_subtype=overlap;
-}
-
-else 
-{ //assign probability subtype default values to all of them
-	for ( i = 0; i < marker_names_manual.length; i++) 
-  	{
-		custom_roi_subtype_arr[i]=false;
-		probability_subtype_arr[i]=probability_subtype;
-	    
-	}
-}
-
-print("**Neuron subtype\nProbability for");;
-Array.print(marker_names_manual);
-Array.print(probability_subtype_arr);
-print("Overlap threshold: "+overlap_subtype+"\n");
 
 
 
@@ -462,6 +410,7 @@ else ganglia_binary = "NA";
 
 
 
+
 //neuron_subtype_matrix=0;
 no_markers=0;
 //if user wants to enter markers before hand, can do that at the start
@@ -470,13 +419,24 @@ arr=Array.getSequence(sizeC);
 arr=add_value_array(arr,1);
 if(Enter_channel_details_now==true)
 {
-	channel_names=marker_names_manual;//split(marker_names_manual, ",");
-	channel_numbers=marker_no_manual;//split(marker_no_manual, ",");
-	//get channel numbers by parsing array and converting values to integer
-	channel_numbers=convert_array_int(marker_no_manual);
-	no_markers=channel_names.length;
-	//Array.show(channel_names);
-	//Array.show(channel_numbers);
+	if(marker_names_manual!="NA")
+	{
+		//get user-entered markers into a array of strings
+		marker_names_manual=split(marker_names_manual, ",");
+		//trim space from names
+		marker_names_manual=trim_space_arr(marker_names_manual);
+		//get channel numbers into an array
+		marker_no_manual=split(marker_no_manual, ",");
+		if(marker_names_manual.length!=marker_no_manual.length) exit("Number of marker names and marker channels do not match");
+
+		channel_names=marker_names_manual;//split(marker_names_manual, ",");
+		channel_numbers=marker_no_manual;//split(marker_no_manual, ",");
+		//get channel numbers by parsing array and converting values to integer
+		channel_numbers=convert_array_int(marker_no_manual);
+		no_markers=channel_names.length;
+	}
+	else exit("Marker names not defined");
+
 }
 else 
 {
@@ -499,7 +459,59 @@ else
 	{
 		channel_numbers[i]=Dialog.getChoice();
 	}
+	
 }
+
+//custom probability for subtypes
+//create dialog box based on number of markers
+probability_subtype_arr=newArray(channel_names.length);
+custom_roi_subtype_arr=newArray(channel_names.length);
+
+if(Finetune_Detection_Parameters==true)
+{
+	print("Using manual probability and overlap threshold for detection");
+	Dialog.create("Advanced Parameters");
+	Dialog.addMessage("Default values shown below will be used if no changes are made");
+	Dialog.addNumber("Rescaling Factor", scale, 3, 8, "") 
+  	
+  	for ( i = 0; i < marker_names_manual.length; i++) 
+  	{
+		
+	    Dialog.addSlider("Probability for "+marker_names_manual[i], 0, 1,probability_subtype);
+	    Dialog.addToSameRow();
+  		Dialog.addCheckbox("Custom ROI", 0);	    
+	}
+	
+  	Dialog.addSlider("Overlap threshold", 0, 1,overlap);
+	Dialog.show(); 
+	scale = Dialog.getNumber();
+	
+
+	for ( i = 0; i < marker_names_manual.length; i++) 
+  	{
+	    probability_subtype_arr[i]= Dialog.getNumber();
+	    custom_roi_subtype_arr[i]=Dialog.getCheckbox();
+	}
+	
+	overlap_subtype= Dialog.getNumber();
+}
+
+else 
+{ //assign probability subtype default values to all of them
+	for ( i = 0; i < marker_names_manual.length; i++) 
+  	{
+		
+		custom_roi_subtype_arr[i]=false;
+		probability_subtype_arr[i]=probability_subtype;
+	    
+	}
+}
+
+print("**Neuron subtype\nProbability for");;
+Array.print(marker_names_manual);
+Array.print(probability_subtype_arr);
+print("Overlap threshold: "+overlap_subtype+"\n");
+
 
 if(no_markers>1)
 {

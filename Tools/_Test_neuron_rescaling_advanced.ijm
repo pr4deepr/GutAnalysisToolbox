@@ -51,7 +51,10 @@ print("\\Clear");
 if(image_already_open==true)
 {
 	waitForUser("Select Image to segment (Image already open was selected)");//. Remember to choose output folder in next prompt");
-	file_name=getTitle(); //get file name without extension (.lif)
+	file_name=getTitle(); 
+	selectWindow(file_name);
+	close_other_images = getBoolean("Close any other open images?", "Close others", "Keep other images open");
+	if(close_other_images)	close("\\Others");
 	//dir=getDirectory("Choose Output Folder");
 }
 else

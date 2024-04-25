@@ -211,8 +211,11 @@ print("Overlap threshold: "+overlap_subtype+"\n");
 
 if(image_already_open==true)
 {
-	waitForUser("Select Image. and choose output folder in next prompt");
+	waitForUser("Select Image to analyze");
 	file_name_full=getTitle(); //get file name without extension (.lif)
+	selectWindow(file_name_full);
+	close_other_images = getBoolean("Close any other open images?", "Close others", "Keep other images open");
+	if(close_other_images)	close("\\Others");
 	dir=getDirectory("Choose Output Folder");
 	//file_name=File.nameWithoutExtension;
 }

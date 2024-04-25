@@ -132,7 +132,8 @@ fs = File.separator; //get the file separator for the computer (depending on ope
 #@ boolean Calculate_Neuron_Subtype
 // File (style="open", label="<html>Choose the StarDist model for subtype segmentation.<br>Enter NA if empty<html>",value="NA", description="Enter NA if nothing") subtype_model_path 
 cell_type="Hu";
-#@ String(value="<html> Tick box below if you know channel name and numbers<br/> The order of channel numbers MUST match with channel name order.<html>",visibility="MESSAGE") hint5
+#@ String(value="<html> Channel details must be entered if calculating neuron subtype<br/> The order of channel numbers MUST match with channel name order.<html>",visibility="MESSAGE") hint5
+//Enter_channel_details_now=true;
 #@ boolean Enter_channel_details_now
 #@ String(label="Enter channel names followed by a comma (,). Enter NA if not using.", value="NA") marker_names_manual
 #@ String(label="Enter channel numbers with separated by a comma (,). Leave as NA if not using.", value="NA") marker_no_manual
@@ -149,6 +150,7 @@ cell_type="Hu";
 
 scale = 1;
 
+
 if(Contribute_to_GAT==true)
 {
 	waitForUser("You can contribute to improving GAT by saving images and masks,\nand sharing it so our deep learning models have better accuracy\nGo to 'Help and Support' button under GAT to get in touch");
@@ -159,35 +161,18 @@ else
 {
 	Save_Image_Masks = false;
 }
+//error catch if channel name or number is empty
+if(Calculate_Neuron_Subtype==true && Enter_channel_details_now==true && marker_names_manual=="NA" || marker_names_manual=="") exit("Neuron subtype analysis selected\nEnter channel name or untick Enter channel details option");
+if(Calculate_Neuron_Subtype==true && Enter_channel_details_now==true && marker_no_manual=="NA" || marker_no_manual=="") exit("Neuron subtype analysis selected\nEnter channel numbers or untick Enter channel details option");
+
 //listing parameters being used for GAT
 print("Using parameters\nSegmentation pixel size:"+training_pixel_size+"\nMax neuron area (microns): "+neuron_area_limit+"\nMin Neuron Area (microns): "+neuron_seg_lower_limit+"\nMin marker area (microns): "+neuron_lower_limit);
 print("**Neuron\nProbability: "+probability+"\nOverlap threshold: "+overlap);
 //print("**Neuron subtype\nProbability: "+probability_subtype+"\nOverlap threshold: "+overlap_subtype+"\n");
 
-
-//add an option for defining a custom scaling factor
-
-marker_subtype=Calculate_Neuron_Subtype;
-
-//checking if no of markers and no of channels match
-if(marker_subtype==1 && Enter_channel_details_now==1)
-{
-	//print(marker_names_manual);
-	marker_names_manual=split(marker_names_manual, ",");
-	
-	//trim space from names
-	marker_names_manual=trim_space_arr(marker_names_manual);
-	//Array.show(marker_names_manual);
-	
-	marker_no_manual=split(marker_no_manual, ",");
-	if(marker_names_manual.length!=marker_no_manual.length) exit("Number of marker names and marker channels do not match");
-}
-
 //use channel name sort code here from ~line 705
 //custom probability for subtypes
 //create dialog box based on number of markers
-probability_subtype_arr=newArray(marker_names_manual.length);
-custom_roi_subtype_arr=newArray(marker_names_manual.length);
 
 if(Finetune_Detection_Parameters==true)
 {
@@ -199,49 +184,23 @@ if(Finetune_Detection_Parameters==true)
   	//add checkbox to same row as slider
   	Dialog.addToSameRow();
   	Dialog.addCheckbox("Custom ROI", 0);
-  	
-  	for ( i = 0; i < marker_names_manual.length; i++) 
-  	{
-		
-	    Dialog.addSlider("Probability for "+marker_names_manual[i], 0, 1,probability_subtype);
-	    Dialog.addToSameRow();
-  		Dialog.addCheckbox("Custom ROI", 0);
-	    
-	}
-	
   	Dialog.addSlider("Overlap threshold", 0, 1,overlap);
 	Dialog.show(); 
-	scale = Dialog.getNumber();
 	
+	scale = Dialog.getNumber();
 	probability= Dialog.getNumber();
 	custom_roi_hu = Dialog.getCheckbox();
-	
-	for ( i = 0; i < marker_names_manual.length; i++) 
-  	{
-	    probability_subtype_arr[i]= Dialog.getNumber();
-	    custom_roi_subtype_arr[i]=Dialog.getCheckbox();
-	}
-	
 	overlap= Dialog.getNumber();
-	overlap_subtype=overlap;
+
 }
 
 else 
 { //assign probability subtype default values to all of them
 	custom_roi_hu =false;
-	for ( i = 0; i < marker_names_manual.length; i++) 
-  	{
-		
-		probability_subtype_arr[i]=probability_subtype;
-		custom_roi_subtype_arr[i]=false;
-	    
-	}
+
 }
 
-print("**Neuron subtype\nProbability for");;
-//Array.print(marker_names_manual);
-//Array.print(probability_subtype_arr);
-print("Overlap threshold: "+overlap_subtype+"\n");
+
 
 
 if(image_already_open==true)
@@ -385,18 +344,11 @@ Table.create(table_name);//Final Results Table
 row=0; //row counter for the table
 image_counter=0;
 
+
+//verify neuron channel and ganglia channel
 if(cell_channel!="NA")
 {
-	if(Enter_channel_details_now==true && marker_names_manual.length>1) //delete Hu from channel list as we are not using it for marker classification
-	{
-		//find index of cell_channel;; keep it as string
-		idx_Hu=find_str_array(marker_no_manual,cell_channel);
-		if(idx_Hu!="NA") //if Hu found in the channel entries, delete that corresponding channel
-		{
-			marker_names_manual=Array.deleteIndex(marker_names_manual, idx_Hu);
-			marker_no_manual=Array.deleteIndex(marker_no_manual,idx_Hu);
-		}
-	}
+
 	cell_channel=parseInt(cell_channel);
 	if(isNaN(cell_channel)) exit("Enter channel number for cell. If leaving empty, type NA in the value");
 	
@@ -409,9 +361,132 @@ if(ganglia_channel!="NA")
 	
 }
 
-//Array.show(marker_names_manual);
-//Array.show(marker_no_manual);
-//exit("test");
+
+//getting channel names and numbers as an array
+//if user hasn't entered channel details earlier and wants to 
+marker_subtype=Calculate_Neuron_Subtype;
+
+//get marker names and channels
+if(marker_subtype==1)
+{
+	//user can enter markers beforehand or manually define it here
+	arr=Array.getSequence(sizeC);
+	arr=add_value_array(arr,1);
+	
+	//get channel details from user entered at the start
+	if(Enter_channel_details_now==true)
+	{
+		if(marker_names_manual!="NA")
+		{	//print(marker_names_manual);
+			marker_names_manual=split(marker_names_manual, ",");
+			
+			//trim space from names
+			marker_names_manual=trim_space_arr(marker_names_manual);
+			//Array.show(marker_names_manual);
+			
+			marker_no_manual=split(marker_no_manual, ",");
+			if(marker_names_manual.length!=marker_no_manual.length) exit("Number of marker names and marker channels do not match. Check entry");
+			
+			if(marker_names_manual.length>1) //delete Hu from channel list as we are not using it for marker classification
+			{
+				//find index of cell_channel;; keep it as string
+				idx_Hu=find_str_array(marker_no_manual,cell_channel);
+				if(idx_Hu!="NA") //if Hu found in the channel entries, delete that corresponding channel
+				{
+					marker_names_manual=Array.deleteIndex(marker_names_manual, idx_Hu);
+					marker_no_manual=Array.deleteIndex(marker_no_manual,idx_Hu);
+				}
+			}
+
+			
+			channel_names=marker_names_manual;//split(marker_names_manual, ",");
+			channel_numbers=marker_no_manual;//split(marker_no_manual, ",");
+			channel_numbers=convert_array_int(marker_no_manual);
+			no_markers=channel_names.length;
+		//Array.show(channel_names);
+		//Array.show(channel_numbers);
+		}
+		else exit("Marker names not defined");
+		
+	}
+	else 
+	//get channel info from user with dialog boxes
+	{
+		no_markers=getNumber("How many markers would you like to analyse?", 1);
+		string=getString("Enter names of markers separated by comma (,)", "Names");
+		channel_names=split(string, ",");	
+		if(channel_names.length!=no_markers) exit("Channel names do not match the no of markers");
+		channel_numbers=newArray(sizeC);
+		marker_label_img=newArray(sizeC);
+		Dialog.create("Select channels for each marker");
+		for(i=0;i<no_markers;i++)
+		{
+			Dialog.addChoice("Choose Channel for "+channel_names[i], arr, arr[0]);
+			//Dialog.addCheckbox("Determine if expression is high or low", false);
+		}
+		Dialog.show();
+
+	
+		for(i=0;i<no_markers;i++)
+		{
+			channel_numbers[i]=Dialog.getChoice();
+			//hi_lo[i]=Dialog.getCheckbox();
+		}
+	}
+	//once markern names and numbers are defined, 
+	probability_subtype_arr=newArray(channel_names.length);
+	custom_roi_subtype_arr=newArray(channel_names.length);
+	if(Finetune_Detection_Parameters==true)
+	{
+
+	
+		print("Enter probability and overlap threshold for neuronal subtypes");
+		Dialog.create("Advanced Parameters (subtype)");
+		Dialog.addMessage("Default values shown below will be used if no changes are made"); 	
+	  	for ( i = 0; i < channel_names.length; i++) 
+	  	{
+			
+		    Dialog.addSlider("Probability for "+channel_names[i], 0, 1,probability_subtype);
+		    Dialog.addToSameRow();
+	  		Dialog.addCheckbox("Custom ROI", 0);
+		    
+		}
+		
+	  	Dialog.addSlider("Overlap threshold", 0, 1,overlap);
+		Dialog.show(); 
+		
+		for ( i = 0; i < channel_names.length; i++) 
+	  	{
+		    probability_subtype_arr[i]= Dialog.getNumber();
+		    custom_roi_subtype_arr[i]=Dialog.getCheckbox();
+		}
+		
+		overlap_subtype= Dialog.getNumber();
+	}
+	
+	else 
+	{ //assign probability subtype default values to all of them
+	
+		for ( i = 0; i < channel_names.length; i++) 
+	  	{
+			
+			probability_subtype_arr[i]=probability_subtype;
+			custom_roi_subtype_arr[i]=false;
+		    
+		}
+	}
+	
+	print("**Neuron subtype\nProbability for");
+	Array.print(channel_names);
+	Array.print(probability_subtype_arr);
+	print("Overlap threshold: "+overlap_subtype+"\n");
+
+}
+
+
+
+
+//ganglia segmentation options; get channels if user didn't enter
 if(sizeC>1 && Ganglia_detection!="Define ganglia using Hu")
 {
  if (Cell_counts_per_ganglia==true && cell_channel=="NA" && ganglia_channel=="NA") //count cells per ganglia but don't know channels for ganglia or neuron
@@ -811,41 +886,8 @@ no_markers=0;
 //otherwise, option to enter them manually here
 if(marker_subtype==1) 
 {
-	
-	arr=Array.getSequence(sizeC);
-	arr=add_value_array(arr,1);
-	if(Enter_channel_details_now==true)
-	{
-		channel_names=marker_names_manual;//split(marker_names_manual, ",");
-		channel_numbers=marker_no_manual;//split(marker_no_manual, ",");
-		channel_numbers=convert_array_int(marker_no_manual);
-		no_markers=channel_names.length;
-		//Array.show(channel_names);
-		//Array.show(channel_numbers);
-	}
-	else 
-	{
-		no_markers=getNumber("How many markers would you like to analyse?", 1);
-		string=getString("Enter names of markers separated by comma (,)", "Names");
-		channel_names=split(string, ",");	
-		if(channel_names.length!=no_markers) exit("Channel names do not match the no of markers");
-		channel_numbers=newArray(sizeC);
-		marker_label_img=newArray(sizeC);
-		Dialog.create("Select channels for each marker");
-		for(i=0;i<no_markers;i++)
-		{
-			Dialog.addChoice("Choose Channel for "+channel_names[i], arr, arr[0]);
-			//Dialog.addCheckbox("Determine if expression is high or low", false);
-		}
-		Dialog.show();
 
-	
-		for(i=0;i<no_markers;i++)
-		{
-			channel_numbers[i]=Dialog.getChoice();
-			//hi_lo[i]=Dialog.getCheckbox();
-		}
-	}
+
 	if(no_markers>1)
 	{
 		channel_combinations=combinations(channel_names); //get all possible combinations and adds an underscore between name labels if multiple markers

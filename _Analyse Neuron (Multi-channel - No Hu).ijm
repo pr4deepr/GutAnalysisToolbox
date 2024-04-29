@@ -96,6 +96,9 @@ if(!File.exists(ganglia_custom_roi)) exit("Cannot find single ganglia custom roi
 var save_centroids=gat_dir+fs+"save_centroids.ijm";
 if(!File.exists(save_centroids)) exit("Cannot find save_centroids custom roi script. Returning: "+save_centroids);
 
+//check if rename_rois script is present
+var rename_rois=gat_dir+fs+"rename_rois.ijm";
+if(!File.exists(rename_rois)) exit("Cannot find rename_rois custom roi script. Returning: "+rename_rois);
 
 fs = File.separator; //get the file separator for the computer (depending on operating system)
 
@@ -398,6 +401,11 @@ if (Cell_counts_per_ganglia==true)
 	ganglia_label = getTitle();
 	runMacro(label_to_roi,ganglia_label);
 	roiManager("deselect");
+	    
+    wait(5);
+    //rename rois
+    runMacro(rename_rois,"Ganglia");
+	
 	ganglia_number=roiManager("count");
 	roi_location=results_dir+"Ganglia_ROIs_"+file_name+".zip";
 	roiManager("save",roi_location );
@@ -667,7 +675,9 @@ for(i=0;i<channel_combinations.length;i++)
 			//roi_file_name= String.join(channel_arr, "_");
 			if(roiManager("count")>0)
 			{
-				roi_location_marker=results_dir+channel_name+"_ROIs.zip";
+				//rename rois
+                runMacro(rename_rois,channel_name);
+                roi_location_marker=results_dir+channel_name+"_ROIs_"+file_name+".zip";
 				roiManager("save",roi_location_marker);
 			}
 			
@@ -859,10 +869,13 @@ for(i=0;i<channel_combinations.length;i++)
 
 				roiManager("deselect");
 				roi_file_name= String.join(channel_arr, "_");
+				roi_location_marker=results_dir+roi_file_name+"_ROIs_"+file_name+".zip";
 				roi_location_marker=results_dir+roi_file_name+"_ROIs.zip";
 				//if no cells in marker combination
 				if(roiManager("count")>0)
 				{
+					//rename and save
+                    runMacro(rename_rois,roi_file_name);
 					roiManager("save",roi_location_marker);
 				}
 

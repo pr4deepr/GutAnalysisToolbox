@@ -89,7 +89,9 @@ if(!File.exists(save_centroids)) exit("Cannot find save_centroids custom roi scr
 var ganglia_fix_missing_neurons=gat_dir+fs+"ganglia_fix_missing_neurons.ijm";
 if(!File.exists(ganglia_fix_missing_neurons)) exit("Cannot find ganglia_fix_missing_neurons custom roi script. Returning: "+ganglia_fix_missing_neurons);
 
-
+//check if rename_rois script is present
+var rename_rois=gat_dir+fs+"rename_rois.ijm";
+if(!File.exists(rename_rois)) exit("Cannot find rename_rois custom roi script. Returning: "+rename_rois);
 
 #@ File (style="open", label="<html>Choose the image to segment.<br><b>Enter NA if image is open or if field is empty.</b><html>", value=fiji_dir) path
 #@ boolean image_already_open
@@ -519,6 +521,10 @@ if(batch_mode==false)
 cell_count=roiManager("count");
 roiManager("deselect");
 
+wait(5);
+//rename rois
+args=cell_type;
+runMacro(rename_rois,args);
 
 print("No of "+cell_type+" in "+max_projection+" : "+cell_count);
 roiManager("deselect");
@@ -685,6 +691,10 @@ if (Cell_counts_per_ganglia==true)
 	selectWindow("Results");
 	ganglia_area = Table.getColumn("Area");
 	
+	wait(5);
+    //rename rois
+    runMacro(rename_rois,"Ganglia");
+    
 	roi_location=results_dir+"Ganglia_ROIs_"+file_name+".zip";
 	roiManager("save",roi_location );
 	roiManager("reset");

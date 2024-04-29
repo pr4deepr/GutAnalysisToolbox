@@ -117,7 +117,10 @@ if(!File.exists(save_centroids)) exit("Cannot find save_centroids custom roi scr
 var ganglia_fix_missing_neurons=gat_dir+fs+"ganglia_fix_missing_neurons.ijm";
 if(!File.exists(ganglia_fix_missing_neurons)) exit("Cannot find ganglia_fix_missing_neurons custom roi script. Returning: "+ganglia_fix_missing_neurons);
 
-
+//check if rename_rois script is present
+//check if import ganglia fix missing neurons script is present
+var rename_rois=gat_dir+fs+"rename_rois.ijm";
+if(!File.exists(rename_rois)) exit("Cannot find rename_rois custom roi script. Returning: "+rename_rois);
 
 fs = File.separator; //get the file separator for the computer (depending on operating system)
 
@@ -662,8 +665,12 @@ roiManager("show all without labels");
 //manually correct or verify if needed
 waitForUser("Correct "+cell_type+" ROIs if needed. You can delete or add ROIs using ROI Manager");
 cell_count=roiManager("count");
-//for large images, this takes a while..
-//rename_roi(); //rename ROIs
+
+wait(5);
+//rename rois
+args=cell_type;
+runMacro(rename_rois,args);
+
 roiManager("deselect");
 selectWindow(max_projection);
 //uses roi to label macro code
@@ -814,6 +821,11 @@ if (Cell_counts_per_ganglia==true)
 	
 	roiManager("deselect");
 	ganglia_number=roiManager("count");
+	
+	wait(5);
+	//rename rois
+	runMacro(rename_rois,"Ganglia");
+	
 	roi_location=results_dir+"Ganglia_ROIs_"+file_name+".zip";
 	roiManager("save",roi_location );
 	roiManager("reset");
@@ -1064,8 +1076,9 @@ if(marker_subtype==1)
 			roiManager("deselect");
 			if(roiManager("count")>0)
 			{
-			//roi_file_name= String.join(channel_arr, "_");
-				roi_location_marker=results_dir+channel_name+"_ROIs.zip";
+				//rename rois
+				runMacro(rename_rois,channel_name);
+				roi_location_marker=results_dir+channel_name+"_ROIs_"+file_name+".zip";
 				roiManager("save",roi_location_marker);
 			}
 			
@@ -1236,10 +1249,12 @@ if(marker_subtype==1)
 
 				roiManager("deselect");
 				roi_file_name= String.join(channel_arr, "_");
-				roi_location_marker=results_dir+roi_file_name+"_ROIs.zip";
+				roi_location_marker=results_dir+roi_file_name+"_ROIs_"+file_name+".zip";
 				//if no cells in marker combination
 				if(roiManager("count")>0)
 				{
+					//rename and save
+					runMacro(rename_rois,roi_file_name);
 					roiManager("save",roi_location_marker);
 				}
 
@@ -1692,16 +1707,6 @@ function replace_str_arr(arr,old,new)
 }
 
 
-
-//rename ROIs as consecutive numbers
-function rename_roi()
-{
-	for (i=0; i<roiManager("count");i++)
-		{ 
-		roiManager("Select", i);
-		roiManager("Rename", i+1);
-		}
-}
 
 //Draw outline for ganglia or edit the predicted outline
 function draw_ganglia_outline(ganglia_img,edit_flag)

@@ -27,11 +27,14 @@ macro "rename_rois_cell_type"
 	{
 		print("No ROIs in detected in ROIManager. No renaming done");
 	}
-	for (roi = 0; roi < nrois; roi++)
+	else
 	{
-		roiManager("select", roi);
-		roi_no = roi+1;
-		roiManager("rename", cell_name_prefix+"_"+roi_no);
+		for (roi = 0; roi < nrois; roi++)
+		{
+			roiManager("select", roi);
+			roi_no = roi+1;
+			roiManager("rename", cell_name_prefix+"_"+roi_no);
+		}
 	}
 	roiManager("deselect");
 }

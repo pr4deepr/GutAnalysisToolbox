@@ -682,7 +682,7 @@ if (Cell_counts_per_ganglia==true)
 	sum_cells_ganglia = sum_arr_values(cell_count_per_ganglia);
 	if(sum_cells_ganglia!=cell_count)
 	{
-		print("No. of neurons in ganglia "+sum_cells_ganglia+" does not equal the total neurons detected "+cell_count+".\nThis means that the ganglia outlines are not accurate and neuronsa are missing");
+		print("No. of neurons in ganglia "+sum_cells_ganglia+" does not equal the total neurons detected "+cell_count+".\nThis means that the ganglia outlines are not accurate and neurons are missing");
 		print("Using neuron detection to fix ganglia outline");
 		close(ganglia_binary);//getting new ganglia binary from script
 		selectWindow("cells_ganglia_count");

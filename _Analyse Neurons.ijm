@@ -187,7 +187,7 @@ else custom_roi_hu=false;
 if(Contribute_to_GAT==true)
 {
 	waitForUser("You can contribute to improving GAT by saving images and masks,\nand sharing it so our deep learning models have better accuracy\nGo to 'Help and Support' button under GAT to get in touch");
-	img_masks_path = getDirectory("Choose Folder to save images and masks");
+	img_masks_path = getDirectory("Choose a Folder to save the images and masks");
 	Save_Image_Masks = true;
 }
 else 
@@ -201,7 +201,7 @@ print("**Neuron\nProbability: "+probability+"\nOverlap threshold: "+overlap);
 
 if(image_already_open==true)
 {
-	waitForUser("Select Image to analyze");
+	waitForUser("Select an open Image to analyze, then choose where to save the data");
 	file_name_full=getTitle(); //get file name without extension (.lif)
 	selectWindow(file_name_full);
 	close_other_images = getBoolean("Close any other open images?", "Close others", "Keep other images open");
@@ -221,7 +221,7 @@ else
 		
 	}
 	else if (endsWith(path, ".tif")|| endsWith(path, ".tiff")) open(path);
-	else exit("File type not recognised.  Tif, Lif and Czi files supported.");
+	else exit("File type not recognised.  GAT is compatible with Tif, Lif and Czi files.");
 	
 	dir=File.directory;
 	file_name_full=File.nameWithoutExtension; //get file name without extension (.lif)
@@ -232,7 +232,11 @@ file_name_length=lengthOf(file_name_full);
 if(file_name_length>50)
 {
 	file_name=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
-	suffix = getString("File name is too long, so it will be truncated. Enter custom name to be be added to end of filename", "_1");
+	Dialog.create("The file name is too long, instead write a Custom Identifier for this Image");
+	Dialog.addString("Custom Identifier", "_1");
+	Dialog.addMessage("For example, writing '_1' as the custom identifier \n will name the final data output as ImageName_1");
+	Dialog.show();
+	suffix = Dialog.getString();
 	file_name = file_name+suffix;
 }
 else file_name=file_name_full;
@@ -254,8 +258,8 @@ getPixelSize(unit, pixelWidth, pixelHeight);
 //Check if RGB
 if (bitDepth()==24)
 {
-	print("Image is RGB type. It is recommended to NOT\nconvert the image to RGB and use the raw output from the microscope (usually, 8,12 or 16-bit)\n.");
-	rgb_prompt = getBoolean("Image is RGB. Recommend to use 8,12 or 16-bit images. Can try converting to 8-bit and proceed.", "Convert to 8-bit", "No, stop analysis");
+	print("Image type is RGB. It is NOT recommended to\nconvert the image to RGB. Instead, use the raw \noutput from the microscope (which is usually in 8,12 or 16-bit)\n.");
+	rgb_prompt = getBoolean("Image is RGB. It is recommended to use 8,12 or 16-bit images. Would you like to try converting to 8-bit and proceed?", "Convert to 8-bit", "No, stop analysis");
 	if(rgb_prompt ==1)
 	{
 		print("Converting to 8-bit");
@@ -271,8 +275,8 @@ unit=String.trim(unit);
 
 if(unit!="microns" && unit!="micron" && unit!="um" )
 {
-	print("Image not calibrated in microns. This is required for accurate segmentation");
-	exit("Image must have pixel size in microns.\nGo to Image -> Properties to set this.\nYou can get this from the microscope settings.\nCannot proceed: STOPPING Analysis");
+	print("Image is not calibrated in microns. This is required for accurate segmentation");
+	exit("Image must have pixel size in microns.\nTo fix this: Go to Image -> Properties: And enter the correct pixel size in microns.\nYou can get this information from the microscope settings.\nCannot proceed: STOPPING Analysis");
 }
 //************
 
@@ -298,8 +302,8 @@ do
 	{
 	
 		file_name=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
-		if(save_location_exists == 1) suffix = getString("Save Location already exists. Add a suffix to add to the foldername.", "_1");
-		else suffix = getString("File name too long. Name restricted to 20 characters. Enter suffix to add to the name.", "_1");
+		if(save_location_exists == 1) suffix = getString("Save location already exists. Add a suffix to add to the foldername.", "_1");
+		else suffix = getString("The file name is too long, instead write a Custom Identifier for this Image.", "_1");
 		file_name = file_name+suffix;
 		save_location_exists = 0;
 	}
@@ -314,7 +318,7 @@ do
 	}
 	else 
 	{
-		waitForUser("Save folder already exists, enter new name in next prompt");
+		waitForUser("The save folder already exists, enter new name in next prompt");
 		save_location_exists = 1;
 	}
 
@@ -346,7 +350,7 @@ image_counter=0;
 if(cell_channel!="NA")
 {
 	cell_channel=parseInt(cell_channel);
-	if(isNaN(cell_channel)) exit("Enter channel number for cell. If leaving empty, type NA in the value");
+	if(isNaN(cell_channel)) exit("Enter which channel number to use for "+cell_type+" segmentation. If leaving empty, type NA in the value");
 	
 }
 
@@ -356,11 +360,11 @@ if(sizeC>1 && Ganglia_detection!="Define ganglia using Hu")
 {
  if (Cell_counts_per_ganglia==true && cell_channel=="NA" && ganglia_channel=="NA") //count cells per ganglia but don't know channels for ganglia or neuron
 	{
-		waitForUser("Note the channels for neuron and ganglia and enter in the next box.");
+		waitForUser("Enter which channels to use for NEURON and GANGLIA segmentation in the next prompt.");
 		
-		Dialog.create("Choose channels for "+cell_type);
-  		Dialog.addNumber("Enter "+cell_type+" channel", 3);
-  		Dialog.addNumber("Enter channel for segmenting ganglia", 2);
+		Dialog.create("Choose Segmentation Channels");
+  		Dialog.addNumber("Enter which channel to use for "+cell_type+" segmentation", 3);
+  		Dialog.addNumber("Enter which channel to use for ganglia segmentation", 2);
   		Dialog.show(); 
 		cell_channel= Dialog.getNumber();
 		ganglia_channel=Dialog.getNumber();
@@ -371,9 +375,9 @@ if(sizeC>1 && Ganglia_detection!="Define ganglia using Hu")
 	}
 	else if(Cell_counts_per_ganglia==true && cell_channel!="NA" && ganglia_channel=="NA") //count cells per ganglia but don't know channels for ganglia
 	{
-		waitForUser("Note the channels for ganglia and enter in the next box.");
-		Dialog.create("Choose channel for ganglia");
-  		Dialog.addNumber("Enter channel for segmenting ganglia", 2);
+		waitForUser("Enter which channels to use for GANGLIA segmentation in the next prompt.");
+		Dialog.create("Choose Segmentation Channels");
+  		Dialog.addNumber("Enter which channel to use for ganglia segmentation", 2);
   		Dialog.show(); 
 		//cell_channel= Dialog.getNumber();
 		ganglia_channel=Dialog.getNumber();
@@ -384,9 +388,9 @@ if(sizeC>1 && Ganglia_detection!="Define ganglia using Hu")
 	}
 		else if(Cell_counts_per_ganglia==true && cell_channel=="NA" && ganglia_channel!="NA") //count cells per ganglia but don't know channels for neuron
 	{
-			waitForUser("Note the channels for "+cell_type+" and enter in the next box.");
-			Dialog.create("Choose  channel for "+cell_type);
-	  		Dialog.addNumber("Enter "+cell_type+" channel", 3);
+			waitForUser("Enter which channels to use for "+cell_type+" segmentation in the next prompt.");
+			Dialog.create("Choose Segmentation Channels");
+	  		Dialog.addNumber("Enter which channel to use for "+cell_type+" segmentation", 3);
 	  	    Dialog.show(); 
 			cell_channel= Dialog.getNumber();
 			Stack.setChannel(cell_channel);
@@ -403,9 +407,9 @@ if(sizeC>1 && Ganglia_detection!="Define ganglia using Hu")
 }
 else if(Ganglia_detection=="Define ganglia using Hu" && cell_channel=="NA")
 {
-	waitForUser("Note the channels for "+cell_type+" and enter in the next box.");
-	Dialog.create("Choose  channel for "+cell_type+);
-	Dialog.addNumber("Enter "+cell_type+" and ganglia channel", 3);
+	waitForUser("Enter which channels to use for "+cell_type+" segmentation in the next prompt.");
+	Dialog.create("Choose Segmentation Channels");
+	Dialog.addNumber("Enter which channel to use for "+cell_type+" and GANGLIA segmentation", 3);
 	Dialog.show(); 
 	cell_channel= Dialog.getNumber();
 	ganglia_channel = cell_channel;
@@ -428,15 +432,15 @@ if(sizeZ>1)
 		if(batch_mode==true) projection_method=1;
 		else
 		{
-			waitForUser("Verify the type of image projection you'd like (MIP or Extended depth of field\nYou can select in the next prompt.");
-			projection_method=getBoolean("3D stack detected. Which projection method would you like?", "Maximum Intensity Projection", "Extended Depth of Field (Variance)");
+			waitForUser("Verify which type of Z-stack projection to use(Maximum Intensity Projection or Extended Depth of Field\nYou can select in the next prompt.");
+			projection_method=getBoolean("3D stack detected. Which projection method would you like to use?", "Maximum Intensity Projection", "Extended Depth of Field (Variance)");
 		
 		}
 		
 		if(projection_method==1)
 		{
-			waitForUser("Note the start and end of the stack.\nPress OK when done");
-			Dialog.create("Choose slices");
+			Dialog.create("Set Z Slice Ends");
+			Dialog.addMessage("Define the starting and ending slice \nto use for the maximum intesntiy projection");
 	  		Dialog.addNumber("Start slice", 1);
 	  		Dialog.addNumber("End slice", sizeZ);
 	  		Dialog.show(); 
@@ -512,7 +516,7 @@ selectWindow("Log");
 if(custom_roi_hu)
 {
 	print("Importing ROIs for Hu");
-	custom_hu_roi_path = File.openDialog("Choose custom ROI for Hu");
+	custom_hu_roi_path = File.openDialog("Choose the custom ROI file to use for Hu segmentation");
 	roiManager("open", custom_hu_roi_path);
 }
 else
@@ -553,7 +557,7 @@ roiManager("show all");
 
 if(batch_mode==false) 
 {
-	waitForUser("Correct "+cell_type+" ROIs if needed. You can delete or add ROIs using ROI Manager");
+	waitForUser("Correct "+cell_type+" ROIs if needed. You can use ROI Manager to add and delete ROIs\nWhen you are satisfied with the ROIs selected, press OK to continue");
 }
 
 cell_count=roiManager("count");
@@ -664,7 +668,7 @@ if (Cell_counts_per_ganglia==true)
 	args=neuron_label_image+","+ganglia_binary;
 	print("all ganglia conditions finished");
 	//get cell count per ganglia
-	print("Getting Cell count per ganglia. May take some time for large images.");
+	print("Counting cells per ganglia. This may take some time for large images.");
 	runMacro(ganglia_cell_count,args);
 	
 	//label_overlap is the ganglia where each of them are labels
@@ -678,7 +682,7 @@ if (Cell_counts_per_ganglia==true)
 	sum_cells_ganglia = sum_arr_values(cell_count_per_ganglia);
 	if(sum_cells_ganglia!=cell_count)
 	{
-		print("No of neurons in ganglia "+sum_cells_ganglia+" do not match the total neurons detected "+cell_count+".\nThis means that the ganglia outlines are not accurate and missing neurons");
+		print("No. of neurons in ganglia "+sum_cells_ganglia+" does not equal the total neurons detected "+cell_count+".\nThis means that the ganglia outlines are not accurate and neurons are missing");
 		print("Using neuron detection to fix ganglia outline");
 		close(ganglia_binary);//getting new ganglia binary from script
 		selectWindow("cells_ganglia_count");
@@ -691,7 +695,7 @@ if (Cell_counts_per_ganglia==true)
 		selectWindow("ganglia_binary");
 		ganglia_binary = getTitle();
 		args=neuron_label_image+","+ganglia_binary;
-		print("Getting Cell count per ganglia again.");
+		print("Retrying cell counting per ganglia.");
 		//get cell count per ganglia and returns a table as well as ganglia label window
 		runMacro(ganglia_cell_count,args);
 		
@@ -702,7 +706,7 @@ if (Cell_counts_per_ganglia==true)
 		selectWindow("cells_ganglia_count");
 		cell_count_per_ganglia=Table.getColumn("Cell counts");
 		sum_cells_ganglia = sum_arr_values(cell_count_per_ganglia);
-		print("No of neurons in ganglia "+sum_cells_ganglia+" and total neurons detected: "+cell_count);
+		print("No. of neurons in ganglia "+sum_cells_ganglia+" Total No. of neurons detected: "+cell_count);
 		
 	}	
 	
@@ -801,7 +805,7 @@ if(Perform_Spatial_Analysis==true)
 {	
 	if(batch_parameters=="NA")
 	{
-		Dialog.create("Spatial Analysis parameters");
+		Dialog.create("Select Parameters for Spatial Analysis");
 	  	Dialog.addSlider("Cell expansion distance (microns)", 0.0, 20.0, 6.5);
 		Dialog.addCheckbox("Save parametric image/s?", true);
 	  	Dialog.show(); 
@@ -954,7 +958,7 @@ function draw_ganglia_outline(ganglia_img,edit_flag)
 		selectWindow(ganglia_img);
 		Stack.setDisplayMode("composite");
 		Stack.getDimensions(width, height, channels, slices, frames);
-		waitForUser("Ganglia outline", "Draw outline of the ganglia. Press T every time you finish drawing an outline");
+		waitForUser("Ganglia Outline", "Draw an outline of each ganglia. Press 'T' every time you finish drawing an outline to add it to the ROI Manager");
 		roiManager("Deselect");
 		newImage("Ganglia_outline", "8-bit black", width, height, 1);
 		roiManager("Deselect");

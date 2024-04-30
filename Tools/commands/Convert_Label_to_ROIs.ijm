@@ -11,16 +11,30 @@ macro "label_map_to_roi"
 	{
 		waitForUser("Select Label Image");
 		label_image=getTitle(); 
-		
+		ganglia=0;
 	}
 	else 
 	{
-	label_image=getArgument(); 
+	//label_image=getArgument(); 
+	args=getArgument();
+	arg_array=split(args, ",");
+	
+	label_image = arg_array[0];
+    
+    if(arg_array.length>1) ganglia = parseInt(arg_array[1]);
+    else ganglia=0;
+    
 	}
 	
 	selectWindow(label_image);
 	run("Select None");
-	run("Label image to ROIs");
+	
+	if(ganglia==0)	run("Label image to ROIs");
+	else if(ganglia==1) 
+	{
+		run("Label image to composite ROIs");
+	}
+	
 	roiManager("Remove Channel Info");
 	roiManager("Remove Slice Info");
 	roiManager("Remove Frame Info");

@@ -2,8 +2,8 @@
 macro "check_plugins" 
 {
 	run("Console");
-	getDateAndTime(year, month, dayOfWeek, dayOfMonth, hour, minute, second, msec);
-	print("Date:"+year+"/"+month+1+"/"+dayOfMonth+" Time:"+hour+":"+minute);
+	getDateAndTime(year, month, dayOfWeek, dayOfMonth, hour, minute, second, msec);
+	print("Date: "+year+"/"+month+"/"+dayOfMonth+" Time:"+hour+":"+minute+":"+second);
 	print("System Config:");
 	run("Clear Results");
 	
@@ -43,18 +43,24 @@ macro "check_plugins"
 
 	//get paths of model files
 	neuron_model_file = Table.getString("Values", 9);
-	neron_subtype_file = Table.getString("Values", 10);
+	neuron_subtype_file = Table.getString("Values", 10);
+	ganglia_model_dir = Table.getString("Values", 12);
 	run("Close");
 
 	//Neuron segmentation model
 	neuron_model_path=models_dir+neuron_model_file;
 	//Marker segmentation model
-	subtype_model_path=models_dir+neron_subtype_file;
-	if(!File.exists(neuron_model_path)||!File.exists(subtype_model_path)) 
+	subtype_model_path=models_dir+neuron_subtype_file;
+	ganglia_model_path=models_dir+ganglia_model_dir+fs;
+
+	
+	
+	if(!File.exists(neuron_model_path)||!File.exists(subtype_model_path)||!File.exists(ganglia_model_path)) 
 	{
 		print("Cannot find models for segmenting. It is possible that the model has not been copied or even updated");
 		print("Current model for neuron segmentation: "+neuron_model_file);
-		print("Current model for neuron subtype segmentation: "+neron_subtype_file);
+		print("Current model for neuron subtype segmentation: "+neuron_subtype_file);
+		print("Current model for ganglia segmentation: "+ganglia_model_path);
 		print("Models found in the folder:");
 		files_list = getFileList(models_dir);
 		if(files_list.length >0)
@@ -66,6 +72,18 @@ macro "check_plugins"
 				{
 					print(file_name);
 				}
+				
+				else if(startsWith(file_name, "2D_enteric_ganglia_v2"))
+				{
+					print(file_name);
+					print("Ganglia model needs to be updated to 2D_Ganglia_RGB_v2.bioimage.io.model as current model is not compatible with DeepImageJ v3");
+				}
+				else if(indexOf(string, "2D_Ganglia")>=0)
+				{
+					print("Ganglia model folder with name 2D_Ganglia: ");
+					print(file_name);
+				}
+
 			}
 		}
 		else print("No files found");

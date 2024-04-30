@@ -118,9 +118,12 @@ var ganglia_fix_missing_neurons=gat_dir+fs+"ganglia_fix_missing_neurons.ijm";
 if(!File.exists(ganglia_fix_missing_neurons)) exit("Cannot find ganglia_fix_missing_neurons custom roi script. Returning: "+ganglia_fix_missing_neurons);
 
 //check if rename_rois script is present
-//check if import ganglia fix missing neurons script is present
 var rename_rois=gat_dir+fs+"rename_rois.ijm";
 if(!File.exists(rename_rois)) exit("Cannot find rename_rois custom roi script. Returning: "+rename_rois);
+
+//check if save_roi_composite_img is present
+var save_composite_img=gat_dir+fs+"save_roi_composite_img.ijm";
+if(!File.exists(save_composite_img)) exit("Cannot find save_composite_img custom roi script. Returning: "+save_composite_img);
 
 fs = File.separator; //get the file separator for the computer (depending on operating system)
 
@@ -249,7 +252,8 @@ do
 	{
 	
 		file_name=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
-		suffix = getString("Enter custom name or if lif file, enter series num.", "_1");
+		if(save_location_exists == 1) suffix = getString("Save Location already exists. Add a suffix to add to the foldername.", "_1");
+		else suffix = getString("File name too long. Name restricted to 20 characters. Enter suffix to add to the name.", "_1");
 		file_name = file_name+suffix;
 		save_location_exists = 0;
 	   }
@@ -700,6 +704,10 @@ print("No of "+cell_type+" in "+max_projection+" : "+cell_count);
 roi_location=results_dir+cell_type+"_ROIs_"+file_name+".zip";
 roiManager("save",roi_location );
 
+//save composite image with roi overlay
+args = max_projection+","+results_dir+","+cell_type;
+runMacro(save_composite_img,args);
+
 selectWindow(table_name);
 Table.set("File name",row,file_name);
 Table.set("Total "+cell_type, row, cell_count); //set total count of neurons after nos analysis if nos selected
@@ -825,6 +833,11 @@ if (Cell_counts_per_ganglia==true)
 	wait(5);
 	//rename rois
 	runMacro(rename_rois,"Ganglia");
+	
+	//save composite image with ganglia overlay
+	args = max_projection+","+results_dir+",Ganglia";
+	runMacro(save_composite_img,args);
+	
 	
 	roi_location=results_dir+"Ganglia_ROIs_"+file_name+".zip";
 	roiManager("save",roi_location );
@@ -1078,8 +1091,14 @@ if(marker_subtype==1)
 			{
 				//rename rois
 				runMacro(rename_rois,channel_name);
-				roi_location_marker=results_dir+channel_name+"_ROIs_"+file_name+".zip";
+				roi_location_marker=results_dir+channel_name+"_ROIs_"+file_name+".zip";		
+				//save rois
 				roiManager("save",roi_location_marker);
+				
+				//save composite image with ganglia overlay
+				args = max_projection+","+results_dir+","+channel_name;
+				runMacro(save_composite_img,args);
+				
 			}
 			
 			roiManager("reset");
@@ -1256,6 +1275,10 @@ if(marker_subtype==1)
 					//rename and save
 					runMacro(rename_rois,roi_file_name);
 					roiManager("save",roi_location_marker);
+					
+					//save composite image with ganglia overlay
+					args = max_projection+","+results_dir+","+roi_file_name;
+					runMacro(save_composite_img,args);
 				}
 
 				marker_count=roiManager("count"); // in case any neurons added after analysis of markers
@@ -1371,7 +1394,8 @@ Table.setColumn("Total "+cell_type, file_array);
 {
 
 	//get ganglia area
-	runMacro(label_to_roi,ganglia_label_img);
+	args = ganglia_label_img+","+1;
+	runMacro(label_to_roi,args);
 	run("Set Measurements...", "area redirect=None decimal=3");
 	run("Clear Results");
 	roiManager("Deselect");

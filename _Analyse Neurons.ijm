@@ -75,8 +75,6 @@ if(!File.exists(ganglia_hu_expansion)) exit("Cannot find hu expansion script. Re
 var spatial_single_cell_type=gat_dir+fs+"spatial_single_celltype.ijm";
 if(!File.exists(spatial_single_cell_type)) exit("Cannot find single cell spatial analysis script. Returning: "+spatial_single_cell_type);
 
-
- 
 //check if import custom ganglia rois script is present
 var ganglia_custom_roi=gat_dir+fs+"ganglia_custom_roi.ijm";
 if(!File.exists(ganglia_custom_roi)) exit("Cannot find single ganglia custom roi script. Returning: "+ganglia_custom_roi);
@@ -92,6 +90,10 @@ if(!File.exists(ganglia_fix_missing_neurons)) exit("Cannot find ganglia_fix_miss
 //check if rename_rois script is present
 var rename_rois=gat_dir+fs+"rename_rois.ijm";
 if(!File.exists(rename_rois)) exit("Cannot find rename_rois custom roi script. Returning: "+rename_rois);
+
+//check if save_roi_composite_img is present
+var save_composite_img=gat_dir+fs+"save_roi_composite_img.ijm";
+if(!File.exists(save_composite_img)) exit("Cannot find save_composite_img custom roi script. Returning: "+save_composite_img);
 
 #@ File (style="open", label="<html>Choose the image to segment.<br><b>Enter NA if image is open or if field is empty.</b><html>", value=fiji_dir) path
 #@ boolean image_already_open
@@ -162,7 +164,7 @@ if(batch_parameters!="NA")
 else batch_mode=false;
 
 
-if(Finetune_Detection_Parameters==true || batch_parameters=="NA")
+if(Finetune_Detection_Parameters==true && batch_parameters=="NA")
 {
 	print("Using manual probability and overlap threshold for detection");
 	Dialog.create("Advanced Parameters");
@@ -238,7 +240,7 @@ else file_name=file_name_full;
 file_name_split = split(file_name,",;_-");
 file_name =String.join(file_name_split,"_");
 
-print(file_name);
+//print(file_name);
 
 img_name=getTitle();
 Stack.getDimensions(width, height, sizeC, sizeZ, frames);
@@ -284,6 +286,42 @@ if(scale_factor<1.001 && scale_factor>1) scale_factor=1;
 print("Analysing: "+file_name);
 analysis_dir= dir+"Analysis"+fs;
 if (!File.exists(analysis_dir)) File.makeDirectory(analysis_dir);
+
+//file_name=File.nameWithoutExtension;
+file_name_length=lengthOf(file_name);
+file_name_full = file_name;
+//check if save locatione exists. if it does, ask user to enter a suffix to append to directory name
+save_location_exists = 1;
+do
+{
+	if(file_name_length>50 ||save_location_exists == 1)
+	{
+	
+		file_name=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
+		if(save_location_exists == 1) suffix = getString("Save Location already exists. Add a suffix to add to the foldername.", "_1");
+		else suffix = getString("File name too long. Name restricted to 20 characters. Enter suffix to add to the name.", "_1");
+		file_name = file_name+suffix;
+		save_location_exists = 0;
+	}
+	else file_name=file_name_full;
+	
+	results_dir=analysis_dir+file_name+fs; //directory to save images
+	//if file exists in location, create one and set save_location_exists flag to zero to exit the loop
+	if (!File.exists(results_dir)) 
+	{
+		File.makeDirectory(results_dir); //create directory to save results file
+		save_location_exists = 0;
+	}
+	else 
+	{
+		waitForUser("Save folder already exists, enter new name in next prompt");
+		save_location_exists = 1;
+	}
+
+}
+while(save_location_exists==1)
+
+
 print("Analysing: "+file_name);
 //Create results directory with file name in "analysis"
 results_dir=analysis_dir+file_name+fs; //directory to save images
@@ -531,6 +569,10 @@ roiManager("deselect");
 roi_location=results_dir+cell_type+"_ROIs_"+file_name+".zip";
 roiManager("save",roi_location);
 
+//save composite image with roi overlay
+args = max_projection+","+results_dir+","+cell_type;
+runMacro(save_composite_img,args);
+
 wait(5);
 //need single channel image; multichannel can throw errors
 selectWindow(max_projection);
@@ -694,6 +736,10 @@ if (Cell_counts_per_ganglia==true)
 	wait(5);
     //rename rois
     runMacro(rename_rois,"Ganglia");
+    
+    //save composite image with ganglia overlay
+    args = max_projection+","+results_dir+",Ganglia";
+    runMacro(save_composite_img,args);
     
 	roi_location=results_dir+"Ganglia_ROIs_"+file_name+".zip";
 	roiManager("save",roi_location );

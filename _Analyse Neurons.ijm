@@ -302,8 +302,20 @@ do
 	{
 	
 		file_name=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
-		if(save_location_exists == 1) suffix = getString("Save location already exists. Add a suffix to add to the foldername.", "_1");
-		else suffix = getString("The file name is too long, instead write a Custom Identifier for this Image.", "_1");
+		if(save_location_exists == 1){ 
+		Dialog.create("Save location already exists with this name, instead write a Custom Identifier for this Image");
+		Dialog.addString("Custom Identifier", "_1");
+		Dialog.addMessage("For example, writing '_1' as the custom identifier \n will name the final data output as ImageName_1");
+		Dialog.show();
+		suffix = Dialog.getString();
+	}
+		else {		
+		Dialog.create("The file name is too long, instead write a Custom Identifier for this Image");
+		Dialog.addString("Custom Identifier", "_1");
+		Dialog.addMessage("For example, writing '_1' as the custom identifier \n will name the final data output as ImageName_1");
+		Dialog.show();
+		suffix = Dialog.getString();
+		}
 		file_name = file_name+suffix;
 		save_location_exists = 0;
 	}
@@ -318,7 +330,7 @@ do
 	}
 	else 
 	{
-		waitForUser("The save folder already exists, enter new name in next prompt");
+		waitForUser("The save folder already exists, enter a new name in next prompt");
 		save_location_exists = 1;
 	}
 
@@ -557,7 +569,7 @@ roiManager("show all");
 
 if(batch_mode==false) 
 {
-	waitForUser("Correct "+cell_type+" ROIs if needed. You can use ROI Manager to add and delete ROIs\nWhen you are satisfied with the ROIs selected, press OK to continue");
+	waitForUser("Correct "+cell_type+" ROIs if needed. You can use the ROI Manager to add and delete ROIs\nWhen you are satisfied with the ROIs selected, press OK to continue");
 }
 
 cell_count=roiManager("count");

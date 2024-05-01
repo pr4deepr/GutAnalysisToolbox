@@ -160,7 +160,7 @@ scale = 1;
 if(Contribute_to_GAT==true)
 {
 	waitForUser("You can contribute to improving GAT by saving images and masks,\nand sharing it so our deep learning models have better accuracy\nGo to 'Help and Support' button under GAT to get in touch");
-	img_masks_path = getDirectory("Choose Folder to save images and masks");
+	img_masks_path = getDirectory("Choose a Folder to save the images and masks");
 	Save_Image_Masks = true;
 }
 else 
@@ -230,7 +230,7 @@ else
 		open(path);
 	}
 	else if (endsWith(path, ".tif")|| endsWith(path, ".tiff")) open(path);
-	else exit("File type not recognised.  Tif, Lif and Czi files supported.");
+	else exit("File type not recognised.  GAT is compatible with Tif, Lif and Czi files.");
 	dir=File.directory;
 	file_name_full=File.nameWithoutExtension; //get file name without extension (.lif)
 }
@@ -252,8 +252,20 @@ do
 	{
 	
 		file_name=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
-		if(save_location_exists == 1) suffix = getString("Save Location already exists. Add a suffix to add to the foldername.", "_1");
-		else suffix = getString("File name too long. Name restricted to 20 characters. Enter suffix to add to the name.", "_1");
+		if(save_location_exists == 1){
+		Dialog.create("Save location already exists with this name, instead write a Custom Identifier for this Image");
+		Dialog.addString("Custom Identifier", "_1");
+		Dialog.addMessage("For example, writing '_1' as the custom identifier \n will name the final data output as ImageName_1");
+		Dialog.show();
+		suffix = Dialog.getString();
+	}
+		else {		
+		Dialog.create("The file name is too long, instead write a Custom Identifier for this Image");
+		Dialog.addString("Custom Identifier", "_1");
+		Dialog.addMessage("For example, writing '_1' as the custom identifier \n will name the final data output as ImageName_1");
+		Dialog.show();
+		suffix = Dialog.getString();
+		}
 		file_name = file_name+suffix;
 		save_location_exists = 0;
 	   }
@@ -269,7 +281,7 @@ do
 	}
 	else 
 	{
-		waitForUser("Folder exists, enter new name in next prompt");
+		waitForUser("The save folder already exists, enter a new name in next prompt");
 		save_location_exists = 1;
 	}
 	

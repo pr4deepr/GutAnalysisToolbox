@@ -330,7 +330,7 @@ do
 	}
 	else 
 	{
-		waitForUser("The save folder already exists, enter new name in next prompt");
+		waitForUser("The save folder already exists, enter a new name in next prompt");
 		save_location_exists = 1;
 	}
 

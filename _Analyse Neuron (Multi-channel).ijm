@@ -235,9 +235,11 @@ else
 	file_name_full=File.nameWithoutExtension; //get file name without extension (.lif)
 }
 
-//file_name=File.nameWithoutExtension;
-file_name_length=lengthOf(file_name_full);
 
+file_name_length=lengthOf(file_name_full); //length of filename
+//if delimiters such as , ; or _ are there in file name, split string and join with underscore
+file_name_split = split(file_name_full,",;_-");
+file_name_full =String.join(file_name_split,"_");
 
 //Create results directory with file name in "analysis"
 analysis_dir= dir+"Analysis"+fs;
@@ -249,24 +251,26 @@ save_location_exists = 1;
 do
 {
 	if(file_name_length>50 ||save_location_exists == 1)
-	{
-	
-		file_name=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
-		if(save_location_exists == 1){
-		Dialog.create("Save location already exists with this name, instead write a Custom Identifier for this Image");
-		Dialog.addString("Custom Identifier", "_1");
-		Dialog.addMessage("For example, writing '_1' as the custom identifier \n will name the final data output as ImageName_1");
-		Dialog.show();
-		suffix = Dialog.getString();
-	}
-		else {		
-		Dialog.create("The file name is too long, instead write a Custom Identifier for this Image");
-		Dialog.addString("Custom Identifier", "_1");
-		Dialog.addMessage("For example, writing '_1' as the custom identifier \n will name the final data output as ImageName_1");
-		Dialog.show();
-		suffix = Dialog.getString();
+	{	
+		print("Filename will be shortened if its too long");
+		file_name_full=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
+		if(save_location_exists == 1)
+		{ 
+			dialog_title = "Save location already exists ";
+			dialog_message_1 = "Save location exists, use a custom identifier.\n For example, writing '_1' as the custom identifier \n will name the final folder as ImageName_1";
 		}
-		file_name = file_name+suffix;
+		else 
+		{
+			dialog_title = "Filename too long";
+			dialog_message = "Shortening it to 20 characters.\n Use a custom identifier. For example, writing '_1' as the custom identifier \n will name the final folder as ImageName_1";
+		}
+		Dialog.create(dialog_title);
+		Dialog.addString("Custom Identifier", "_1");
+		Dialog.addMessage(dialog_message_1);
+		Dialog.show();
+		suffix = Dialog.getString();
+
+		file_name = file_name_full+suffix;
 		save_location_exists = 0;
 	   }
 
@@ -289,9 +293,7 @@ do
 }
 while(save_location_exists==1)
 
-//if delimiters such as , ; or _ are there in file name, split string and join with underscore
-file_name_split = split(file_name,",;_-");
-file_name =String.join(file_name_split,"_");
+
 
 print("Analysing: "+file_name);
 print("Files will be saved at: "+results_dir); 

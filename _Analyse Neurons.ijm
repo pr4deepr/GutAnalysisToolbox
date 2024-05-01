@@ -227,24 +227,6 @@ else
 	file_name_full=File.nameWithoutExtension; //get file name without extension (.lif)
 }
 
-//file_name=File.nameWithoutExtension;
-file_name_length=lengthOf(file_name_full);
-if(file_name_length>50)
-{
-	file_name=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
-	Dialog.create("The file name is too long, instead write a Custom Identifier for this Image");
-	Dialog.addString("Custom Identifier", "_1");
-	Dialog.addMessage("For example, writing '_1' as the custom identifier \n will name the final data output as ImageName_1");
-	Dialog.show();
-	suffix = Dialog.getString();
-	file_name = file_name+suffix;
-}
-else file_name=file_name_full;
-//if delimiters such as , ; or _ are there in file name, split string and join with underscore
-file_name_split = split(file_name,",;_-");
-file_name =String.join(file_name_split,"_");
-
-//print(file_name);
 
 img_name=getTitle();
 Stack.getDimensions(width, height, sizeC, sizeZ, frames);
@@ -287,14 +269,32 @@ scale_factor = pixelWidth/target_pixel_size;
 if(scale_factor<1.001 && scale_factor>1) scale_factor=1;
 
 
-print("Analysing: "+file_name);
+//file_name=File.nameWithoutExtension;
+file_name_length=lengthOf(file_name_full);
+if(file_name_length>50)
+{
+	file_name=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
+	Dialog.create("The file name is too long, instead write a Custom Identifier for this Image");
+	Dialog.addString("Custom Identifier", "_1");
+	Dialog.addMessage("For example, writing '_1' as the custom identifier \n will name the final data output as ImageName_1");
+	Dialog.show();
+	suffix = Dialog.getString();
+	file_name = file_name+suffix;
+}
+else file_name=file_name_full;
+
+//create analysis directory if it doesn't exist
 analysis_dir= dir+"Analysis"+fs;
 if (!File.exists(analysis_dir)) File.makeDirectory(analysis_dir);
 
+
 //file_name=File.nameWithoutExtension;
-file_name_length=lengthOf(file_name);
-file_name_full = file_name;
-//check if save locatione exists. if it does, ask user to enter a suffix to append to directory name
+file_name_length=lengthOf(file_name_full);
+//if delimiters such as , ; or _ are there in file name, split string and join with underscore
+file_name_split = split(file_name_full,",;_-");
+file_name_full =String.join(file_name_split,"_");
+
+//check if save location exists. if it does, ask user to enter a suffix to append to directory name
 save_location_exists = 1;
 do
 {
@@ -302,20 +302,23 @@ do
 	{
 	
 		file_name=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
-		if(save_location_exists == 1){ 
-		Dialog.create("Save location already exists with this name, instead write a Custom Identifier for this Image");
-		Dialog.addString("Custom Identifier", "_1");
-		Dialog.addMessage("For example, writing '_1' as the custom identifier \n will name the final data output as ImageName_1");
-		Dialog.show();
-		suffix = Dialog.getString();
-	}
-		else {		
-		Dialog.create("The file name is too long, instead write a Custom Identifier for this Image");
-		Dialog.addString("Custom Identifier", "_1");
-		Dialog.addMessage("For example, writing '_1' as the custom identifier \n will name the final data output as ImageName_1");
-		Dialog.show();
-		suffix = Dialog.getString();
+
+		if(save_location_exists == 1)
+		{ 
+			dialog_title = "Save location already exists ";
+			dialog_message_1 = "Save location exists, use a custom identifier.\n For example, writing '_1' as the custom identifier \n will name the final folder as ImageName_1";
 		}
+		else 
+		{
+			dialog_title = "Filename too long";
+			dialog_message = "Shortening it to 20 characters.\n Use a custom identifier. For example, writing '_1' as the custom identifier \n will name the final folder as ImageName_1";
+		}
+		Dialog.create(dialog_title);
+		Dialog.addString("Custom Identifier", "_1");
+		Dialog.addMessage(dialog_message_1);
+		Dialog.show();
+		suffix = Dialog.getString();
+
 		file_name = file_name+suffix;
 		save_location_exists = 0;
 	}
@@ -337,11 +340,8 @@ do
 }
 while(save_location_exists==1)
 
-
+//create analysis directory
 print("Analysing: "+file_name);
-//Create results directory with file name in "analysis"
-results_dir=analysis_dir+file_name+fs; //directory to save images
-if (!File.exists(results_dir)) File.makeDirectory(results_dir); //create directory to save results file
 print("Files will be saved at: "+results_dir); 
 
 //do not include cells greater than 1000 micron in area
@@ -607,7 +607,7 @@ Table.update;
 selectWindow(max_projection);
 run("Select None");
 run("Remove Overlay");
-print("Ganglia condition start");
+
 if (Cell_counts_per_ganglia==true)
 {
 	print("Ganglia segmentation");
@@ -633,31 +633,7 @@ if (Cell_counts_per_ganglia==true)
 		wait(5);
 		ganglia_binary=getTitle();
 		draw_ganglia_outline(ganglia_binary,true);
-		
-	 	/*
-		run("Select None");
-		Stack.setChannel(cell_channel);
-		run("Duplicate...", "title=ganglia_hu duplicate channels="+cell_channel);
-		Dialog.create("Choose cell expansion distance (um)");
-		Dialog.addMessage("Choose cell expansion distance to define the ganglia");
-	  	Dialog.addNumber("Cell expansion (um)", 10);
-	  	Dialog.show(); 
-	  	cell_expansion=Dialog.getNumber();
-	  	
-		label_dilation=round(cell_expansion/pixelWidth);
-		print("******Ganglia segmentation using user-defined cell expansion radius********");
-		print("Expansion in pixels "+label_dilation);
-		print("Corresponding expansion in microns "+cell_expansion);
-		print("**************");
-		
-		run("CLIJ2 Macro Extensions", "cl_device=");
 
-		Ext.CLIJ2_push(neuron_label_image);
-		Ext.CLIJ2_dilateLabels(neuron_label_image, dilated, label_dilation);
-		Ext.CLIJ2_greaterConstant(dilated, ganglia_binary, 1);
-		Ext.CLIJ2_release(dilated);
-		Ext.CLIJ2_pull(ganglia_binary);
-		Ext.CLIJ2_pull(neuron_label_image);*/
 	 }
 	 else if(Ganglia_detection=="Import custom ROI")
 	 {

@@ -57,6 +57,8 @@ macro "ganglia_hu"
 		pixelWidth=arg_array[3];
 		selectWindow(max_projection);
 		getDimensions(width, height, channels, slices, frames);
+		getPixelSize(unit, pixelWidth, pixelHeight);
+
 		run("Select None");
 		if(channels>1) Stack.setChannel(cell_channel);
 		else cell_channel = 1;
@@ -82,6 +84,14 @@ macro "ganglia_hu"
 		Ext.CLIJ2_pull(neuron_label_image);
 		Ext.CLIJ2_pull(ganglia_binary);
 		selectWindow(ganglia_binary);
+	
+	    min_area_ganglia=200;  //200 microns
+		//area proportional to sqr of radius; so use square of pixelwidth as denominator
+		min_area_ganglia_pix=Math.ceil(min_area_ganglia/Math.sqr(pixelWidth));
+		run("Size Opening 2D/3D", "min="+min_area_ganglia_pix);
+		ganglia_pred_processed=getTitle();
+		close(ganglia_binary);
+		selectWindow(ganglia_pred_processed);
 		
 	}
 }

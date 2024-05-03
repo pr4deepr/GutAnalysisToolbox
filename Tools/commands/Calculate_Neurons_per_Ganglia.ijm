@@ -69,12 +69,20 @@ macro "count_cells_per_ganglia"
 	Ext.CLIJ2_release(ganglia_labels);
 	Ext.CLIJ2_pull(label_overlap);
 	
-	
+	close(ganglia_labels)
 	roiManager("reset");
 	//selectWindow(ganglia_labels); //this command is  for Hu
 	selectWindow(label_overlap); //selecting label_overlap so only ganglia with neurons are included
 	run("Select None");
+	
+	//get ROIs where ganglia labels are unique as labeL_overlap will have ganglia of same number of neurons
+	//or rois will have multiple ganglia with same label id
+	run("Connected Components Labeling", "connectivity=8 type=[16 bits]");
+	wait(5);
+	ganglia_label_unique = getTitle(); 
+	selectWindow(ganglia_label_unique);
 	run("Label image to composite ROIs");
+	
 	
 	run("Set Measurements...", "min redirect=None decimal=3");
 	//each ganglia will have number of neurons calculated form labeloverlapcount command above
@@ -99,7 +107,7 @@ macro "count_cells_per_ganglia"
 	//if(isOpen(ganglia_labels)) close(ganglia_labels);
 	if(isOpen(label_overlap)) close(label_overlap);
 	
-	selectWindow(ganglia_labels);
+	selectWindow(ganglia_label_unique);
 	rename("label_overlap"); //keeping this part same so the rest of the main code doesn't need to be changed
 	
 }

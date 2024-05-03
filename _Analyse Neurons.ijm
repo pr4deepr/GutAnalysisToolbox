@@ -746,7 +746,9 @@ if (Cell_counts_per_ganglia==true)
 
 //update table
 Table.update;
-Table.save(results_dir+cell_type+"_"+file_name+".csv");
+selectWindow(table_name);
+Table.save(results_dir+table_name+"_cell_counts.csv");
+
 
 selectWindow(neuron_label_image);
 saveAs("Tiff", results_dir+"Neuron_label_"+max_save_name);

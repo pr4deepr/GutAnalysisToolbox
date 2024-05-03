@@ -1014,8 +1014,12 @@ if (Cell_counts_per_ganglia==true)
 	Table.setColumn("Area_per_ganglia_um2", ganglia_area);
 }
 
+selectWindow(neuron_label_image);
+saveAs("Tiff", results_dir+"Neuron_label_"+max_save_name);
+
 selectWindow(table_name);
-Table.save(results_dir+"Cell_counts.csv");
+Table.save(results_dir+table_name+"_cell_counts.csv");
+
 
 //save max projection if its scaled image, can use this for further processing later
 selectWindow(max_projection);

@@ -256,7 +256,7 @@ do
 		file_name_full=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
 		if(save_location_exists == 1)
 		{ 
-			dialog_title = "Save location already exists ";
+			dialog_title = "Save location already exists";
 			dialog_message_1 = "Save location exists, use a custom identifier.\n For example, writing '_1' as the custom identifier \n will name the final folder as ImageName_1";
 		}
 		else 
@@ -360,7 +360,7 @@ backgrnd_radius=backgrnd_radius/pixelWidth;//convert micron to pixels
 
 //print(neuron_max_pixels,neuron_seg_lower_limit,neuron_min_pixels,backgrnd_radius);
 
-table_name="Analysis_"+cell_type+"_"+file_name;
+table_name="Analysis_"+file_name;
 Table.create(table_name);//Final Results Table
 row=0; //row counter for the table
 image_counter=0;
@@ -1425,7 +1425,7 @@ Table.setColumn("Total "+cell_type, file_array);
 }
 
 selectWindow(table_name);
-Table.save(results_dir+"Cell_counts.csv");
+Table.save(results_dir+table_name+"_cell_counts.csv");
 
 //save max projection if its scaled image, can use this for further processing later
 selectWindow(max_projection);

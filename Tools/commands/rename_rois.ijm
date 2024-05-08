@@ -23,6 +23,9 @@ macro "rename_rois_cell_type"
 
 	}
 	nrois=roiManager("count");
+	roiManager("Remove Channel Info");
+	roiManager("Remove Slice Info");
+	roiManager("Remove Frame Info");
 	if(nrois<1) 
 	{
 		print("No ROIs in detected in ROIManager. No renaming done");

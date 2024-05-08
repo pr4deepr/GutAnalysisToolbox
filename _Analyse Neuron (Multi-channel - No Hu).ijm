@@ -475,6 +475,7 @@ if(Enter_channel_details_now==true)
 }
 else 
 {
+	waitForUser("Note the channel names and numbers for analysis and enter in next prompt");
 	no_markers=getNumber("How many markers would you like to analyse?", 1);
 	string=getString("Enter names of markers separated by comma (,)", "Names");
 	channel_names=split(string, ",");	

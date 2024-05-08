@@ -366,19 +366,27 @@ if(cell_channel!="NA")
 }
 
 
+
+channel_list = Array.getSequence(sizeC);
+//add 1 to every value so channel no starts at 1
+channel_list = add_value_array(channel_list,1);
+
 //if more than one channel , check if appropriate values entered
 if(sizeC>1 && Ganglia_detection!="Define ganglia using Hu")
 {
  if (Cell_counts_per_ganglia==true && cell_channel=="NA" && ganglia_channel=="NA") //count cells per ganglia but don't know channels for ganglia or neuron
 	{
 		waitForUser("Enter which channels to use for NEURON and GANGLIA segmentation in the next prompt.");
-		
+		//get active channel
+		Stack.getPosition(active_channel, active_slice, active_frame);
 		Dialog.create("Choose Segmentation Channels");
-  		Dialog.addNumber("Enter which channel to use for "+cell_type+" segmentation", 3);
-  		Dialog.addNumber("Enter which channel to use for ganglia segmentation", 2);
+		Dialog.addChoice("Enter which channel to use for "+cell_type+" segmentation", channel_list, active_channel);
+		Dialog.addChoice("Enter which channel to use for ganglia segmentation", channel_list, active_channel);
+  		//Dialog.addNumber("Enter which channel to use for "+cell_type+" segmentation", 3);
+  		//Dialog.addNumber("Enter which channel to use for ganglia segmentation", 2);
   		Dialog.show(); 
-		cell_channel= Dialog.getNumber();
-		ganglia_channel=Dialog.getNumber();
+		cell_channel= parseInt(Dialog.getChoice());//Dialog.getNumber();
+		ganglia_channel=parseInt(Dialog.getChoice());//Dialog.getNumber();
 		Stack.setChannel(cell_channel);
 		resetMinAndMax();
 		Stack.setChannel(ganglia_channel);
@@ -387,11 +395,14 @@ if(sizeC>1 && Ganglia_detection!="Define ganglia using Hu")
 	else if(Cell_counts_per_ganglia==true && cell_channel!="NA" && ganglia_channel=="NA") //count cells per ganglia but don't know channels for ganglia
 	{
 		waitForUser("Enter which channels to use for GANGLIA segmentation in the next prompt.");
+		//get active channel
+		Stack.getPosition(active_channel, active_slice, active_frame);
 		Dialog.create("Choose Segmentation Channels");
-  		Dialog.addNumber("Enter which channel to use for ganglia segmentation", 2);
+  		//Dialog.addNumber("Enter which channel to use for ganglia segmentation", 2);
+  		Dialog.addChoice("Enter which channel to use for ganglia segmentation", channel_list, active_channel);
   		Dialog.show(); 
 		//cell_channel= Dialog.getNumber();
-		ganglia_channel=Dialog.getNumber();
+		ganglia_channel=parseInt(Dialog.getChoice());//Dialog.getNumber();
 		//Stack.setChannel(cell_channel);
 		//resetMinAndMax();
 		Stack.setChannel(ganglia_channel);
@@ -400,10 +411,13 @@ if(sizeC>1 && Ganglia_detection!="Define ganglia using Hu")
 		else if(Cell_counts_per_ganglia==true && cell_channel=="NA" && ganglia_channel!="NA") //count cells per ganglia but don't know channels for neuron
 	{
 			waitForUser("Enter which channels to use for "+cell_type+" segmentation in the next prompt.");
+			//get active channel
+			Stack.getPosition(active_channel, active_slice, active_frame);
 			Dialog.create("Choose Segmentation Channels");
-	  		Dialog.addNumber("Enter which channel to use for "+cell_type+" segmentation", 3);
+	  		Dialog.addChoice("Enter which channel to use for "+cell_type+" segmentation", channel_list, active_channel);
+	  		//Dialog.addNumber("Enter which channel to use for "+cell_type+" segmentation", 3);
 	  	    Dialog.show(); 
-			cell_channel= Dialog.getNumber();
+			cell_channel= parseInt(Dialog.getChoice());//Dialog.getNumber();
 			Stack.setChannel(cell_channel);
 			resetMinAndMax();
 	}
@@ -418,11 +432,13 @@ if(sizeC>1 && Ganglia_detection!="Define ganglia using Hu")
 }
 else if(Ganglia_detection=="Define ganglia using Hu" && cell_channel=="NA")
 {
-	waitForUser("Enter which channels to use for "+cell_type+" segmentation in the next prompt.");
+	waitForUser("Enter which channel to use for BOTH "+cell_type+" and ganglia segmentation in the next prompt.");
+	Stack.getPosition(active_channel, active_slice, active_frame);
 	Dialog.create("Choose Segmentation Channels");
-	Dialog.addNumber("Enter which channel to use for "+cell_type+" and GANGLIA segmentation", 3);
+	Dialog.addChoice("Enter which channel to use for BOTH "+cell_type+" and GANGLIA segmentation", channel_list, active_channel);
+	//Dialog.addNumber("Enter which channel to use for BOTH "+cell_type+" and GANGLIA segmentation", 3);
 	Dialog.show(); 
-	cell_channel= Dialog.getNumber();
+	cell_channel= parseInt(Dialog.getChoice());//Dialog.getNumber();
 	ganglia_channel = cell_channel;
 	Stack.setChannel(cell_channel);
 	resetMinAndMax();
@@ -1054,4 +1070,16 @@ function sum_arr_values(arr)
 		sum_val+=arr[i];
 	}
 return sum_val;
+}
+
+
+//add a value to every element of an array
+function add_value_array(arr,val)
+{
+	for (i = 0; i < arr.length; i++)
+	{
+		temp=arr[i]+val;
+		arr[i]=parseInt(temp);
+	}
+return arr;
 }

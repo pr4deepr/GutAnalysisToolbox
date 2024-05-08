@@ -648,11 +648,19 @@ for(i=0;i<channel_combinations.length;i++)
 			runMacro(label_to_roi,"label_img_temp");
 			close("label_img_temp");
 			wait(5);
-
+			
+			//save original rois so any modified rois can be verified later
+			roiManager("deselect");
+	        roi_location_marker=results_dir+channel_name+"_original_ROIs_"+file_name+".zip";    
+	        roiManager("save",roi_location_marker);
+	        print("Saved unmodified ROIs for "+channel_name+" from GAT detection at "+roi_location_marker);
+	        
 			selectWindow(max_projection);
 			run("Remove Overlay");
 			//roiManager("deselect");
 			roiManager("show all");
+			
+
 			//selectWindow(max_projection);
 			waitForUser("Verify ROIs for "+channel_name+". Delete or add ROIs as needed.\nIf no cells detected, you won't see anything.\nPress OK when done.");
 			roiManager("deselect");

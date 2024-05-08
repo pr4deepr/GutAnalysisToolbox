@@ -584,6 +584,10 @@ roiManager("show all");
 
 if(batch_mode==false) 
 {
+	roiManager("deselect");
+	roi_location = results_dir+cell_type+"_original_ROIs_"+file_name+".zip";
+	roiManager("save",roi_location);
+	print("Saved unmodified ROIs from GAT detection at "+roi_location);
 	waitForUser("Correct "+cell_type+" ROIs if needed. You can use the ROI Manager to add and delete ROIs\nWhen you are satisfied with the ROIs selected, press OK to continue");
 }
 
@@ -599,6 +603,7 @@ print("No of "+cell_type+" in "+max_projection+" : "+cell_count);
 roiManager("deselect");
 roi_location=results_dir+cell_type+"_ROIs_"+file_name+".zip";
 roiManager("save",roi_location);
+print("Saved ROIs from GAT detection at "+roi_location);
 
 //save composite image with roi overlay
 args = max_projection+","+results_dir+","+cell_type;

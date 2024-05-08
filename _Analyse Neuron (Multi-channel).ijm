@@ -693,6 +693,12 @@ if(cell_count == 0)
 		exit("Analysis stopped as no cells detected");
 	}
 }
+
+roiManager("deselect");
+roi_location = results_dir+cell_type+"_original_ROIs_"+file_name+".zip";
+roiManager("save",roi_location);
+print("Saved unmodified ROIs from GAT detection at "+roi_location);
+
 selectWindow(max_projection);
 roiManager("show all without labels");
 //manually correct or verify if needed
@@ -1058,6 +1064,12 @@ if(marker_subtype==1)
 		//add option to draw ROI on channel name OR
 		//display Hu and other channel as overlay; assign groups with different colours; 
 		//get user to click
+		roiManager("deselect");
+		roi_location_marker=results_dir+channel_name+"_original_ROIs_"+file_name+".zip";	
+		roiManager("save",roi_location_marker);
+		print("Saved unmodified ROIs for "+channel_name+" from GAT detection at "+roi_location_marker);
+			
+		
 		waitForUser("Verify ROIs for "+channel_name+". Delete or add ROIs as needed.\nIf no cells detected, you won't see anything.\nPress OK when done.");
 		
 		//group_id+=1;

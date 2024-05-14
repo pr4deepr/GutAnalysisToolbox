@@ -37,7 +37,7 @@ macro "save_roi_composite_img"
 		getDimensions(width, height, channels, slices, frames);
 		if(channels>1) Stack.setDisplayMode("composite");
 		run("Select None");
-		roiManager("Show All");
+		roiManager("Show All without labels");
 		run("Flatten");
 		flattened=getTitle();
 		selectWindow(flattened);

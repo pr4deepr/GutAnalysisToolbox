@@ -1,0 +1,117 @@
+The images are sample image datasets associated with the software: Gut Analysis Toolbox(GAT). All images are immunofluorescence images of myenteric wholemounts from mouse gastrointestinal tract, unless stated otherwise. 
+Channels corresponding to Hu labelling can be used for segmenting enteric neurons in GAT. 
+Channels corresponding to GFAP (enteric glia) or neurons with labelling of soma and processes (ChAT, Calbindin, Calretinin) can be used as a ganglia marker for segmenting the ganglia
+
+
+Data from INM lab, Monash University (mouse images)
+•	181107_ms_distal_colon_GFAP_Hu_40X.tif
+	o	Channel 1: GFAP
+	o	Channel 2: Hu
+•	181107_ms_distal_colon_nNOS_GFAP_Hu_40X.tif (Same as above, but got an extra channel)
+	o	Channel 1: nNOS
+	o	Channel 2: GFAP
+	o	Channel 3: Hu
+In both images above, GFAP can be used as ganglia segmentation channel in GAT using DeepImageJ.
+	
+• ms_distal_colon_Hu_20X.tif
+	o	Hu
+•	ms_distal_colon_Hu_40X_1.tif
+	o	Hu
+•	Tilescan_GAT_ms_distal_colon_MP_hu.tif
+	o	Hu
+
+Calcium imaging data (video)
+
+•	calcium_imaging_mouse_distal_colon_25X.tif
+Tissue was incubated with calcium dye Fluo8-AM calcium dye (Myenteric wholemount from distal colon of mouse)
+142 frames in total acquired at 1.162 frames per second. At frame 52, 100 uM of ATP is added which causes enteric glia, neurons and blood vessels to respond. This causes slow drifting in the field of view.
+
+•	mouse_GCamp_calcium_movement.tif
+
+Wnt1-GCaMP3 mouse where GCamP3 is a genetically encoded calcium sensor expressed by enteric neurons and enteric glia
+Imaging performed at Monash University. 745 frames in total acquired at 1.162 frames per second with drifting over time
+Tissue source: Stamp & Hao laboratory, University of Melbourne.
+
+**************
+
+Images from McQuade Lab, University of Melbourne
+•	ms_28_wk_colon_DAPI_nNOS_Hu_10X.tif (mouse colon)
+•	ms_28_wk_colon_DAPI_nNOS_Hu_10X.tif (mouse ileum)
+	o	Channel 1: DAPI
+	o	Channel 2: nNOS 
+	o	Channel 3: Hu
+•	ms_distal_colon_nNOS_Hu_10X.czi
+This is a .czi file which can be opened in Fiji using bioformats or aicspylibczi in Python
+	o	Channel 1: DAPI
+	o	Channel 2: nNOS 
+	o	Channel 3: Hu
+	
+**************
+
+Images from public repositories:
+•	DYM_22_7_Pr_Chat_BYFP_DIN_GFP-g_nNOS-m_VIP-r_Hu-b.tif is a crop from File 100 05-07-2019 DYM 22 7 Pr Chat%3BYFP DIN GFP-g nNOS-m VIP-r Hu-b (Mouse Proximal Colon)
+•	  DYM_22_7_Pr_Hu_crop.tif is a crop from above.
+	o	Channel 1: Choline acetyltransferase
+	o	Channel 2: nNOS
+	o	Channel 3: Calretinin
+	o	Channel 4: Hu (pan-neuronal marker)
+Channel 1 and 3 can be used as ganglia segmentation channels in GAT using DeepImageJ.
+
+•	146_02_14_20DYM8_6_mouse_Mid_Chat-g CalB-r CalR-b_max.tif is from File 146 02-14-20 DYM 8 6 Mid Chat-g CalB-r CalR-b (Mouse mid colon)
+No Hu staining, any channel could be used as ganglia segmentation channel in GAT using DeepImageJ.
+.
+	o	Channel 1: ChAT
+	o	Channel 2: Calbindin
+	o	Channel 3: Calretinin
+
+Reference:
+Thanks goes to Marthe Howard for depositing the data in the SPARC repository.
+Howard, M. (2021). 3D imaging of enteric neurons in mouse (Version 1) [Data set]. SPARC Consortium. https://doi.org/10.26275/9FFG-482D
+**************
+
+
+Multiplex data
+
+Multiplexing_H2202Desc_Layer 1_Ganglia1_Hu.zip is from:
+ 
+Chen, B. N., Humenick, A., Yew, W. P., Peterson, R. A., Wiklendt, L., Dinning, P. G., Spencer, N. J., Wattchow, D. A., Costa, M., & Brookes, S. J. H. (2023). Types of Neurons in the Human Colonic Myenteric Plexus Identified by Multilayer Immunohistochemical Coding. Cellular and molecular gastroenterology and hepatology, 16(4), 573–605.
+ 
+This data is a myenteric wholemount from the descending colon of a Human. It has 14 different markers, 6 different rounds of staining. Every round has pan-neuronal marker Hu as a reference marker.
+There are 19 images. The filenames follow the convention:
+
+H2202Desc_layer num_ganglia num_markername.tif 
+
+Here 'layer num' corresponds to the round of staining, so Layer3, means its the 3rd round of staining.
+'ganglia num' is specified as multiple ganglia can be imaged from same tissue. 
+'markername' corresponds to the marker used. 
+
+Markers used are:
+Hu
+5HT
+ChAT
+NOS
+CGRP
+Enk
+SP 
+Somat 
+VACht
+NPY
+Calbindin
+Calretinin
+NF
+VIP
+
+
+
+**Abbreviations:**
+Hu: Pan-neuronal marker
+5HT: Serotonin (5-Hydroxytryptamine)
+ChAT: Choline acetyltransferase
+nNOS: neuronal Nitric Oxide Synthase (NOS in these images are actually nNOS)
+CGRP: Calcitonin Gene-Related Peptide
+Enk: Enkephalin
+SP: Substance P
+Somat: Somatostatin
+VACht: Vasoactive Intestinal Peptide (VIP) 
+NPY: Neuropeptide Y
+NF: neurofilament 200 

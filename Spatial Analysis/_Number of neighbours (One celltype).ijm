@@ -78,7 +78,7 @@ run("Select None");
 label_cell_img=getTitle();
 
 //run script for single cell spatial analysis
-args=cell_type+","+label_cell_img+","+ganglia_binary+","+save_path+","+label_dilation+","+save_parametric_image+","+pixelWidth;
+args=cell_type+","+label_cell_img+","+ganglia_binary+","+save_path+","+label_dilation+","+save_parametric_image+","+pixelWidth+","+roi_path;
 runMacro(spatial_single_cell_type,args);
 wait(5);
 print("Files saved at "+save_path);

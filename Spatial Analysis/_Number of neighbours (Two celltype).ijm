@@ -137,14 +137,14 @@ if(Assign_as_pan_neuronal)
 		cell_type_2 = cell_type_1;
 		cell_2 = cell_1;
 	}
-	args=hu_name+","+hu_label_img+","+cell_type_2+","+cell_2+","+ganglia_binary+","+save_path+","+label_dilation+","+save_parametric_image+","+pixelWidth;
+	args=hu_name+","+hu_label_img+","+cell_type_2+","+cell_2+","+ganglia_binary+","+save_path+","+label_dilation+","+save_parametric_image+","+pixelWidth+","+roi_path_1;
 	runMacro(spatial_hu_marker_cell_type,args);
 	wait(5);
 }
 else 
 {
 	print("Spatial analysis for two celltypes");
-	args=cell_type_1+","+cell_1+","+cell_type_2+","+cell_2+","+ganglia_binary+","+save_path+","+label_dilation+","+save_parametric_image+","+pixelWidth;
+	args=cell_type_1+","+cell_1+","+cell_type_2+","+cell_2+","+ganglia_binary+","+save_path+","+label_dilation+","+save_parametric_image+","+pixelWidth+","+roi_path_1+","+roi_path_2;
 	runMacro(spatial_two_cell_type,args);
 	wait(5);
 }

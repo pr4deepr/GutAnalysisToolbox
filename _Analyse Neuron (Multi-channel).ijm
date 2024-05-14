@@ -1296,8 +1296,11 @@ if(marker_subtype==1)
 					rename(result);
 					
 				}
-			if(j==channel_arr.length-1) //when reaching end of arr length, get ROI counts
-			{
+			//when reaching end of arr length, get ROI counts
+			//get ROI counts
+			//if(j==channel_arr.length-1) 
+			//{
+			//save rois generated from above
 				selectWindow(result);
 				run("Select None");
 				roiManager("reset");

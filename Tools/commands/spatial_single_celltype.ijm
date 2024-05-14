@@ -35,10 +35,11 @@ macro "spatial_single_celltype"
 
 	if(getArgument()=="")
 	{
-		exit("No arguments set for spatial analysis (Two cell types");
+		exit("No arguments set for spatial analysis (Two cell types)\nNeeds to be run with GAT.");
 	}
 	else 
 	{
+		roiManager("reset");
 		run("CLIJ2 Macro Extensions", "cl_device=");
 		args=getArgument();
 		arg_array=split(args, ",");
@@ -56,6 +57,8 @@ macro "spatial_single_celltype"
 		save_parametric_image = parseFloat(arg_array[5].trim());
 		
 		pixelWidth = parseFloat(arg_array[6].trim());
+		
+		roi_location_cell = arg_array[7].trim();
 		
 		print("Getting number of neighbours for "+cell_type_1);
 		
@@ -93,9 +96,20 @@ macro "spatial_single_celltype"
 		table_name = "Neighbour_count_"+cell_type_1;
 		table_path=save_path+fs+table_name+".csv";
 		
+		roiManager("open", roi_location_cell);
+		selectWindow(cell_1);
+		run("Set Measurements...", "centroid display redirect=None decimal=3");
+		roiManager("Deselect");
+		roiManager("Measure");
+		rename_roi_name_result_table();
+		selectWindow("Results");
+		cell_names = Table.getColumn("Label");
+		run("Clear Results");
 		
 		Table.create("Cell_counts_neighbour_"+cell_type_1+"_only");
+		Table.setColumn("Neuron_id", cell_names);
 		Table.setColumn("No of cells around "+cell_type_1, neighbour_count_no_background);
+		
 		Table.update;
 		Table.save(table_path);
 		close("Cell_counts_neighbour_"+cell_type_1+"_only");
@@ -117,6 +131,7 @@ macro "spatial_single_celltype"
 		
 	}
 	print("Spatial analysis done for "+cell_type_1);
+	roiManager("reset");
 
 }
 
@@ -179,4 +194,21 @@ function get_parameteric_img(no_neighbours,cell_label_img,cell_type_1)
 	run("Fire");
 	return new_name;
 			
+}
+
+//https://stackoverflow.com/questions/20800207/imagej-how-to-put-label-names-into-results-table-generated-by-roi-manager
+//rename the label column in results table
+function rename_roi_name_result_table()
+{
+	RoiManager.useNamesAsLabels(true);
+	if(nResults==0) print("No rois in results table for spatial analysis");
+	{
+		for (i=0; i<nResults; i++) 
+		{
+	    oldLabel = getResultLabel(i);
+	    delimiter = indexOf(oldLabel, ":");
+	    newLabel = substring(oldLabel, delimiter+1);
+	    setResult("Label", i, newLabel);
+	  }
+	}
 }

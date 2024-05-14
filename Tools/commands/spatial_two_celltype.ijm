@@ -62,6 +62,8 @@ macro "spatial_two_celltype"
 		save_parametric_image = parseFloat(arg_array[7].trim());
 		
 		pixelWidth = parseFloat(arg_array[8].trim());
+		roi_location_cell_1 = arg_array[9].trim();
+		roi_location_cell_2 = arg_array[10].trim();
 
 		print("Running spatial analysis on "+cell_type_1+" and "+cell_type_2);
 		
@@ -109,9 +111,13 @@ macro "spatial_two_celltype"
 		table_name = "Neighbour_count_"+cell_type_1+"_"+cell_type_2;
 		table_path=save_path+fs+table_name+".csv";
 		
+		cell_1_names = get_roi_labels(roi_location_cell_1,cell_1);
+		cell_2_names = get_roi_labels(roi_location_cell_2,cell_2);
 		
 		Table.create("Cell_counts_overlap_"+cell_type_1+"_"+cell_type_2);
+		Table.setColumn(cell_type_1+"_id", cell_1_names);
 		Table.setColumn("No of "+cell_type_2+" around "+cell_type_1, counts_cell_2_around_1);
+		Table.setColumn(cell_type_2+"_id", cell_2_names);
 		Table.setColumn("No of "+cell_type_1+" around "+cell_type_2, counts_cell_1_around_2);
 		Table.update;
 		Table.save(table_path);
@@ -212,4 +218,37 @@ function get_parameteric_img(no_neighbours,cell_label_img,cell_type_1,cell_type_
 	run("Fire");
 	return new_name;
 			
+}
+
+//https://stackoverflow.com/questions/20800207/imagej-how-to-put-label-names-into-results-table-generated-by-roi-manager
+//rename the label column in results table
+function rename_roi_name_result_table()
+{
+	RoiManager.useNamesAsLabels(true);
+	if(nResults==0) print("No rois in results table for spatial analysis");
+	{
+		for (i=0; i<nResults; i++) 
+		{
+	    oldLabel = getResultLabel(i);
+	    delimiter = indexOf(oldLabel, ":");
+	    newLabel = substring(oldLabel, delimiter+1);
+	    setResult("Label", i, newLabel);
+	  }
+	}
+}
+
+//get roi label ids from results table
+function get_roi_labels(roi_location,cell_image)
+{
+		roiManager("reset");
+		roiManager("open", roi_location);
+		selectWindow(cell_image);
+		run("Set Measurements...", "centroid display redirect=None decimal=3");
+		roiManager("Deselect");
+		roiManager("Measure");
+		rename_roi_name_result_table();
+		selectWindow("Results");
+		cell_names = Table.getColumn("Label");
+		run("Clear Results");
+		return cell_names;
 }

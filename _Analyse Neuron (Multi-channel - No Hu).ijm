@@ -897,8 +897,9 @@ for(i=0;i<channel_combinations.length;i++)
 					rename(result);
 					
 				}
-			if(j==channel_arr.length-1) //when reaching end of arr length, get ROI counts
-			{
+			//if(j==channel_arr.length-1) //when reaching end of arr length, get ROI counts
+			//{
+			//save rois generated from above
 				selectWindow(result);
 				run("Select None");
 				roiManager("reset");

@@ -578,16 +578,19 @@ else
 	if(cell_count==0) print("No cells detected");
 }
 
-selectWindow(max_projection);
-roiManager("show all");
+
 
 
 if(batch_mode==false) 
 {
+	selectWindow(max_projection);
+	roiManager("UseNames", "false");
+	roiManager("show all");
 	roiManager("deselect");
-	roi_location = results_dir+cell_type+"_original_ROIs_"+file_name+".zip";
+	roi_location = results_dir+cell_type+"_unmodified_ROIs_"+file_name+".zip";
 	roiManager("save",roi_location);
 	print("Saved unmodified ROIs from GAT detection at "+roi_location);
+
 	waitForUser("Correct "+cell_type+" ROIs if needed. You can use the ROI Manager to add and delete ROIs\nWhen you are satisfied with the ROIs selected, press OK to continue");
 }
 
@@ -601,9 +604,9 @@ runMacro(rename_rois,args);
 
 print("No of "+cell_type+" in "+max_projection+" : "+cell_count);
 roiManager("deselect");
-roi_location=results_dir+cell_type+"_ROIs_"+file_name+".zip";
-roiManager("save",roi_location);
-print("Saved ROIs from GAT detection at "+roi_location);
+roi_location_cell=results_dir+cell_type+"_ROIs_"+file_name+".zip";
+roiManager("save",roi_location_cell);
+print("Saved ROIs from GAT detection at "+roi_location_cell);
 
 //save composite image with roi overlay
 args = max_projection+","+results_dir+","+cell_type;
@@ -764,6 +767,7 @@ if (Cell_counts_per_ganglia==true)
 	selectWindow("cells_ganglia_count");
 	run("Close");
 }
+else ganglia_binary = "NA";
 
 //update table
 Table.update;
@@ -822,13 +826,15 @@ if(Perform_Spatial_Analysis==true)
 		label_dilation= Dialog.getNumber();
 		save_parametric_image = Dialog.getCheckbox();
 	}
-	args=cell_type+","+neuron_label_image+","+ganglia_binary+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth;
+	args=cell_type+","+neuron_label_image+","+ganglia_binary+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth+","+roi_location_cell;
 	runMacro(spatial_single_cell_type,args);
 	
 	//save centroids of rois; this can be used for spatial analysis
+	//make sure an image is active before running save centroids
 	selectWindow(neuron_label_image);
+	
 	setVoxelSize(pixelWidth, pixelHeight, 1, unit);
-	args=results_dir+","+cell_type+","+neuron_label_image;
+	args=results_dir+","+cell_type+","+roi_location_cell;
 	runMacro(save_centroids,args);	
 
 }

@@ -651,15 +651,17 @@ for(i=0;i<channel_combinations.length;i++)
 			
 			//save original rois so any modified rois can be verified later
 			roiManager("deselect");
-	        roi_location_marker=results_dir+channel_name+"_original_ROIs_"+file_name+".zip";    
+	        roi_location_marker=results_dir+channel_name+"_unmodified_ROIs_"+file_name+".zip";    
 	        roiManager("save",roi_location_marker);
 	        print("Saved unmodified ROIs for "+channel_name+" from GAT detection at "+roi_location_marker);
 	        
 			selectWindow(max_projection);
 			run("Remove Overlay");
 			//roiManager("deselect");
-			roiManager("show all");
 			
+			
+			roiManager("UseNames", "false");
+			roiManager("show all");
 
 			//selectWindow(max_projection);
 			waitForUser("Verify ROIs for "+channel_name+". Delete or add ROIs as needed.\nIf no cells detected, you won't see anything.\nPress OK when done.");
@@ -778,7 +780,7 @@ for(i=0;i<channel_combinations.length;i++)
 				//get centroids in microns
 				selectWindow(label_marker);
 				setVoxelSize(pixelWidth, pixelHeight, 1, unit);
-				args=results_dir+","+channel_name+","+label_marker;
+				args=results_dir+","+channel_name+","+roi_location_marker;
 				runMacro(save_centroids,args);
 				print("Centroids savede");
 			}
@@ -832,6 +834,14 @@ for(i=0;i<channel_combinations.length;i++)
 						rename(img1+"_"+img2);
 						result=img1+"_"+img2;
 						j=j+1;
+						
+						//image names are label_markername_resize; , we are exracting markername by splitting at "_"
+						img1_name_arr = split(img1, "_");
+						img1_name = img1_name_arr[1];
+						img2_name_arr = split(img2, "_");
+						img2_name = img2_name_arr[1];
+						roi_file_name = img1_name+"_"+img2_name;	
+						
 					    if(Perform_Spatial_Analysis==true)
 						{
 							print("Performing Spatial Analysis for "+img1+" and "+img2+" done");
@@ -844,14 +854,13 @@ for(i=0;i<channel_combinations.length;i++)
 								}
 							}
 							else ganglia_binary_rescaled="NA";
-							//image names are label_markername_resize; , we are exracting markername by splitting at "_"
-							img1_name_arr = split(img1, "_");
-							img1_name = img1_name_arr[1];
-							img2_name_arr = split(img2, "_");
-							img2_name = img2_name_arr[1];
+							//get roi locations for spatial analysis
+							roi_location_img1 = results_dir+img1_name+"_ROIs_"+file_name+".zip";
+							roi_location_img2 = results_dir+img2_name+"_ROIs_"+file_name+".zip";
 							
-							args=img1_name+","+img1+","+img2_name+","+img2+","+ganglia_binary_rescaled+","+results_dir+","+label_dilation+","+save_parametric_image+","+rescaled_pixelWidth;
+							args=img1_name+","+img1+","+img2_name+","+img2+","+ganglia_binary_rescaled+","+results_dir+","+label_dilation+","+save_parametric_image+","+rescaled_pixelWidth+","+roi_location_img1+","+roi_location_img2;
 							runMacro(spatial_two_cell_type,args);
+							//not saving centroids as roi saving is later in code; for now, will need to get them from ROI manager file
 							print("Spatial Done");
 							
 						}
@@ -873,17 +882,21 @@ for(i=0;i<channel_combinations.length;i++)
 						temp_label = label_temp_name;
 					}
 					
+											
+					//image names are label_markername_resize; , we are extracting markername by splitting at "_"
+					img1_name_arr = split(img1, "_");
+					img1_name = img1_name_arr[1];
+					img2_name_arr = split(img2, "_");
+					img2_name = img2_name_arr[1];
+					roi_file_name = img1_name+"_"+img2_name;
+					
 					if(Perform_Spatial_Analysis==true)
 					{
 						print("Performing Spatial Analysis for "+img1+" and "+img2+" done");
-						
-						//image names are label_markername_resize; , we are extracting markername by splitting at "_"
-						img1_name_arr = split(img1, "_");
-						img1_name = img1_name_arr[1];
-						img2_name_arr = split(img2, "_");
-						img2_name = img2_name_arr[1];
-						
-						args=img1_name+","+img1+","+img2_name+","+img2+","+ganglia_binary_rescaled+","+results_dir+","+label_dilation+","+save_parametric_image+","+rescaled_pixelWidth;
+						roi_location_img1 = results_dir+img1_name+"_ROIs_"+file_name+".zip";
+						roi_location_img2 = results_dir+img2_name+"_ROIs_"+file_name+".zip";
+						//rescaled images being passed here so, we need to change pixelWidth to make sure label dilation in pixels is accurate
+						args=img1_name+","+img1+","+img2_name+","+img2+","+ganglia_binary_rescaled+","+results_dir+","+label_dilation+","+save_parametric_image+","+rescaled_pixelWidth+","+roi_location_img1+","+roi_location_img2;
 						runMacro(spatial_two_cell_type,args);
 						print("Spatial Done");
 						
@@ -909,7 +922,7 @@ for(i=0;i<channel_combinations.length;i++)
 				//selectWindow(max_projection);
 
 				roiManager("deselect");
-				roi_file_name= String.join(channel_arr, "_");
+				//roi_file_name= String.join(channel_arr, "_");
 				roi_location_marker=results_dir+roi_file_name+"_ROIs_"+file_name+".zip";
 				//if no cells in marker combination
 				if(roiManager("count")>0)
@@ -971,7 +984,7 @@ for(i=0;i<channel_combinations.length;i++)
 roiManager("reset");
 
 				
-			}
+			//}
 		}
 		close(result);
 	  }
@@ -1024,12 +1037,8 @@ if (Cell_counts_per_ganglia==true)
 	Table.setColumn("Area_per_ganglia_um2", ganglia_area);
 }
 
-selectWindow(neuron_label_image);
-saveAs("Tiff", results_dir+"Neuron_label_"+max_save_name);
-
 selectWindow(table_name);
 Table.save(results_dir+table_name+"_cell_counts.csv");
-
 
 //save max projection if its scaled image, can use this for further processing later
 selectWindow(max_projection);

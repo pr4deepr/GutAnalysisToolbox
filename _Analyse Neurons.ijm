@@ -631,55 +631,60 @@ selectWindow(max_projection);
 run("Select None");
 run("Remove Overlay");
 
+//wrap this up in a function and also pass batch mode as a flag
+
 if (Cell_counts_per_ganglia==true)
 {
-	print("Ganglia segmentation");
-	roiManager("reset");
-	if(Ganglia_detection=="DeepImageJ")
-	 {
-	 	print("Using pretrained model in DeepImageJ for segmentation");
-	 	args=max_projection+","+cell_channel+","+ganglia_channel;
-		//get ganglia outline
-		runMacro(segment_ganglia,args);
-	 	wait(5);
-	 	ganglia_binary=getTitle();
-	 	draw_ganglia_outline(ganglia_binary,true);
-	 	
-	 }
-	 else if(Ganglia_detection=="Define ganglia using Hu")
-	 {
-	 	print("Defining ganglia using Hu");
-	 	selectWindow(max_projection);
-	 	args1=max_projection+","+cell_channel+","+neuron_label_image+","+pixelWidth;
-		//get ganglia outline
-		runMacro(ganglia_hu_expansion,args1);
-		wait(5);
-		ganglia_binary=getTitle();
-		draw_ganglia_outline(ganglia_binary,true);
+	
+	if(batch_mode==true)
+	{
+		ganglia_binary = ganglia_segment(Ganglia_detection,max_projection, cell_channel, neuron_label_image, ganglia_channel,pixelWidth,ganglia_roi_path,batch_mode);
+	}
+	else 
+	{
+		ganglia_seg_complete = false; //flag for ganglia segmentation QC checking
+		
+		//do while statement that checks if ganglia binary image occupies greater than 85% of image 
+		//If so, issue a warning and ask if user would like to select a different ganglia seg option
+		do 
+		{	
+		ganglia_roi_path="";
+		ganglia_binary = ganglia_segment(Ganglia_detection,max_projection, cell_channel, neuron_label_image, ganglia_channel,pixelWidth,ganglia_roi_path,batch_mode);
+		
+		//get area fraction of ganglia_binary. 
+		selectWindow(ganglia_binary);
+		run("Select None");
+		area_fraction = getValue("%Area");
+		if(area_fraction>=85)
+		{
+			waitForUser("Ganglia covers >85% of image.If ganglia segmentation\nisn't accurate, click No and choose another option\n in the next prompt");
+			ganglia_seg_complete = getBoolean("Is Ganglia segmentation accurate? If so, click Continue", "Continue", "No,Redo");
+		}
+		else ganglia_seg_complete=true;
+		//choose another ganglia segmentation option and redo
+	 	if(ganglia_seg_complete==false)
+	 	{
+	 		Ganglia_detection="DeepImageJ";
+	 		print("Redoing ganglia segmentation as "+Ganglia_detection+" option was not satisfactory");
+			Dialog.create("Redo ganglia segmentation\nChoose ganglia segmentation option");
+			ganglia_seg_options=newArray("DeepImageJ","Define ganglia using Hu","Manually draw ganglia","Import custom ROI");
+			Dialog.addRadioButtonGroup("Ganglia segmentation:", ganglia_seg_options, 4, 1, "DeepImageJ");
+			Dialog.show();
+			Ganglia_detection = Dialog.getRadioButton();
+			print("Ganglia detection option chosen: "+Ganglia_detection);
+	 	}
+	
+	  }
+	  while(ganglia_seg_complete==false)
+	}
+		
+		
 
-	 }
-	 else if(Ganglia_detection=="Import custom ROI")
-	 {
-		print("Importing custom ROI");
-		if(batch_parameters!="NA"){args1=neuron_label_image+","+ganglia_roi_path;}
-		else {args1=neuron_label_image;}
-		print(args1);
-		//get ganglia outline
-		runMacro(ganglia_custom_roi,args1);
-		ganglia_binary=getTitle();
-	 	
-	 }
-	 else if(Ganglia_detection=="Manually draw ganglia")
-	 {
-	 	print("Manually draw ganglia");
-	 	ganglia_binary=draw_ganglia_outline(max_projection,false);
-	 }
-	 else exit("Ganglia detection method not valid. Got "+Ganglia_detection);
-	 
-	args=neuron_label_image+","+ganglia_binary;
-	print("all ganglia conditions finished");
+	
+	
 	//get cell count per ganglia
 	print("Counting cells per ganglia. This may take some time for large images.");
+	args=neuron_label_image+","+ganglia_binary;
 	runMacro(ganglia_cell_count,args);
 	
 	//label_overlap is the ganglia where each of them are labels
@@ -735,8 +740,9 @@ if (Cell_counts_per_ganglia==true)
 	rename("ganglia_binary");
 	selectWindow("ganglia_binary");
 	ganglia_binary=getTitle();
+	
 
-
+	
 	
 	roiManager("deselect");
 	ganglia_number=roiManager("count");
@@ -1042,6 +1048,55 @@ function extended_depth_proj(img)
 	rename(max_name);
 	close(img);
 	return max_name;
+}
+
+
+function ganglia_segment(Ganglia_detection,max_projection, cell_channel, neuron_label_image, ganglia_channel,pixelWidth,ganglia_roi_path,batch_mode)
+{
+	print("Ganglia segmentation");
+	roiManager("reset");
+	if(Ganglia_detection=="DeepImageJ")
+	 {
+	 	print("Using pretrained model in DeepImageJ for segmentation");
+	 	args=max_projection+","+cell_channel+","+ganglia_channel+","+batch_mode;
+		//get ganglia outline
+		runMacro(segment_ganglia,args);
+	 	wait(5);
+	 	ganglia_binary=getTitle();
+	 	draw_ganglia_outline(ganglia_binary,true);
+	 	
+	 }
+	 else if(Ganglia_detection=="Define ganglia using Hu")
+	 {
+	 	print("Defining ganglia using Hu");
+	 	selectWindow(max_projection);
+	 	args1=max_projection+","+cell_channel+","+neuron_label_image+","+pixelWidth;
+		//get ganglia outline
+		runMacro(ganglia_hu_expansion,args1);
+		wait(5);
+		ganglia_binary=getTitle();
+		draw_ganglia_outline(ganglia_binary,true);
+
+	 }
+	 else if(Ganglia_detection=="Import custom ROI")
+	 {
+		print("Importing custom ROI");
+		//batch mode argument is detected if two arguments are passed to the macro
+		if(batch_parameters!="NA"){args1=neuron_label_image+","+ganglia_roi_path;}
+		else {args1=neuron_label_image;}
+		print(args1);
+		//get ganglia outline
+		runMacro(ganglia_custom_roi,args1);
+		ganglia_binary=getTitle();
+	 	
+	 }
+	 else if(Ganglia_detection=="Manually draw ganglia")
+	 {
+	 	print("Manually draw ganglia");
+	 	ganglia_binary=draw_ganglia_outline(max_projection,false);
+	 }
+	 else exit("Ganglia detection method not valid. Got "+Ganglia_detection);
+	return ganglia_binary;
 }
 
 

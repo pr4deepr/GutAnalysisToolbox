@@ -49,6 +49,7 @@ macro "ganglia_prediction"
 	selectWindow(max_projection);
 	Stack.getDimensions(width, height, channels, slices, frames);
 	if(cell_channel>channels || ganglia_channel >channels) exit("Invalid channel number");
+	batch_mode=false;
 		
 	}
 	else 
@@ -57,20 +58,22 @@ macro "ganglia_prediction"
 		arg_array=split(args, ",");
 		max_projection=arg_array[0];
 		cell_channel=parseInt(arg_array[1]);
-		ganglia_channel=parseInt(arg_array[2]);			
+		ganglia_channel=parseInt(arg_array[2]);
+		batch_mode=arg_array[3];
 
 	}
 
-ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel);
+ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel,batch_mode);
 
 }
 
 //use deepimagej to predict ganglia outline and return a binary image
-function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel)
+function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel,batch_mode)
 {
 
 	//waitForUser("Select max projection");
 	selectWindow(max_projection);
+	run("Select None");
 	getPixelSize(unit, pixelWidth, pixelHeight);
 	
 	//max_projection=getTitle();
@@ -122,9 +125,13 @@ function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel)
 
 	selectWindow(ganglia_pred_processed);
 	run("Select None");
-	run("Image to Selection...", "image=[ganglia_rgb_2] opacity=60");
-	waitForUser("Check if the ganglia overlay is good. If not, use the brush tool to delete or add.");
-	run("Select None");
+	
+	if(batch_mode==false)
+	{
+		run("Image to Selection...", "image=[ganglia_rgb_2] opacity=60");
+		waitForUser("Check if the ganglia overlay is good. If not, use the brush tool to delete or add.");
+		run("Select None");
+	}
 	
 	run("Size Opening 2D/3D", "min="+min_area_ganglia_pix);
 	ganglia_final=getTitle();

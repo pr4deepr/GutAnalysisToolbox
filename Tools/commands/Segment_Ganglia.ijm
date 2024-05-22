@@ -109,6 +109,7 @@ function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel,batch_mo
 	run("DeepImageJ Run", "model=2D_Ganglia_RGB_v2 format=Tensorflow preprocessing=[per_sample_scale_range.ijm] postprocessing=[ganglia_binarise.ijm] axes=X,Y,C tile=768,768,3 logging=Normal");
 	wait(10);
 	prediction_output=getTitle();
+	if(prediction_output==ganglia_rgb) exit("Ganglia segmentation not successful.\nEither the models are not correct or DeepImageJ is not configured properly");
 		//deprecated; modified deepimagej yaml file to accept a custom postprocessing macro
 	//runMacro(deepimagej_post_processing,prediction_output);
 	//temp_pred=getTitle();

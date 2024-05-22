@@ -69,7 +69,7 @@ macro "count_cells_per_ganglia"
 	Ext.CLIJ2_release(ganglia_labels);
 	Ext.CLIJ2_pull(label_overlap);
 	
-	close(ganglia_labels)
+	close(ganglia_labels);
 	roiManager("reset");
 	//selectWindow(ganglia_labels); //this command is  for Hu
 	selectWindow(label_overlap); //selecting label_overlap so only ganglia with neurons are included

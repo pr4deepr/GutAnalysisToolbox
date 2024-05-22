@@ -78,7 +78,7 @@ macro "check_plugins"
 					print(file_name);
 					print("Ganglia model needs to be updated to 2D_Ganglia_RGB_v2.bioimage.io.model as current model is not compatible with DeepImageJ v3");
 				}
-				else if(indexOf(string, "2D_Ganglia")>=0)
+				else if(indexOf(file_name, "2D_Ganglia")>=0)
 				{
 					print("Ganglia model folder with name 2D_Ganglia: ");
 					print(file_name);
@@ -86,11 +86,9 @@ macro "check_plugins"
 
 			}
 		}
-		else print("No files found");
-
-		
-		exit("Cannot find models for segmenting neurons. Check log for details");
-	}
+		else { print("No files found");
+		       exit("Cannot find models for segmenting neurons. Check log for details");
+	     }
 
 
 

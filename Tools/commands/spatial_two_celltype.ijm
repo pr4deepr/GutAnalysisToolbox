@@ -105,6 +105,11 @@ macro "spatial_two_celltype"
 		// cell 1 neigbour around cell 2
 		no_neighbours_cell_1_around_2=count_neighbour_around_ref_img(cell_2,cell_1,label_dilation,ganglia_binary);
 		counts_cell_1_around_2 = Array.deleteIndex(no_neighbours_cell_1_around_2, 0);
+		
+		//if value in array >500 make it zero
+		counts_cell_2_around_1 = clip_arr_zero(counts_cell_2_around_1,500);
+		
+		counts_cell_1_around_2 = clip_arr_zero(counts_cell_1_around_2,500);
 
 		roiManager("reset");
 		run("Clear Results");
@@ -128,8 +133,8 @@ macro "spatial_two_celltype"
 				
 		{
 
-			overlap_1=get_parameteric_img(no_neighbours_cell_2_around_1,cell_1,cell_type_2,cell_type_1);
-			overlap_2=get_parameteric_img(no_neighbours_cell_1_around_2,cell_2,cell_type_1,cell_type_2);
+			overlap_1=get_parameteric_img(counts_cell_2_around_1,cell_1,cell_type_2,cell_type_1);
+			overlap_2=get_parameteric_img(counts_cell_1_around_2,cell_2,cell_type_1,cell_type_2);
 
 			selectWindow(overlap_1);
 			saveAs("Tiff", save_path+fs+overlap_1);
@@ -188,14 +193,20 @@ function count_neighbour_around_ref_img(ref_img,marker_img,dilate_radius,ganglia
 	// Subtract Images
 	Ext.CLIJ2_subtractImages(label_overlap_count, marker_img_binary, label_overlap_count_corrected);
 	Ext.CLIJ2_statisticsOfBackgroundAndLabelledPixels(label_overlap_count_corrected, ref_img_centroid);
+	//Ext.CLIJ2_pull(label_overlap_count_corrected);
+	Ext.CLIJ2_release(ref_img_centroid);
+	Ext.CLIJ2_release(ref_dilate);
+	Ext.CLIJ2_release(marker_img);
+	
 	//Ext.CLIJ2_pull(label_overlap_count);
 	//Ext.CLIJ2_pull(label_overlap_count_corrected);
 	
 	//get intensity at centroid/  min intensity
+	selectWindow("Results");
 	overlap_count = Table.getColumn("MINIMUM_INTENSITY");
 	//background is zero
 	overlap_count[0]=0;
-
+    //IJ.renameResults(ref_img+"_"+marker_img);
 	return overlap_count;	
 	
 		
@@ -209,9 +220,13 @@ function get_parameteric_img(no_neighbours,cell_label_img,cell_type_1,cell_type_
 	
 	
 	run("CLIJ2 Macro Extensions", "cl_device=");
+	Ext.CLIJ2_push(cell_label_img);
 	Ext.CLIJ2_pushArray2D(vector_neighbours, no_neighbours, no_neighbours.length, 1);
 	Ext.CLIJ2_replaceIntensities(cell_label_img, vector_neighbours, parametric_img);
 	Ext.CLIJ2_pull(parametric_img);
+	Ext.CLIJ2_release(cell_label_img);
+	Ext.CLIJ2_release(vector_neighbours);
+
 	new_name = cell_type_1+"_around_"+cell_type_2;
 	selectWindow(parametric_img);
 	rename(new_name);
@@ -251,4 +266,15 @@ function get_roi_labels(roi_location,cell_image)
 		cell_names = Table.getColumn("Label");
 		run("Clear Results");
 		return cell_names;
+}
+
+//clip values in array to zero if its >thresh
+function clip_arr_zero(arr,thresh)
+{
+	for (i = 0; i < arr.length; i++) 
+	{
+		if(arr[i]>thresh) arr[i]=0;
+	}
+	return arr;
+
 }

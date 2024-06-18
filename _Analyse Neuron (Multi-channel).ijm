@@ -313,8 +313,8 @@ getPixelSize(unit, pixelWidth, pixelHeight);
 //Check if RGB
 if (bitDepth()==24)
 {
-	print("Image is RGB type. It is recommended to NOT\nconvert the image to RGB and use the raw output from the microscope (usually, 8,12 or 16-bit)\n.");
-	rgb_prompt = getBoolean("Image is RGB. Recommend to use 8,12 or 16-bit images. Can try converting to 8-bit and proceed.", "Convert to 8-bit", "No, stop analysis");
+	print("Image type is RGB. It is NOT recommended to\nconvert the image to RGB. Instead, use the raw \noutput from the microscope (which is usually in 8,12 or 16-bit)\n.");
+	rgb_prompt = getBoolean("Image is RGB. It is recommended to use 8,12 or 16-bit images. Would you like to try converting to 8-bit and proceed?", "Convert to 8-bit", "No, stop analysis");
 	if(rgb_prompt ==1)
 	{
 		print("Converting to 8-bit");
@@ -330,8 +330,8 @@ unit=String.trim(unit);
 
 if(unit!="microns" && unit!="micron" && unit!="um" )
 {
-	print("Image not calibrated in microns. This is required for accurate segmentation");
-	exit("Image must have pixel size in microns.\nGo to Image -> Properties to set this.\nYou can get this from the microscope settings.\nCannot proceed: STOPPING Analysis");
+	print("Image is not calibrated in microns. This is required for accurate segmentation");
+	exit("Image must have pixel size in microns.\nTo fix this: Go to Image -> Properties: And enter the correct pixel size in microns.\nYou can get this information from the microscope settings.\nCannot proceed: STOPPING Analysis");
 
 }
 //************
@@ -372,14 +372,14 @@ if(cell_channel!="NA")
 {
 
 	cell_channel=parseInt(cell_channel);
-	if(isNaN(cell_channel)) exit("Enter channel number for cell. If leaving empty, type NA in the value");
+	if(isNaN(cell_channel)) exit("Enter which channel number to use for "+cell_type+" segmentation. If leaving empty, type NA in the value");
 	
 }
 
 if(ganglia_channel!="NA")
 {
 	ganglia_channel=parseInt(ganglia_channel);
-	if(isNaN(ganglia_channel)) exit("Enter channel number for Ganglia. If leaving empty, type NA in the value");
+	if(isNaN(ganglia_channel)) exit("Enter which channel number to use for Ganglia segmentation. If leaving empty, type NA in the value");
 	
 }
 
@@ -407,7 +407,7 @@ if(marker_subtype==1)
 			//Array.show(marker_names_manual);
 			
 			marker_no_manual=split(marker_no_manual, ",");
-			if(marker_names_manual.length!=marker_no_manual.length) exit("Number of marker names and marker channels do not match. Check entry");
+			if(marker_names_manual.length!=marker_no_manual.length) exit("The number of marker names does not match the number of marker channels. Check the entry and retry");
 			
 			if(marker_names_manual.length>1) //delete Hu from channel list as we are not using it for marker classification
 			{
@@ -434,14 +434,14 @@ if(marker_subtype==1)
 	else 
 	//get channel info from user with dialog boxes
 	{
-		waitForUser("Note the channel names and numbers for analysis and enter in next prompt");
+		waitForUser("Define the channel names and numbers for analysis in the next prompt");
 		no_markers=getNumber("How many markers would you like to analyse?", 1);
 		string=getString("Enter names of markers separated by comma (,)", "Names");
 		channel_names=split(string, ",");	
-		if(channel_names.length!=no_markers) exit("Channel names do not match the no of markers");
+		if(channel_names.length!=no_markers) exit("The number of marker names does not match the number of marker channels. Check the entry and retry");
 		channel_numbers=newArray(sizeC);
 		marker_label_img=newArray(sizeC);
-		Dialog.create("Select channels for each marker");
+		Dialog.create("Select Channels for each Marker");
 		for(i=0;i<no_markers;i++)
 		{
 			Dialog.addChoice("Choose Channel for "+channel_names[i], arr, arr[0]);
@@ -463,9 +463,9 @@ if(marker_subtype==1)
 	{
 
 	
-		print("Enter probability and overlap threshold for neuronal subtypes");
-		Dialog.create("Advanced Parameters (subtype)");
-		Dialog.addMessage("Default values shown below will be used if no changes are made"); 	
+		print("Enter the probability and overlap threshold for neuronal subtype identification");
+		Dialog.create("Advanced Parameters (Subtype)");
+		Dialog.addMessage("The default values selected below will be used if no changes are made"); 	
 	  	for ( i = 0; i < channel_names.length; i++) 
 	  	{
 			
@@ -568,7 +568,7 @@ else if(Ganglia_detection=="Define ganglia using Hu" && cell_channel=="NA")
 	waitForUser("Enter which channel to use for BOTH "+cell_type+" and ganglia segmentation in the next prompt.");
 	//get active channel
 	Stack.getPosition(active_channel, active_slice, active_frame);
-	Dialog.create("Choose  channel for "+cell_type+);
+	Dialog.create("Choose the channel for "+cell_type+" and ganglia segmentation");
     Dialog.addChoice("Enter which channel to use for BOTH "+cell_type+" and GANGLIA segmentation", channel_list, active_channel);
 	Dialog.show(); 
     cell_channel= parseInt(Dialog.getChoice());//Dialog.getNumber();
@@ -577,7 +577,7 @@ else if(Ganglia_detection=="Define ganglia using Hu" && cell_channel=="NA")
 	resetMinAndMax();
 }
 else  if(Ganglia_detection=="Define ganglia using Hu") ganglia_channel = cell_channel;
-else exit("Need multiple channels, only one channel found");
+else exit("The image needs to have multiple channels, only one channel was found");
 
 
 //added option for extended depth of field projection for widefield images
@@ -589,10 +589,10 @@ if(sizeZ>1)
 		projection_method=getBoolean("3D stack detected. Which projection method would you like?", "Maximum Intensity Projection", "Extended Depth of Field (Variance)");
 		if(projection_method==1)
 		{
-			waitForUser("Note the start and end of the stack.\nPress OK when done");
-			Dialog.create("Choose slices");
-	  		Dialog.addNumber("Start slice", 1);
-	  		Dialog.addNumber("End slice", sizeZ);
+			waitForUser("Note the starting and ending slice number of the Z-stack.\nThe slices used to create a Maximum Intensity Projection\ncan be defined in the next prompt.\nPress OK when ready");
+			Dialog.create("Choose Z-slices");
+	  		Dialog.addNumber("Start slice:", 1);
+	  		Dialog.addNumber("End slice:", sizeZ);
 	  		Dialog.show(); 
 	  		start=Dialog.getNumber();
 	  		end=Dialog.getNumber();
@@ -685,8 +685,8 @@ else
 cell_count=roiManager("count");
 if(cell_count == 0)
 {
-	print("No cells detected");
-	proceed = getBoolean("NO cells detected, do you still want to continue analysis?");
+	print("No cells detected using StarDist");
+	proceed = getBoolean("NO cells detected using StarDist, do you still want to continue the analysis?");
 	if(!proceed) 
 	{
 		print("Analysis stopped as no cells detected");
@@ -704,7 +704,7 @@ roiManager("UseNames", "false");
 //roiManager("show all without labels");
 roiManager("show all");
 //manually correct or verify if needed
-waitForUser("Correct "+cell_type+" ROIs if needed. You can delete or add ROIs using ROI Manager");
+waitForUser("Correct "+cell_type+" ROIs if needed. You can add or delete ROIs using the ROI Manager");
 cell_count=roiManager("count");
 
 wait(5);
@@ -774,8 +774,8 @@ if (Cell_counts_per_ganglia==true)
 		area_fraction = getValue("%Area");
 		if(area_fraction>=85)
 		{
-			waitForUser("Ganglia covers >85% of image.If ganglia segmentation\nisn't accurate, click No and choose another option\n in the next prompt");
-			ganglia_seg_complete = getBoolean("Is Ganglia segmentation accurate? If so, click Continue", "Continue", "No,Redo");
+			waitForUser("Ganglia covers >85% of image. If ganglia segmentation\nisn't accurate, click Retry to select a different option\n in the next prompt");
+			ganglia_seg_complete = getBoolean("Is Ganglia segmentation accurate? If so, click Continue", "Continue", "Retry");
 		}
 		else ganglia_seg_complete=true;
 		//choose another ganglia segmentation option and redo
@@ -800,7 +800,7 @@ if (Cell_counts_per_ganglia==true)
 	//check if ganglia neuron count and total neuron count match. if not, modify outline
 	//highlight neurons missing in a separate image; get neuron label image
 	//
-	print("Getting Cell count per ganglia. May take some time for large images.");
+	print("Counting the number of "+cell_type+" per ganglia. This may take some time for large images.");
 	//get cell count per ganglia and returns a table as well as ganglia label window
 	args=neuron_label_image+","+ganglia_binary;
 	runMacro(ganglia_cell_count,args);
@@ -817,8 +817,8 @@ if (Cell_counts_per_ganglia==true)
 	sum_cells_ganglia = sum_arr_values(cell_count_per_ganglia);
 	if(sum_cells_ganglia!=cell_count)
 	{
-		print("No of neurons in ganglia "+sum_cells_ganglia+" do not match the total neurons detected "+cell_count+".\nThis means that the ganglia outlines are not accurate and missing neurons");
-		print("Using neuron detection to fix ganglia outline");
+		print("No. of neurons in ganglia ("+sum_cells_ganglia+") does not match the total neurons detected ("+cell_count+").\nThis means that the ganglia outlines are not accurate and missing neurons");
+		print("Using neuron detection to optimise the ganglia outline");
 		close(ganglia_binary);//getting new ganglia binary from script
 		selectWindow("cells_ganglia_count");
      	run("Close");
@@ -830,7 +830,7 @@ if (Cell_counts_per_ganglia==true)
 		selectWindow("ganglia_binary");
 		ganglia_binary = getTitle();
 		args=neuron_label_image+","+ganglia_binary;
-		print("Getting Cell count per ganglia again.");
+		print("Re-trying counting the number of "+cell_type+" per ganglia");
 		//get cell count per ganglia and returns a table as well as ganglia label window
 		runMacro(ganglia_cell_count,args);
 		
@@ -841,7 +841,7 @@ if (Cell_counts_per_ganglia==true)
 		selectWindow("cells_ganglia_count");
 		cell_count_per_ganglia=Table.getColumn("Cell counts");
 		sum_cells_ganglia = sum_arr_values(cell_count_per_ganglia);
-		print("No of neurons in ganglia "+sum_cells_ganglia+" and total neurons detected: "+cell_count);
+		print("No. of neurons in ganglia ("+sum_cells_ganglia+"). Total neurons detected: "+cell_count+")");
 		
 	}
 	
@@ -926,7 +926,7 @@ if(Save_Image_Masks == true)
 
 if(Perform_Spatial_Analysis==true)
 {
-	Dialog.create("Spatial Analysis parameters");
+	Dialog.create("Spatial Analysis Parameters");
   	Dialog.addSlider("Cell expansion distance (microns)", 0.0, 20.0, 6.5);
 	Dialog.addCheckbox("Save parametric image/s?", true);
   	Dialog.show(); 
@@ -943,7 +943,7 @@ if(Perform_Spatial_Analysis==true)
 	args=results_dir+","+cell_type+","+roi_location_cell;
 	runMacro(save_centroids,args);
 	
-	print("Spatial Analysis for "+cell_type+" done");
+	print("Spatial Analysis for "+cell_type+" complete");
 	
 	
 }
@@ -977,7 +977,7 @@ if(marker_subtype==1)
 	display_ch_names = newArray();
 	for(i=0;i<channel_combinations.length;i++)
 	{
-	print("Getting counts for cells positive for marker/s: "+channel_combinations[i]);
+	print("Counting the number of cells positive for each marker: "+channel_combinations[i]);
 	//get channel names as an array
 	channel_arr=split(channel_combinations[i], ",");
 
@@ -1014,7 +1014,7 @@ if(marker_subtype==1)
 		if(custom_roi_subtype_arr[i])
 		{
 			print("Importing ROIs for "+channel_name);
-			custom_subtype_roi_path = File.openDialog("Choose custom ROI for "+channel_name);
+			custom_subtype_roi_path = File.openDialog("Choose the custom ROI file for "+channel_name);
 			roiManager("open", custom_subtype_roi_path);
 			print("ROI file: "+custom_subtype_roi_path);
 			wait(5);
@@ -1029,7 +1029,7 @@ if(marker_subtype==1)
 			seg_marker_img=scale_image(marker_image,scale_factor,channel_name);
 			roiManager("reset");
 			//segment cells and return image with normal scaling
-			print("Segmenting marker "+channel_name);
+			print("Segmenting marker: "+channel_name);
 			selectWindow(seg_marker_img);
 			
 			//run("Subtract Background...", "rolling="+backgrnd_radius+" sliding");
@@ -1079,7 +1079,7 @@ if(marker_subtype==1)
 		print("Saved unmodified ROIs for "+channel_name+" from GAT detection at "+roi_location_marker);
 			
 		
-		waitForUser("Verify ROIs for "+channel_name+". Delete or add ROIs as needed.\nIf no cells detected, you won't see anything.\nPress OK when done.");
+		waitForUser("Verify ROIs for "+channel_name+". Add or delete ROIs as needed using the ROI Manager.\nIf no cells were detected, the ROI Manager will be empty.\nPress OK when done.");
 		
 		//group_id+=1;
 		//set_all_rois_group_id(group_id);
@@ -1185,7 +1185,7 @@ if(marker_subtype==1)
 			//perform spatial analysis for Hu and the marker image
 			if(Perform_Spatial_Analysis==true)
 			{
-				print("Performing Spatial Analysis for "+cell_type+" and "+channel_name+" done");
+				print("Spatial Analysis for "+cell_type+" and "+channel_name+" complete");
 				//cell_type is Hu
 				//label_marker is original scale so default pixelWidth
 				args=cell_type+","+neuron_label_image+","+channel_name+","+label_marker+","+ganglia_binary+","+results_dir+","+label_dilation+","+save_parametric_image+","+pixelWidth+","+roi_location_cell+","+roi_location_marker;
@@ -1197,7 +1197,7 @@ if(marker_subtype==1)
 				setVoxelSize(pixelWidth, pixelHeight, 1, unit);
 				args=results_dir+","+channel_name+","+roi_location_marker;
 				runMacro(save_centroids,args);
-				print("Spatial Done");
+				print("Spatial Analysis Complete");
 				
 			}
 		close(label_marker);
@@ -1816,7 +1816,7 @@ function draw_ganglia_outline(ganglia_img,edit_flag)
 		setTool(3);//set freehand tool
 		//setting paintbrush tool earlier may cause user to draw on image unknowingly
 		//setTool(19); //set paintbrush tool
-		waitForUser("Verify if ganglia outline is satisfactory.\nIf not, you can delete ROI from ROI manager and draw an outline. Press OK when done.");
+		waitForUser("Verify if ganglia outline is satisfactory.\nIf not, you can delete the ROI from the ROI manager and draw an outline. \nPress T to add the outline to the ROI Manager.\nPress OK when done.");
 		
 	}
 	

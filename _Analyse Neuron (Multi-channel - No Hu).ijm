@@ -271,8 +271,8 @@ getPixelSize(unit, pixelWidth, pixelHeight);
 //Check if RGB
 if (bitDepth()==24)
 {
-	print("Image is RGB type. It is recommended to NOT\nconvert the image to RGB and use the raw output from the microscope (usually, 8,12 or 16-bit)\n.");
-	rgb_prompt = getBoolean("Image is RGB. Recommend to use 8,12 or 16-bit images. Can try converting to 8-bit and proceed.", "Convert to 8-bit", "No, stop analysis");
+	print("Image type is RGB. It is NOT recommended to\nconvert the image to RGB. Instead, use the raw \noutput from the microscope (which is usually in 8,12 or 16-bit)\n.");
+	rgb_prompt = getBoolean("Image is RGB. It is recommended to use 8,12 or 16-bit images. Would you like to try converting to 8-bit and proceed?", "Convert to 8-bit", "No, stop analysis");
 	if(rgb_prompt ==1)
 	{
 		print("Converting to 8-bit");
@@ -288,8 +288,8 @@ unit=String.trim(unit);
 
 if(unit!="microns" && unit!="micron" && unit!="um" )
 {
-	print("Image not calibrated in microns. This is required for accurate segmentation");
-	exit("Image must have pixel size in microns.\nGo to Image -> Properties to set this.\nYou can get this from the microscope settings.\nCannot proceed: STOPPING Analysis");
+	print("Image is not calibrated in microns. This is required for accurate segmentation");
+	exit("Image must have pixel size in microns.\nTo fix this: Go to Image -> Properties: And enter the correct pixel size in microns.\nYou can get this information from the microscope settings.\nCannot proceed: STOPPING Analysis");
 
 }
 
@@ -335,10 +335,10 @@ if(sizeZ>1)
 		projection_method=getBoolean("3D stack detected. Which projection method would you like?", "Maximum Intensity Projection", "Extended Depth of Field (Variance)");
 		if(projection_method==1)
 		{
-			waitForUser("Note the start and end of the stack.\nPress OK when done");
-			Dialog.create("Choose slices");
-	  		Dialog.addNumber("Start slice", 1);
-	  		Dialog.addNumber("End slice", sizeZ);
+			waitForUser("Note the starting and ending slice number of the Z-stack.\nThe slices used to create a Maximum Intensity Projection can be defined in the next prompt.\nPress OK when ready");
+			Dialog.create("Choose Z-slices");
+	  		Dialog.addNumber("Start slice:", 1);
+	  		Dialog.addNumber("End slice:", sizeZ);
 	  		Dialog.show(); 
 	  		start=Dialog.getNumber();
 	  		end=Dialog.getNumber();
@@ -494,11 +494,11 @@ if(Enter_channel_details_now==true)
 }
 else 
 {
-	waitForUser("Note the channel names and numbers for analysis and enter in next prompt");
+	waitForUser("Define the channel names and numbers for analysis in the next prompt");
 	no_markers=getNumber("How many markers would you like to analyse?", 1);
 	string=getString("Enter names of markers separated by comma (,)", "Names");
 	channel_names=split(string, ",");	
-	if(channel_names.length!=no_markers) exit("Channel names do not match the no of markers");
+	if(channel_names.length!=no_markers) exit("The number of marker names does not match the number of marker channels. Check the entry and retry");
 	channel_numbers=newArray(sizeC);
 	marker_label_img=newArray(sizeC);
 	Dialog.create("Select channels for each marker");
@@ -683,7 +683,7 @@ for(i=0;i<channel_combinations.length;i++)
 			roiManager("show all");
 
 			//selectWindow(max_projection);
-			waitForUser("Verify ROIs for "+channel_name+". Delete or add ROIs as needed.\nIf no cells detected, you won't see anything.\nPress OK when done.");
+			waitForUser("Verify ROIs for "+channel_name+". Add or delete ROIs as needed using the ROI Manager.\nIf no cells were detected, the ROI Manager will be empty.\nPress OK when done.");
 			roiManager("deselect");
 			
 			//convert roi manager to label image
@@ -756,7 +756,7 @@ for(i=0;i<channel_combinations.length;i++)
 				
 				//get cell count per ganglia
 				runMacro(ganglia_cell_count,args);
-				print("Getting Cell count per ganglia. May take some time for large images for very first time.");
+				print("Counting the number of "+cell_type+" per ganglia. This may take some time for large images.");
 				
 				//label_overlap is the ganglia where each of them are labels
 				selectWindow("label_overlap");
@@ -801,7 +801,7 @@ for(i=0;i<channel_combinations.length;i++)
 				setVoxelSize(pixelWidth, pixelHeight, 1, unit);
 				args=results_dir+","+channel_name+","+roi_location_marker;
 				runMacro(save_centroids,args);
-				print("Centroids savede");
+				print("Centroids saved");
 			}
 		close(label_marker);
 			
@@ -1389,7 +1389,7 @@ function draw_ganglia_outline(max,cell_channel,ganglia_channel,edit_flag)
 		nrois = roiManager("count");
 		do 
 		{
-		waitForUser("Ganglia outline", "Draw outline of the ganglia.\nMake sure to press T every time you finish drawing an outline\nThis adds the ROI to the ROI Manager");
+		waitForUser("Ganglia outline", "Draw an outline of the ganglia.\nMake sure to press T every time you finish drawing an outline\nThis adds the ROI to the ROI Manager");
 		nrois = roiManager("count");
 		}
 		while(nrois==0)

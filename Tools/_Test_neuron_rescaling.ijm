@@ -285,6 +285,8 @@ for(i=start;i<=end;i+=increment)
 	print("No of objects: "+roiManager("count"));
 	getPixelSize(unit, pixelWidth_new, pixelHeight_new);
 	print(pixelWidth_new);
+	close(label_filtered);
+
 	//close("Label-killBorders");
 }
 

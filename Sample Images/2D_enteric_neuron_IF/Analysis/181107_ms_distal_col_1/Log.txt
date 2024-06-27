@@ -1,0 +1,49 @@
+Date: 2024/5/13 Time:19:36:14
+System Config:
+OpenCL Device: NVIDIA RTX A500 Laptop GPU
+OpenCL memory(GB):4.1939
+RAM: 132MB of 24221MB (<1%)
+Visit https://github.com/pr4deepr/GutAnalysisToolbox/wiki/Troubleshooting for more info
+Image path: C:\Users\rajasekhar.p\OneDrive - wehi.edu.au\Gut Analysis Toolbox\GAT\Sample Images\2D_enteric_neuron_IF\181107_ms_distal_colon_nNOS_GFAP_Hu_40X.tif
+Channel for cell: 3
+Calculate cell count per ganglia: 1
+Ganglia detection method: DeepImageJ
+Channel for ganglia: 2
+Perform spatial analysis: 1
+Contribute image masks to GAT?: 0
+Finetune detection parameters: 0
+Batch parameters passed: NA
+
+ 
+Using parameters
+Segmentation pixel size:0.568
+Max neuron area (microns): 1500
+Min Neuron Area (microns): 70
+Min marker area (microns): 70
+**Neuron
+Probability: 0.5
+Overlap threshold: 0.3
+Filename will be shortened if its too long
+Analysing: 181107_ms_distal_col_1
+Files will be saved at: C:\Users\rajasekhar.p\OneDrive - wehi.edu.au\Gut Analysis Toolbox\GAT\Sample Images\2D_enteric_neuron_IF\Analysis\181107_ms_distal_col_1\
+181107_ms_distal_colon_nNOS_GFAP_Hu_40X.tif has only one slice, using as max projection
+No. of tiles: 4
+*********Segmenting cells using StarDist********
+Segmentation done
+Saved unmodified ROIs from GAT detection at C:\Users\rajasekhar.p\OneDrive - wehi.edu.au\Gut Analysis Toolbox\GAT\Sample Images\2D_enteric_neuron_IF\Analysis\181107_ms_distal_col_1\Neuron_unmodified_ROIs_181107_ms_distal_col_1.zip
+No of Neuron in MAX_181107_ms_distal_col_1 : 83
+Saved ROIs from GAT detection at C:\Users\rajasekhar.p\OneDrive - wehi.edu.au\Gut Analysis Toolbox\GAT\Sample Images\2D_enteric_neuron_IF\Analysis\181107_ms_distal_col_1\Neuron_ROIs_181107_ms_distal_col_1.zip
+Ganglia segmentation
+Using pretrained model in DeepImageJ for segmentation
+*********Segmenting cells using DeepImageJ********
+When running for the first time, it may take a while for ganglia segmentation as deepimageJ needs to initialize. Check Window -> Console for progress
+ 
+If you are getting an error during ganglia prediction, please download a new ganglia model or check DeepImageJ version. It should be > v3
+Converting RGB Color image (1 channel) into RGB Stack (3 channels)
+Be careful with any macro command that has conflicts with RGB Stack images, for example: 'run("RGB Stack");'
+Percentile normalization to the axes: xy
+with min_percentile: 0.01
+and max_percentile: 0.998
+Counting cells per ganglia. This may take some time for large images.
+Getting number of neighbours for Neuron
+Spatial analysis done for Neuron

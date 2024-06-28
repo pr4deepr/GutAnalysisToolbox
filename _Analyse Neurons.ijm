@@ -296,49 +296,82 @@ file_name_full =String.join(file_name_split,"_");
 
 //check if save location exists. if it does, ask user to enter a suffix to append to directory name
 save_location_exists = 1;
-do
-{
-	if(file_name_length>50 ||save_location_exists == 1)
-	{		
-		print("Filename will be shortened if its too long");
-		file_name_full=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
-		// if save location already exists, then this logic can also be used to add suffix to filename
-		if(save_location_exists == 1)
-		{ 
-			dialog_title = "Save location already exists ";
-			dialog_message_1 = "Save location exists, use a custom identifier.\n For example, writing '_1' as the custom identifier \n will name the final folder as ImageName_1";
-		}
-		else if(file_name_length>50)
-		{
-			dialog_title = "Filename too long";
-			dialog_message = "Shortening it to 20 characters.\n Use a custom identifier. For example, writing '_1' as the custom identifier \n will name the final folder as ImageName_1";
-		}
-		Dialog.create(dialog_title);
-		Dialog.addString("Custom Identifier", "_1");
-		Dialog.addMessage(dialog_message_1);
-		Dialog.show();
-		suffix = Dialog.getString();
 
-		file_name = file_name_full+suffix;
-		save_location_exists = 0;
-	}
-	else file_name=file_name_full;
-	
-	results_dir=analysis_dir+file_name+fs; //directory to save images
-	//if file exists in location, create one and set save_location_exists flag to zero to exit the loop
-	if (!File.exists(results_dir)) 
+if(batch_parameters!="NA")
+{
+	print("Filename will be shortened if its too long");
+	file_name_full=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
+	suffix = "_batch";
+	file_name = file_name_full+suffix;
+	suffix_no=1;
+	//make save_dir and if it already exists, add a number at the end and increment till its 
+	do 
 	{
-		File.makeDirectory(results_dir); //create directory to save results file
-		save_location_exists = 0;
+		
+		results_dir=analysis_dir+file_name+fs; //directory to save images
+		if (!File.exists(results_dir)) 
+		{
+			File.makeDirectory(results_dir); //create directory to save results file
+			save_location_exists = 0;
+		}
+		else 
+		{
+			print("The save folder already exists. Creating a new save folder path");
+			file_name = file_name_full+suffix+"_"+suffix_no;
+			save_location_exists = 1;
+			suffix_no+=1;
+		}
 	}
-	else 
-	{
-		waitForUser("The save folder already exists, enter a new name in next prompt");
-		save_location_exists = 1;
-	}
+	while(save_location_exists==1)
 
 }
-while(save_location_exists==1)
+else 
+{
+	
+	do
+	{
+		if(file_name_length>50 ||save_location_exists == 1)
+		{		
+			print("Filename will be shortened if its too long");
+			file_name_full=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
+			// if save location already exists, then this logic can also be used to add suffix to filename
+			if(save_location_exists == 1)
+			{ 
+				dialog_title = "Save location already exists ";
+				dialog_message_1 = "Save location exists, use a custom identifier.\n For example, writing '_1' as the custom identifier \n will name the final folder as ImageName_1";
+			}
+			else if(file_name_length>50)
+			{
+				dialog_title = "Filename too long";
+				dialog_message = "Shortening it to 20 characters.\n Use a custom identifier. For example, writing '_1' as the custom identifier \n will name the final folder as ImageName_1";
+			}
+			Dialog.create(dialog_title);
+			Dialog.addString("Custom Identifier", "_1");
+			Dialog.addMessage(dialog_message_1);
+			Dialog.show();
+			suffix = Dialog.getString();
+	
+			file_name = file_name_full+suffix;
+			save_location_exists = 0;
+		}
+		else file_name=file_name_full;
+		
+		results_dir=analysis_dir+file_name+fs; //directory to save images
+		//if file exists in location, create one and set save_location_exists flag to zero to exit the loop
+		if (!File.exists(results_dir)) 
+		{
+			File.makeDirectory(results_dir); //create directory to save results file
+			save_location_exists = 0;
+		}
+		else 
+		{
+			waitForUser("The save folder already exists, enter a new name in next prompt");
+			save_location_exists = 1;
+		}
+	
+	}
+	while(save_location_exists==1)
+}
 
 print("Analysing: "+file_name);
 print("Files will be saved at: "+results_dir); 

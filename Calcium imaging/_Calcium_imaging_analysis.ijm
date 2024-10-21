@@ -5,7 +5,18 @@
 //TODO: Add option to save cell coordinates and get ganglia outline
 
 
-var fs = File.separator;//Returns the file name separator character ("/" or "\").
+
+var fs=File.separator;
+setOption("ExpandableArrays", true);
+
+print("\\Clear");
+
+var fiji_dir=getDirectory("imagej");
+var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Tools"+fs+"commands";
+
+//specify directory where StarDist models are stored
+var models_dir=fiji_dir+"models"+fs;
+
 
 //function for normalising stack to F0 and return a 32 bit stack
 function f_f0(calcium_stack_name_orig) 
@@ -49,7 +60,13 @@ print ("\\Clear");
 #@ File (style="open", label="Open the aligned calcium imaging stack") calcium_path
 #@ String(value="<html>F_F0 is the stack normalised to baseline.<br/> If chosen, the mean intensity values extracted <br/>will be normalised to user-specified baseline frames<br/> (before activity or adding any drugs)</html>", visibility="MESSAGE") as
 #@ Boolean (value=true, persist=false) Use_F_F0
+#@ Boolean (value=false, persist=false,label="Use Stardist model for segmenting neurons") use_stardist
 #@ String(value="<html>If you are not sure, leave it checked</html>", visibility="MESSAGE") hint2
+
+scale=1;
+probability=0.5;
+overlap=0.3;
+n_tiles=4;
 
 open(calcium_path);//File.openDialog("Open the aligned calcium imaging file or Max Stack"));
 calcium_stack_name_orig=File.name;
@@ -57,6 +74,17 @@ file_dir=File.directory;
 
 
 getDimensions(w, h, channels, slices, frames); //get dimensions so the resolution and frames can be used later on
+getPixelSize(unit, pixelWidth, pixelHeight);
+
+//check if unit is microns or micron
+unit=String.trim(unit);
+
+if(unit!="microns" && unit!="micron" && unit!="um" && use_stardist==true )
+{
+	print("Image is not calibrated in microns. This is required for accurate segmentation using stardist");
+	waitForUser("Image is not calibrated in microns. This is required for accurate segmentation using stardist");
+	pixelWidth = getNumber("Enter pixelsize in microns", 0.568);
+}
 
 if(slices>10 && frames==1) //occasionally frames and slices could be interchanged; fixing that
 {
@@ -129,6 +157,42 @@ for(i=0;i<cell_types;i++)
 	{
 		cell_name=getString("Enter name of celltype", "LEC");
 		selectWindow(calcium_max);
+		if(use_stardist)
+		{
+			Dialog.create("Choose model type");
+			Dialog.addChoice("Choose StarDist model", newArray("GAT Model","Stardist_Barth"));
+			Dialog.addNumber("Rescaling Factor", scale, 3, 8, "") 
+		  	Dialog.addSlider("Probability of detecting neurons (Hu)", 0, 1,probability);	
+		  	Dialog.addSlider("Overlap threshold", 0, 1,overlap);
+		  	Dialog.addNumber("Area of smallest cell to filter", 10);
+		  	//add checkbox to same row as slider
+		  	Dialog.addToSameRow();
+		  	Dialog.addCheckbox("Custom ROI", 0);
+			Dialog.show(); 
+			
+			choice=Dialog.getChoice();
+			scale = Dialog.getNumber();
+			probability= Dialog.getNumber();
+			overlap= Dialog.getNumber();
+			neuron_seg_lower_limit = Dialog.getNumber(); 
+			if(choice=="GAT Model")
+			{
+				training_pixel_size=0.568;
+				model_file = models_dir+fs+"2D_enteric_neuron_v4_1.zip";
+				
+			}
+			else 
+			{
+				training_pixel_size=0.568;
+				model_file = models_dir+fs+"Barth_2D_StarDist.zip";
+			}
+			
+			target_pixel_size= training_pixel_size/scale;
+			scale_factor = pixelWidth/target_pixel_size;
+			
+			segment_neuron_stardist(calcium_max,model_file,n_tiles,w,h,scale_factor,neuron_seg_lower_limit,probability,overlap)
+
+		}
 		waitForUser("Draw ROIs for "+cell_name+". Press OK when done");
 	}
 	roiManager("deselect");
@@ -170,3 +234,71 @@ roiManager("deselect");
 roiManager("save", output+"ROIS_"+calcium_stack_name_orig+"_CELLS.zip");
 
 run("Close All");
+
+function segment_neuron_stardist(img_seg,model_file,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap)
+
+{
+	//need to have the file separator as \\\\ in the file path when passing to StarDist Command from Macro. 
+	//regex uses \ as an escape character, so \\ gives one backslash \, \\\\ gives \\.
+	//Windows file separator \ is actually \\ as one backslash is an escape character
+	//StarDist command takes the escape character as well, so pass 16 backlash to get 4xbackslash in the StarDIst macro command (which is then converted into 2)
+	model_file=replace(model_file, "\\\\","\\\\\\\\\\\\\\\\");
+	choice=0;
+	roiManager("reset");
+	selectWindow(img_seg);
+	wait(10);
+
+	//runMacro(gat_dir+fs+"gat_stardist_batch.py",arg_stardist); //this downloads jython.. see if this doesn't exit script
+	//run("gat stardist batch",arg_stardist);
+	run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Both', 'modelFile':'"+model_file+"', 'nTiles':'"+n_tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
+	wait(10);
+	//make sure cells are detected for Hu.. if not exit macro
+	if(roiManager("count")==0) exit("No cells detected. Reduce probability or check image.\nAnalysis stopped");
+	else roiManager("reset");
+	
+	wait(50);
+	temp=getTitle();
+	run("Duplicate...", "title=label_image");
+	label_image=getTitle();
+	run("Remove Overlay");
+	close(temp);
+	roiManager("reset"); 
+	selectWindow(label_image);
+	wait(20);
+	//remove all labels touching the borders
+	run("Remove Border Labels", "left right top bottom");
+	wait(10);
+	rename("Label-killBorders"); //renaming as the remove border labels gives names with numbers in brackets
+	//revert labelled image back to original size
+	if(scale_factor!=1)
+	{
+		selectWindow("Label-killBorders");
+		//run("Duplicate...", "title=label_original");
+		run("Scale...", "x=- y=- width="+width+" height="+height+" interpolation=None create title=label_original");
+		close("Label-killBorders");
+	}
+	else
+	{
+		selectWindow("Label-killBorders");
+		rename("label_original");
+	}
+	wait(10);
+	//rename("label_original");
+	//size filtering
+	selectWindow("label_original");
+	run("Label Size Filtering", "operation=Greater_Than_Or_Equal size="+neuron_seg_lower_limit);
+	label_filter=getTitle();
+	resetMinAndMax();
+	close("label_original");
+
+	//convert the labels to ROIs
+	runMacro(label_to_roi,label_filter);
+	wait(10);
+	close(label_image);
+	selectWindow(max_projection);
+	roiManager("show all");
+	close(label_filter);
+	print("Segmentation done");
+}
+
+

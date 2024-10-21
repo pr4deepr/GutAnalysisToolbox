@@ -637,9 +637,9 @@ new_width=round(width*scale_factor);
 new_height=round(height*scale_factor);
 n_tiles=4;
 if(new_width>2000 || new_height>2000) n_tiles=5;
-if(new_width<9000 || new_height<9000) n_tiles=8;
-if (new_width<15000 || new_height<15000) n_tiles=16;
-else n_tiles=24;
+if(new_width>4500 || new_height>4500) n_tiles=8;
+if (new_width>9000 || new_height>9000) n_tiles=16;
+if (new_width>15000 || new_height>15000) n_tiles=24;
 
 print("No. of tiles: "+n_tiles);
 	

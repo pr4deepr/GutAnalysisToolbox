@@ -48,18 +48,29 @@ overlap= parseFloat(Table.get("Values", 7));
 overlap_subtype=parseFloat(Table.get("Values", 8));
 
 //get paths of model files
-neuron_model_file = Table.getString("Values", 9);
-neron_subtype_file = Table.getString("Values", 10);
+neuron_model_file = Table.getString("Values", 9);//stardist models
+neron_subtype_file = Table.getString("Values", 10);//stardist models
+ganglia_model = Table.getString("Values", 12);//deepimagej model for ganglia
+neuron_deepimagej_file = Table.getString("Values", 13);//deepimagej model for neuorn
+neuron_subtype_deepimagej_file = Table.getString("Values", 14);//deepimagej model for neuron subtype
+
 selectWindow("Results");
 run("Close");
 
 //Neuron segmentation model
-neuron_model_path=models_dir+neuron_model_file;
+neuron_model_path=models_dir+fs+neuron_model_file;
+neuron_deepimagej_path = models_dir+fs+neuron_deepimagej_file;
+neuron_subtype_deepimagej_path = models_dir+fs+neuron_subtype_deepimagej_file;
+ganglia_model_path = models_dir+fs+ganglia_model;
+print("Deepimagej model for neuron:"+neuron_deepimagej_path);
+
+//check paths
 //Marker segmentation model
 subtype_model_path=models_dir+neron_subtype_file;
 if(!File.exists(neuron_model_path)||!File.exists(subtype_model_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_model_path+"\n"+subtype_model_path);
-
-
+if(!File.exists(neuron_deepimagej_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_deepimagej_path);
+if(!File.exists(neuron_subtype_deepimagej_path)) exit("Cannot find models for segmenting neuronal subtypes at these paths:\n"+neuron_subtype_deepimagej_path);
+if(!File.exists(ganglia_model_path)) exit("Cannot find models for segmenting ganglia at this paths:\n"+ganglia_model_path);
 
 
 //check if required plugins are installed
@@ -124,6 +135,12 @@ if(!File.exists(rename_rois)) exit("Cannot find rename_rois custom roi script. R
 //check if save_roi_composite_img is present
 var save_composite_img=gat_dir+fs+"save_roi_composite_img.ijm";
 if(!File.exists(save_composite_img)) exit("Cannot find save_composite_img custom roi script. Returning: "+save_composite_img);
+
+stardist_postprocessing = neuron_deepimagej_path+fs+"stardist_postprocessing.ijm";
+if(!File.exists(stardist_postprocessing)) exit("Cannot find startdist postprocessing script. Returning: "+stardist_postprocessing);
+
+stardist_subtype_postprocessing = neuron_subtype_deepimagej_path+fs+"stardist_postprocessing.ijm";
+if(!File.exists(stardist_subtype_postprocessing)) exit("Cannot find startdist postprocessing script for neuron subtype. Returning: "+stardist_subtype_postprocessing);
 
 fs = File.separator; //get the file separator for the computer (depending on operating system)
 
@@ -678,7 +695,8 @@ else
 	//Segment Neurons with StarDist
 	print("*********Segmenting cells using StarDist********");
 	//segment neurons using StarDist model
-	segment_cells(max_projection,seg_image,neuron_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap);
+	neuron_subtype=0;//not segmenting neuron subtype
+	segment_cells(max_projection,seg_image,neuron_deepimagej_file,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap,neuron_subtype);
 }
 
 
@@ -1037,7 +1055,8 @@ if(marker_subtype==1)
 			print("Probability for detection "+probability_subtype_val);
 			
 			//will get roi manager 
-			segment_cells(max_projection,seg_marker_img,subtype_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype_val,overlap_subtype);
+			neuron_subtype=1;
+			segment_cells(max_projection,seg_marker_img,neuron_subtype_deepimagej_file,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability_subtype_val,overlap_subtype,neuron_subtype);
 			wait(5);
 			close(seg_marker_img);
 		}
@@ -1500,21 +1519,38 @@ exit("Multi-channel Neuron analysis complete");
 //function to segment cells using max projection, image to segment, model file location
 //no of tiles for stardist, width and height of image
 //returns the ROI manager with ROIs overlaid on the image.
-function segment_cells(max_projection,img_seg,model_file,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap)
+//neuron_subtype==1 means to use the neuron_subtype stardist postprocessing
+function segment_cells(max_projection,img_seg,neuron_deepimagej_file,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap,neuron_subtype)
 {
 	//need to have the file separator as \\\\ in the file path when passing to StarDist Command from Macro. 
 	//regex uses \ as an escape character, so \\ gives one backslash \, \\\\ gives \\.
 	//Windows file separator \ is actually \\ as one backslash is an escape character
 	//StarDist command takes the escape character as well, so pass 16 backlash to get 4xbackslash in the StarDIst macro command (which is then converted into 2)
-	model_file=replace(model_file, "\\\\","\\\\\\\\\\\\\\\\");
-	choice=0;
+	//model_file=replace(model_file, "\\\\","\\\\\\\\\\\\\\\\");
+	//choice=0;
 
 	roiManager("reset");
 	//model_file="D:\\\\Gut analysis toolbox\\\\models\\\\2d_enteric_neuron\\\\TF_SavedModel.zip";
 	selectWindow(img_seg);
-	run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Label Image', 'modelFile':'"+model_file+"', 'nTiles':'"+n_tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
+	run("DeepImageJ Run", "modelPath=["+neuron_deepimagej_file+"] inputPath=null outputFolder=null displayOutput=all");
+	
 	wait(50);
-	temp=getTitle();
+    temp_img=getTitle();
+    selectWindow(temp_img);
+    args_postprocessing = ""+probability+","+overlap+"";//pass as a string
+    if(neuron_subtype==0) runMacro(stardist_postprocessing,args_postprocessing);
+    else if(neuron_subtype==1) runMacro(stardist_subtype_postprocessing,args_postprocessing);
+    wait(50);
+    temp=getTitle();
+    close(temp_img);
+    selectWindow(temp);
+    runMacro(label_to_roi,temp);	
+    
+    //make sure cells are detected for Hu.. if not exit macro
+    if(roiManager("count")==0 && neuron_subtype==0) exit("No cells detected. Reduce probability or check image.\nAnalysis stopped");
+    else roiManager("reset");
+    
+    selectWindow(temp);
 	run("Duplicate...", "title=label_image");
 	label_image=getTitle();
 	run("Remove Overlay");
@@ -1884,7 +1920,7 @@ function ganglia_segment(Ganglia_detection,max_projection, cell_channel, neuron_
 	if(Ganglia_detection=="DeepImageJ")
 	 {
 	 	print("Using pretrained model in DeepImageJ for segmentation");
-	 	args=max_projection+","+cell_channel+","+ganglia_channel+","+batch_mode;
+	 	args=max_projection+","+cell_channel+","+ganglia_channel+","+ganglia_model+","+batch_mode;
 		//get ganglia outline
 		runMacro(segment_ganglia,args);
 	 	wait(5);

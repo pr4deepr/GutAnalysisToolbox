@@ -6,7 +6,7 @@ run("Clear Results");
 
 var fiji_dir=getDirectory("imagej");
 var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Tools"+fs+"commands";
-
+var models_dir=fiji_dir+"models"+fs;
 
 gat_settings_path=gat_dir+fs+"gat_settings.ijm";
 if(!File.exists(gat_settings_path)) exit("Cannot find settings file. Check: "+gat_settings_path);
@@ -18,17 +18,25 @@ training_pixel_size=parseFloat(Table.get("Values", 0)); //0.7;
 neuron_area_limit=parseFloat(Table.get("Values", 1)); //1500
 neuron_seg_lower_limit=parseFloat(Table.get("Values", 2)); //90
 neuron_lower_limit=parseFloat(Table.get("Values", 3)); //160
+neuron_deepimagej_file = Table.getString("Values", 13);
 run("Close");
 
 //check if label to roi macro is present
 var label_to_roi=gat_dir+fs+"Convert_Label_to_ROIs.ijm";
 if(!File.exists(label_to_roi)) exit("Cannot find label to roi script. Returning: "+label_to_roi);
 
-#@ String(value="<html>The main difference with this macro is you can try a custom StarDist model.<html>",visibility="MESSAGE", required=false) stardist_model_hint
+neuron_deepimagej_path = models_dir+fs+neuron_deepimagej_file;
+if(!File.exists(neuron_deepimagej_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_deepimagej_path);
+stardist_postprocessing = neuron_deepimagej_path+fs+"stardist_postprocessing.ijm";
+if(!File.exists(stardist_postprocessing)) exit("Cannot find startdist postprocessing script. Returning: "+stardist_postprocessing);
+
+
+#@ String(value="<html>The main difference with this macro is you can try a custom DeepImageJ model.<html>",visibility="MESSAGE", required=false) DJ_model_hint
+#@ String(value="<html>It expects a StarDist trained model, so nms postprocessing will be applied automatically.<html>",visibility="MESSAGE", required=false) more_hint
 #@ File (style="open", label="Choose the image to segment") path
 #@ boolean image_already_open
 // String(choices={"Neuron", "Glia"}, style="list") cell_type
-#@ File (style="open", label="<html>Choose the StarDist model file based on celltype.<html>",value=fiji_dir) model_file 
+#@ File (style="directory", label="<html>Choose the DeepImageJ model DIRECTORY based on celltype.<html>",value=fiji_dir) model_file 
 #@ String(value="Test a range of rescaling factors to get the value with the most accurate cell segmentation. Default is 1.", visibility="MESSAGE") hint2
 #@ Float (label="Enter minimum value", value=1.00, min=0.0500, max=10.0) scale_factor_1
 #@ Float (label="Enter maximum max value", value=1.50, min=0.0500, max=10.0) scale_factor_2
@@ -92,7 +100,8 @@ neuron_seg_lower_limit=neuron_seg_lower_limit/pixelWidth;
 neuron_max_pixels=neuron_area_limit/pixelWidth; //convert micron to pixels
 
 
-if(unit!="microns" && Use_pixel_size==true) exit("Image not calibrated in microns. Please go to ANalyse->SetScale or Image->Properties to set it for the image");
+if(unit!="microns") exit("Image not calibrated in microns. Please go to ANalyse->SetScale or Image->Properties to set it for the image");
+
 
 
 
@@ -139,7 +148,7 @@ else {
 }
 
 //replace file separator so  stardist can identify right file
-model_file=replace(model_file, "\\\\","\\\\\\\\\\\\\\\\");
+//model_file=replace(model_file, "\\\\","\\\\\\\\\\\\\\\\");
 
 img_seg_array=newArray();
 setOption("ExpandableArrays", true);
@@ -206,8 +215,18 @@ for(i=start;i<=end;i+=increment)
 	}
 	print("No. of tiles "+tiles);
 	//run segmentation
-	run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Both', 'modelFile':'"+model_file+"', 'nTiles':'"+tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
+	//run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Both', 'modelFile':'"+model_file+"', 'nTiles':'"+tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
+	run("DeepImageJ Run", "modelPath=["+model_file+"] inputPath=null outputFolder=null displayOutput=all");
 	wait(50);
+    temp_img=getTitle();
+    selectWindow(temp_img);
+    args_postprocessing = ""+probability+","+overlap+"";//pass as a string
+    runMacro(stardist_postprocessing,args_postprocessing);
+    wait(50);
+    temp=getTitle();
+    close(temp_img);
+    selectWindow(temp);
+    runMacro(label_to_roi,temp);	
 
 	//make sure cells are detected.. if not exit macro
 	if(roiManager("count")==0) exit("No cells detected. Reduce probability or check image.\nAnalysis stopped");

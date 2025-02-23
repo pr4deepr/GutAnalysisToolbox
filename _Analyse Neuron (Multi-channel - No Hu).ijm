@@ -54,8 +54,6 @@ neuron_subtype_deepimagej_file = Table.getString("Values", 14);//deepimagej mode
 selectWindow("Results");
 run("Close");
 
-subtype_model_path=models_dir+fs+neuron_subtype_file;
-if(!File.exists(subtype_model_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+subtype_model_path);
 //deepimagej
 neuron_subtype_deepimagej_path = models_dir+fs+neuron_subtype_deepimagej_file;
 ganglia_model_path = models_dir+fs+ganglia_model;

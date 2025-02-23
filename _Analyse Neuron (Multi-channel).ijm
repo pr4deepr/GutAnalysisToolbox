@@ -58,7 +58,7 @@ selectWindow("Results");
 run("Close");
 
 //Neuron segmentation model
-neuron_model_path=models_dir+fs+neuron_model_file;
+//neuron_model_path=models_dir+fs+neuron_model_file;
 neuron_deepimagej_path = models_dir+fs+neuron_deepimagej_file;
 neuron_subtype_deepimagej_path = models_dir+fs+neuron_subtype_deepimagej_file;
 ganglia_model_path = models_dir+fs+ganglia_model;
@@ -66,8 +66,6 @@ print("Deepimagej model for neuron:"+neuron_deepimagej_path);
 
 //check paths
 //Marker segmentation model
-subtype_model_path=models_dir+neron_subtype_file;
-if(!File.exists(neuron_model_path)||!File.exists(subtype_model_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_model_path+"\n"+subtype_model_path);
 if(!File.exists(neuron_deepimagej_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_deepimagej_path);
 if(!File.exists(neuron_subtype_deepimagej_path)) exit("Cannot find models for segmenting neuronal subtypes at these paths:\n"+neuron_subtype_deepimagej_path);
 if(!File.exists(ganglia_model_path)) exit("Cannot find models for segmenting ganglia at this paths:\n"+ganglia_model_path);
@@ -271,7 +269,7 @@ do
 	if(file_name_length>50 ||save_location_exists == 1)
 	{	
 		print("Filename will be shortened if its too long");
-		file_name_full=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
+		if(file_name_length>20) file_name_full=substring(file_name_full, 0, 20); //Restricting file name length as in Windows long path names can cause errors
 		if(save_location_exists == 1)
 		{ 
 			dialog_title = "Save location already exists";

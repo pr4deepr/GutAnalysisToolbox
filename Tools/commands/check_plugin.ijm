@@ -42,8 +42,8 @@ macro "check_plugins"
 	run("Results... ", "open="+gat_settings_path);
 
 	//get paths of model files
-	neuron_model_file = Table.getString("Values", 9);
-	neuron_subtype_file = Table.getString("Values", 10);
+	neuron_model_file = Table.getString("Values", 13);
+	neuron_subtype_file = Table.getString("Values", 14);
 	//ganglia_model_dir = Table.getString("Values", 12);
 	run("Close");
 

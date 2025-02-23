@@ -46,14 +46,11 @@ run("Close");
 
 
 //Neuron segmentation model
-neuron_model_path=models_dir+fs+neuron_model_file;
+//neuron_model_path=models_dir+fs+neuron_model_file;
 neuron_deepimagej_path = models_dir+fs+neuron_deepimagej_file;
 ganglia_model_path = models_dir+fs+ganglia_model;
 print("Deepimagej model for neuron:"+neuron_deepimagej_path);
 
-
-//check paths
-if(!File.exists(neuron_model_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_model_path);
 if(!File.exists(neuron_deepimagej_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_deepimagej_path);
 if(!File.exists(ganglia_model_path)) exit("Cannot find models for segmenting ganglia at this paths:\n"+ganglia_model_path);
 

@@ -2,7 +2,7 @@ fiji_dir=getDirectory("imagej");
 fs=File.separator;
 gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Tools"+fs+"commands";
 
-file_name = "gat_init_deepimagej_check_counts.txt";
+file_name = "gat_init_deepimagej_check_counts.ijm";
 
 deepimagej_check_path = gat_dir+fs+file_name;
 run("Table... ", "open=["+deepimagej_check_path+"]");

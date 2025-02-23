@@ -59,8 +59,8 @@ macro "ganglia_prediction"
 		max_projection=arg_array[0];
 		cell_channel=parseInt(arg_array[1]);
 		ganglia_channel=parseInt(arg_array[2]);
-		//ganglia_model = arg_array[3];//consider adding an option for choosing the ganglia model
-		batch_mode=arg_array[3];
+		ganglia_model = arg_array[3];
+		batch_mode=arg_array[4];
 
 	}
 
@@ -108,11 +108,11 @@ function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel,batch_mo
 print("*********Segmenting cells using DeepImageJ********");
 	print("When running for the first time, it may take a while for ganglia segmentation as deepimageJ needs to initialize. Check Window -> Console for progress\n");
 	print("If you are getting an error during ganglia prediction, please download a new ganglia model or check DeepImageJ version. It should be > v3");
-	//deepimagej3
-	run("DeepImageJ Run", "modelPath=2D_Ganglia_RGB_v2.bioimage.io.model inputPath=null outputFolder=null displayOutput=all");
-	//old command
+	
 	//run("DeepImageJ Run", "model="+ganglia_model+" format=Tensorflow preprocessing=[per_sample_scale_range.ijm] postprocessing=[ganglia_binarise.ijm] axes=X,Y,C tile=768,768,3 logging=Normal");
-	wait(10);
+	print(ganglia_model);
+	run("DeepImageJ Run", "modelPath=["+ganglia_model+"] inputPath=null outputFolder=null displayOutput=all");
+	wait(20);
 	prediction_output=getTitle();
 	if(prediction_output==ganglia_rgb) exit("Ganglia segmentation not successful.\nEither the models are not correct or DeepImageJ is not configured properly");
 	
@@ -121,10 +121,6 @@ print("*********Segmenting cells using DeepImageJ********");
 	//temp_pred=getTitle();
 	
 	selectWindow(prediction_output);
-	//output is 32 bit with 0 to 1 values, binarize it
-	setThreshold(0.9000, 1000000000000000000000000000000.0000);
-	setOption("BlackBackground", true);
-	run("Convert to Mask");
 	run("Options...", "iterations=3 count=2 black do=Open");
 	wait(5);
 	

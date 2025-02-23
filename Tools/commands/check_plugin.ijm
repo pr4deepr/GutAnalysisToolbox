@@ -44,23 +44,23 @@ macro "check_plugins"
 	//get paths of model files
 	neuron_model_file = Table.getString("Values", 9);
 	neuron_subtype_file = Table.getString("Values", 10);
-	ganglia_model_dir = Table.getString("Values", 12);
+	//ganglia_model_dir = Table.getString("Values", 12);
 	run("Close");
 
 	//Neuron segmentation model
 	neuron_model_path=models_dir+neuron_model_file;
 	//Marker segmentation model
 	subtype_model_path=models_dir+neuron_subtype_file;
-	ganglia_model_path=models_dir+ganglia_model_dir+fs;
+	//ganglia_model_path=models_dir+ganglia_model_dir+fs;
 
 	
 	
-	if(!File.exists(neuron_model_path)||!File.exists(subtype_model_path)||!File.exists(ganglia_model_path)) 
+	if(!File.exists(neuron_model_path)||!File.exists(subtype_model_path))//||!File.exists(ganglia_model_path)) 
 	{
 		print("Cannot find models for segmenting. It is possible that the model has not been copied or even updated");
 		print("Current model for neuron segmentation: "+neuron_model_file);
 		print("Current model for neuron subtype segmentation: "+neuron_subtype_file);
-		print("Current model for ganglia segmentation: "+ganglia_model_path);
+		//print("Current model for ganglia segmentation: "+ganglia_model_path);
 		print("Models found in the folder:");
 		files_list = getFileList(models_dir);
 		if(files_list.length >0)
@@ -89,13 +89,12 @@ macro "check_plugins"
 		else { print("No files found");
 		       exit("Cannot find models for segmenting neurons. Check log for details");
 	     }
-
-
+	}
 
 
 	
 	print("******Checking if plugins are installed.*******");
-	checks=newArray("DeepImageJ Run","Area Opening","Command From Macro","CLIJ Macro Extensions","StackReg");//"Area Opening","Shape Smoothing","ROI Color Coder",
+	checks=newArray("DeepImageJ Run","Area Opening","Command From Macro","CLIJ Macro Extensions","StackReg ");//"Area Opening","Shape Smoothing","ROI Color Coder",//space after StackReg
 	check_plugin_install(checks);
 	print("******Plugins installed.*******");
 	//takes an array of commands as strings and checks if plugins are installed
@@ -118,7 +117,7 @@ macro "check_plugins"
 				else if (plugin_command[i]=="CLIJ Macro Extensions") {msg="Enable the  update site for CLIJ and CLIJ2: https://clij.github.io/clij2-docs/installationInFiji";}
 				else if (plugin_command[i]=="Command From Macro") {msg="Enable the update site for StarDist and CSBDeep";}
 				else if (plugin_command[i]=="DeepImageJ Run") {msg="Add the update site for DeepImageJ: https://sites.imagej.net/DeepImageJ/";}
-				else if (plugin_command[i]=="StackReg") {msg="Enable the update site for BIG-EPFL: https://sites.imagej.net/DeepImageJ/";}
+				else if (plugin_command[i]=="StackReg ") {msg="Enable the update site for BIG-EPFL";} //added a space after StackReg
 				else if (plugin_command[i]=="Label image to ROIs"){msg="Enable the update site for PT-BIOP: https://biop.epfl.ch/Fiji-Update/";}
 				else {msg=plugin_command[i];}
 				print("Error: Install plugin: "+msg);
@@ -128,5 +127,10 @@ macro "check_plugins"
 		}
 		if(error==1) exit("Plugins not found. Check Log file for details");
 	}
+	
+	print("******DeepImageJ Initialization checks.*******");
+	gat_deepimagej_path = gat_dir+fs+"gat_init_deepimagej_check.ijm";
+	runMacro(gat_deepimagej_path);
+	print("******DONE.*******");
 
 }

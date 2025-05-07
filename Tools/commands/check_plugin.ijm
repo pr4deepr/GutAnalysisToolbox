@@ -20,7 +20,7 @@ macro "check_plugins"
 
 	memory = parseInt(IJ.maxMemory())/1024000000;
 	if(memory < 20) print("Your FIJI has only ~"+round(memory)+" of RAM allocated. Cell segmentation may not work on large images.\nIt is recommended to allocate atleast 32GB RAM");
-	print("Visit https://github.com/pr4deepr/GutAnalysisToolbox/wiki/Troubleshooting for more info");
+	print("Visit https://gut-analysis-toolbox.gitbook.io/docs for more info");
 	run("Clear Results");
 	selectWindow("Results");
 	run("Close");

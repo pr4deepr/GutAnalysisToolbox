@@ -11,6 +11,8 @@ setOption("ExpandableArrays", true);
 
 var fiji_dir=getDirectory("imagej");
 var gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Tools"+fs+"commands";
+//specify directory where StarDist models are stored
+var models_dir=fiji_dir+"models"+fs; //"scripts"+fs+"GAT"+fs+"Models"+fs;
 
 
 
@@ -105,21 +107,21 @@ function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel,batch_mo
 	
 	selectWindow(ganglia_rgb);
 	
-print("*********Segmenting cells using DeepImageJ********");
+	print("*********Segmenting cells using DeepImageJ********");
 	print("When running for the first time, it may take a while for ganglia segmentation as deepimageJ needs to initialize. Check Window -> Console for progress\n");
 	print("If you are getting an error during ganglia prediction, please download a new ganglia model or check DeepImageJ version. It should be > v3");
+	//location of preprocessing script
+	im_preprocessing = models_dir+fs+ganglia_model+fs+"im_preprocessing.ijm";
+	//convert to 32 bit stack
+	runMacro(im_preprocessing);
+		
+	print("Using Ganglia model: "+ganglia_model);
 	
-	//run("DeepImageJ Run", "model="+ganglia_model+" format=Tensorflow preprocessing=[per_sample_scale_range.ijm] postprocessing=[ganglia_binarise.ijm] axes=X,Y,C tile=768,768,3 logging=Normal");
-	print(ganglia_model);
 	run("DeepImageJ Run", "modelPath=["+ganglia_model+"] inputPath=null outputFolder=null displayOutput=all");
 	wait(20);
 	prediction_output=getTitle();
-	if(prediction_output==ganglia_rgb) exit("Ganglia segmentation not successful.\nEither the models are not correct or DeepImageJ is not configured properly");
-	
-	//deprecated; modified deepimagej yaml file to accept a custom postprocessing macro
-	//runMacro(deepimagej_post_processing,prediction_output);
-	//temp_pred=getTitle();
-	
+	if(prediction_output==ganglia_rgb) exit("Ganglia segmentation not successful.\nEither the models are not correct or DeepImageJ needs to be updated");
+
 	selectWindow(prediction_output);
 	run("Options...", "iterations=3 count=2 black do=Open");
 	wait(5);

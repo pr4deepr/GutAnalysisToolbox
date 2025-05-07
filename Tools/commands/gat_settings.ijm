@@ -11,6 +11,6 @@ overlap_subtype	0.3
 neuron_model	2D_enteric_neuron_v4_1.zip	
 neuron_subtype_model	2D_enteric_neuron_subtype_v4.zip	
 sox10_model	NA	
-ganglia_model	2D_Ganglia_RGB_v2.bioimage.io.model	
+ganglia_model	2D_Ganglia_RGB_v3.bioimage.io.model	
 neuron_deepimagej	2D_enteric_neuron.bioimage.io.model	
 neuron_subtype_deepimagej	2D_enteric_neuron_subtype.bioimage.io.model	

@@ -1,28 +1,25 @@
+/***
+ * Checks if first time running GAT by testing if gat_init_deepimagej_check.txt file exists. If so, runs the first time message, and also saves a file gat_init_deepimagej_check.txt
+ * Also checks if deepimagej initialized
+ */
+
 fiji_dir=getDirectory("imagej");
 fs=File.separator;
 gat_dir=fiji_dir+"scripts"+fs+"GAT"+fs+"Tools"+fs+"commands";
 
-file_name = "gat_init_deepimagej_check_counts.ijm";
+file_name = "gat_init_deepimagej_check_file";
+table_file_path = gat_dir+fs+file_name;
 
-deepimagej_check_path = gat_dir+fs+file_name;
-run("Table... ", "open=["+deepimagej_check_path+"]");
-selectWindow(file_name);
-
-no_times_gat_init = Table.get("no_times_gat", 0);
-if(no_times_gat_init==0)
+if(!File.exists(table_file_path))
 {
 	first_time_msg = gat_dir+fs+"first_time_msg.ijm";
 	runMacro(first_time_msg);
-	no_times_gat_init+=1;
-	selectWindow(file_name);
-	Table.set("no_times_gat",0, no_times_gat_init);
-	Table.save(deepimagej_check_path);
-	selectWindow(file_name);
-	run("Close");
 	
-}
-else 
-{
+	Table.create(file_name);
+	Table.set("test", 0, "file_check_deepimagej");
+	Table.update;
+	Table.save(table_file_path);
+	
 	selectWindow(file_name);
 	run("Close");
 }

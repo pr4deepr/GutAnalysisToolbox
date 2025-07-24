@@ -116,8 +116,8 @@ function ganglia_deepImageJ(max_projection,cell_channel,ganglia_channel,batch_mo
 	runMacro(im_preprocessing);
 		
 	print("Using Ganglia model: "+ganglia_model);
-	
-	run("DeepImageJ Run", "modelPath=["+ganglia_model+"] inputPath=null outputFolder=null displayOutput=all");
+	ganglia_model_path = models_dir+fs+ganglia_model;
+	run("DeepImageJ Run", "model_path=["+ganglia_model_path+"] input_path=null output_folder=null display_output=all");
 	wait(20);
 	prediction_output=getTitle();
 	if(prediction_output==ganglia_rgb) exit("Ganglia segmentation not successful.\nEither the models are not correct or DeepImageJ needs to be updated");

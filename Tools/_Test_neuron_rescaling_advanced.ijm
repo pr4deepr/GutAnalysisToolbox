@@ -18,30 +18,26 @@ training_pixel_size=parseFloat(Table.get("Values", 0)); //0.7;
 neuron_area_limit=parseFloat(Table.get("Values", 1)); //1500
 neuron_seg_lower_limit=parseFloat(Table.get("Values", 2)); //90
 neuron_lower_limit=parseFloat(Table.get("Values", 3)); //160
-neuron_deepimagej_file = Table.getString("Values", 13);
+//neuron_model_file = Table.getString("Values", 9);
 run("Close");
 
 //check if label to roi macro is present
 var label_to_roi=gat_dir+fs+"Convert_Label_to_ROIs.ijm";
 if(!File.exists(label_to_roi)) exit("Cannot find label to roi script. Returning: "+label_to_roi);
 
-neuron_deepimagej_path = models_dir+fs+neuron_deepimagej_file;
-if(!File.exists(neuron_deepimagej_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_deepimagej_path);
-stardist_postprocessing = neuron_deepimagej_path+fs+"stardist_postprocessing.ijm";
-if(!File.exists(stardist_postprocessing)) exit("Cannot find startdist postprocessing script. Returning: "+stardist_postprocessing);
+//model_file = models_dir+fs+neuron_model_file;
+//if(!File.exists(model_file)) exit("Cannot find models for segmenting neurons at these paths:\n"+model_file);
 
-
-#@ String(value="<html>The main difference with this macro is you can try a custom DeepImageJ model.<html>",visibility="MESSAGE", required=false) DJ_model_hint
+#@ String(value="<html>The main difference with this macro is you can try a custom StarDist model.<html>",visibility="MESSAGE", required=false) DJ_model_hint
 #@ String(value="<html>It expects a StarDist trained model, so nms postprocessing will be applied automatically.<html>",visibility="MESSAGE", required=false) more_hint
 #@ File (style="open", label="Choose the image to segment") path
 #@ boolean image_already_open
 // String(choices={"Neuron", "Glia"}, style="list") cell_type
-#@ File (style="directory", label="<html>Choose the DeepImageJ model DIRECTORY based on celltype.<html>",value=fiji_dir) model_file 
+#@ File (style="open", label="<html>Choose the StarDist model based on celltype.<html>",required=true,value="PATH TO MODEL FILE") model_file 
 #@ String(value="Test a range of rescaling factors to get the value with the most accurate cell segmentation. Default is 1.", visibility="MESSAGE") hint2
 #@ Float (label="Enter minimum value", value=1.00, min=0.0500, max=10.0) scale_factor_1
 #@ Float (label="Enter maximum max value", value=1.50, min=0.0500, max=10.0) scale_factor_2
 #@ Float (label="Enter size of each increment step", value=0.2500) step_scale
-
 choice_scaling = "Use a scaling factor";
 
 //#@ boolean Modify_StarDist_Values (description="Tick to modify the values within the StarDist plugin or defaults will be used.")
@@ -51,7 +47,6 @@ choice_scaling = "Use a scaling factor";
 #@ String(value="<html>If you are getting out of memory errors, you can try increasing the number of tiles.<html>",visibility="MESSAGE", required=false) tile_hint
 #@ boolean Change_Tile
 #@ Double (label="No. of tiles", style="spinner", min=1, stepSize=1,value=1) tile_manual 
-
 
 cell_type="Cell";
 print("\\Clear");
@@ -148,7 +143,7 @@ else {
 }
 
 //replace file separator so  stardist can identify right file
-//model_file=replace(model_file, "\\\\","\\\\\\\\\\\\\\\\");
+model_file=replace(model_file, "\\\\","\\\\\\\\\\\\\\\\");
 
 img_seg_array=newArray();
 setOption("ExpandableArrays", true);
@@ -215,18 +210,7 @@ for(i=start;i<=end;i+=increment)
 	}
 	print("No. of tiles "+tiles);
 	//run segmentation
-	//run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Both', 'modelFile':'"+model_file+"', 'nTiles':'"+tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
-	run("DeepImageJ Run", "modelPath=["+model_file+"] inputPath=null outputFolder=null displayOutput=all");
-	wait(50);
-    temp_img=getTitle();
-    selectWindow(temp_img);
-    args_postprocessing = ""+probability+","+overlap+"";//pass as a string
-    runMacro(stardist_postprocessing,args_postprocessing);
-    wait(50);
-    temp=getTitle();
-    close(temp_img);
-    selectWindow(temp);
-    runMacro(label_to_roi,temp);	
+	run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Both', 'modelFile':'"+model_file+"', 'nTiles':'"+tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
 
 	//make sure cells are detected.. if not exit macro
 	if(roiManager("count")==0) exit("No cells detected. Reduce probability or check image.\nAnalysis stopped");

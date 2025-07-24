@@ -53,6 +53,7 @@ GAT requires the following update sites:
 * IJBP-Plugins (MorphoLibJ)
 * StarDist
 * PT-BIOP
+* 3D ImageJ Suite
 
 
 GAT update site: https://sites.imagej.net/GutAnalysisToolbox/
@@ -76,7 +77,7 @@ The GAT models are located in `Fiji.app/models` folder and contains 3 separate m
   * Delta-opioid receptor (DOR) reporter (GFP)
   * Choline acetyltransferase (ChAT)
   * Neurofilament (NFM)
-- **Ganglia model folder: 2D_Ganglia_RGB_v2**
+- **Ganglia model folder: 2D_Ganglia_RGB_v3**
   
   DeepImageJ-based UNet model to segment ganglia. Needs both Hu and a neuronal/glial marker labelling the ganglia
 

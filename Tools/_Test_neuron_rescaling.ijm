@@ -51,21 +51,16 @@ neuron_subtype_deepimagej_file = Table.getString("Values", 14);//deepimagej mode
 run("Close");
 
 //Neuron segmentation model
-neuron_model_path=models_dir+neuron_model_file;
-//Marker segmentation model
-subtype_model_path=models_dir+neron_subtype_file;
-if(!File.exists(neuron_model_path)||!File.exists(subtype_model_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_model_path+"\n"+subtype_model_path);
-//Neuron segmentation model
-neuron_subtype_deepimagej_path = models_dir+fs+neuron_subtype_deepimagej_file;
-neuron_deepimagej_path = models_dir+fs+neuron_deepimagej_file;
-if(!File.exists(neuron_subtype_deepimagej_path)) exit("Cannot find models for segmenting neuronal subtypes at these paths:\n"+neuron_subtype_deepimagej_path);
-if(!File.exists(neuron_deepimagej_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_deepimagej_path);
+neuron_subtype_path = models_dir+fs+neron_subtype_file;
+neuron_path = models_dir+fs+neuron_model_file;
+if(!File.exists(neuron_subtype_path)) exit("Cannot find models for segmenting neuronal subtypes at these paths:\n"+neuron_subtype_path);
+if(!File.exists(neuron_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_path);
 
-stardist_postprocessing = neuron_deepimagej_path+fs+"stardist_postprocessing.ijm";
-if(!File.exists(stardist_postprocessing)) exit("Cannot find startdist postprocessing script. Returning: "+stardist_postprocessing);
+//stardist_postprocessing = neuron_deepimagej_path+fs+"stardist_postprocessing.ijm";
+//i/f(!File.exists(stardist_postprocessing)) exit("Cannot find startdist postprocessing script. Returning: "+stardist_postprocessing);
 
-stardist_subtype_postprocessing = neuron_subtype_deepimagej_path+fs+"stardist_postprocessing.ijm";
-if(!File.exists(stardist_subtype_postprocessing)) exit("Cannot find startdist postprocessing script for neuron subtype. Returning: "+stardist_subtype_postprocessing);
+//stardist_subtype_postprocessing = neuron_subtype_deepimagej_path+fs+"stardist_postprocessing.ijm";
+//if(!File.exists(stardist_subtype_postprocessing)) exit("Cannot find startdist postprocessing script for neuron subtype. Returning: "+stardist_subtype_postprocessing);
 
 
 #@ File (style="open", label="Choose the image to segment",value=fiji_dir) path
@@ -95,13 +90,13 @@ cell_type="Cell";
 
 if(segmentation_type=="Neuron Segmentation") 
 {
-	model_file=neuron_deepimagej_file;
-	stardist_postprocess = stardist_postprocessing;
+	model_file=neuron_path;
+	//stardist_postprocess = stardist_postprocessing;
 }
 if(segmentation_type=="Neuron subtype segmentation") 
 {
-	model_file=neuron_subtype_deepimagej_file;
-	stardist_postprocess = stardist_subtype_postprocessing;
+	model_file=neuron_subtype_path;
+	//stardist_postprocess = stardist_subtype_postprocessing;
 }
 
 //if(Use_pixel_size && Use_scaling_factor == true) exit("Choose only one option: Pixel size or Scaling factor");
@@ -269,24 +264,10 @@ for(i=start;i<=end;i+=increment)
 	if(new_width>5000 || new_height>5000) tiles=12;
 	else if (new_width>9000 || new_height>5000) tiles=30;
 	}
-	//print("No. of tiles "+tiles);
+	print("No. of tiles "+tiles);
 	//run segmentation
-	//run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D], args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Both', 'modelFile':'"+model_file+"', 'nTiles':'"+tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
-	run("DeepImageJ Run", "modelPath=["+model_file+"] inputPath=null outputFolder=null displayOutput=all");
-	wait(50);
-    temp_img=getTitle();
-    selectWindow(temp_img);
-    args_postprocessing = ""+probability+","+overlap+"";//pass as a string
-    runMacro(stardist_postprocess,args_postprocessing);
-    wait(50);
-    temp=getTitle();
-    close(temp_img);
-    selectWindow(temp);
-    runMacro(label_to_roi,temp);	
-
-	//make sure cells are detected.. if not exit macro
-	if(roiManager("count")==0) exit("No cells detected. Reduce probability or check image.\nAnalysis stopped");
-	else roiManager("reset");
+	run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D], args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Both', 'modelFile':'"+model_file+"', 'nTiles':'"+tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
+	//run("DeepImageJ Run", "modelPath=["+model_file+"] inputPath=null outputFolder=null displayOutput=all");
 	wait(50);
 	
 	label_image=getTitle();

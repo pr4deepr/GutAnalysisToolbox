@@ -46,12 +46,12 @@ run("Close");
 
 
 //Neuron segmentation model
-//neuron_model_path=models_dir+fs+neuron_model_file;
-neuron_deepimagej_path = models_dir+fs+neuron_deepimagej_file;
+neuron_model_path=models_dir+fs+neuron_model_file;
+//neuron_deepimagej_path = models_dir+fs+neuron_deepimagej_file;
 ganglia_model_path = models_dir+fs+ganglia_model;
-print("Deepimagej model for neuron:"+neuron_deepimagej_path);
+//print("Deepimagej model for neuron:"+neuron_deepimagej_path);
 
-if(!File.exists(neuron_deepimagej_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_deepimagej_path);
+if(!File.exists(neuron_model_path)) exit("Cannot find models for segmenting neurons at these paths:\n"+neuron_model_path);
 if(!File.exists(ganglia_model_path)) exit("Cannot find models for segmenting ganglia at this paths:\n"+ganglia_model_path);
 
 
@@ -105,8 +105,8 @@ if(!File.exists(rename_rois)) exit("Cannot find rename_rois custom roi script. R
 var save_composite_img=gat_dir+fs+"save_roi_composite_img.ijm";
 if(!File.exists(save_composite_img)) exit("Cannot find save_composite_img custom roi script. Returning: "+save_composite_img);
 
-stardist_postprocessing = neuron_deepimagej_path+fs+"stardist_postprocessing.ijm";
-if(!File.exists(stardist_postprocessing)) exit("Cannot find startdist postprocessing script. Returning: "+stardist_postprocessing);
+//stardist_postprocessing = neuron_deepimagej_path+fs+"stardist_postprocessing.ijm";
+//if(!File.exists(stardist_postprocessing)) exit("Cannot find startdist postprocessing script. Returning: "+stardist_postprocessing);
 
 
 
@@ -604,7 +604,7 @@ else
 	print("*********Segmenting cells using StarDist********");
 
 	//segment neurons using StarDist model
-	segment_cells(max_projection,seg_image,neuron_deepimagej_file,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap);
+	segment_cells(max_projection,seg_image,neuron_model_path,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap);
 }
 
 //close(seg_image);
@@ -921,43 +921,31 @@ else print("Neuron analysis complete");
 //function to segment cells using max projection, image to segment, model file location
 //no of tiles for stardist, width and height of image
 //returns the ROI manager with ROIs overlaid on the image.
-function segment_cells(max_projection,img_seg,neuron_deepimagej_file,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap)
+function segment_cells(max_projection,img_seg,model_file,n_tiles,width,height,scale_factor,neuron_seg_lower_limit,probability,overlap)
 
 {
 	//need to have the file separator as \\\\ in the file path when passing to StarDist Command from Macro. 
 	//regex uses \ as an escape character, so \\ gives one backslash \, \\\\ gives \\.
 	//Windows file separator \ is actually \\ as one backslash is an escape character
 	//StarDist command takes the escape character as well, so pass 16 backlash to get 4xbackslash in the StarDIst macro command (which is then converted into 2)
-	//model_file=replace(model_file, "\\\\","\\\\\\\\\\\\\\\\");
+	model_file=replace(model_file, "\\\\","\\\\\\\\\\\\\\\\");
 	choice=0;
 	roiManager("reset");
-	//model_file="D:\\\\Gut analysis toolbox\\\\models\\\\2d_enteric_neuron\\\\TF_SavedModel.zip";
 
 	//arg_stardist = "probability=["+probability+"], overlap=["+overlap+"], model_file=["+model_file+"], n_tiles="+n_tiles;
 	selectWindow(img_seg);
 	wait(10);
 
-	//runMacro(gat_dir+fs+"gat_stardist_batch.py",arg_stardist); //this downloads jython.. see if this doesn't exit script
-	//run("gat stardist batch",arg_stardist);
-	//run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Both', 'modelFile':'"+model_file+"', 'nTiles':'"+n_tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
-	run("DeepImageJ Run", "modelPath=["+neuron_deepimagej_file+"] inputPath=null outputFolder=null displayOutput=all");
+	run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],args=['input':'"+img_seg+"', 'modelChoice':'Model (.zip) from File', 'normalizeInput':'true', 'percentileBottom':'1.0', 'percentileTop':'99.8', 'probThresh':'"+probability+"', 'nmsThresh':'"+overlap+"', 'outputType':'Both', 'modelFile':'"+model_file+"', 'nTiles':'"+n_tiles+"', 'excludeBoundary':'2', 'roiPosition':'Automatic', 'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'], process=[false]");
+	//run("DeepImageJ Run", "model_path=["+neuron_deepimagej_file+"] input_path=null output_folder=null display_output=all");
 	wait(50);
-	
-	temp_img=getTitle();
-	selectWindow(temp_img);
-	args_postprocessing = ""+probability+","+overlap+"";
-	runMacro(stardist_postprocessing,args_postprocessing);
-	wait(50);
+
 	temp=getTitle();
-	close(temp_img);
-	selectWindow(temp);
-	runMacro(label_to_roi,temp);
-	
+	selectWindow(temp);	
 	//make sure cells are detected for Hu.. if not exit macro
 	if(roiManager("count")==0) exit("No cells detected. Reduce probability or check image.\nAnalysis stopped");
 	else roiManager("reset");
 	
-
 	run("Duplicate...", "title=label_image");
 	label_image=getTitle();
 	run("Remove Overlay");

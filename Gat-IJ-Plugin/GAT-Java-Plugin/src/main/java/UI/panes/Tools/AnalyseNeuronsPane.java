@@ -25,17 +25,17 @@ public class AnalyseNeuronsPane extends JPanel {
         // 2) Option panels
         OptionPanel neurons = new OptionPanel(
                 "Analyse Neurons",
-                "Run the neuron analysis pipeline",
+                "Analyse image with hu and ganglia channel.",
                 NeuronWorkflowPane.Name
         );
         OptionPanel noHu = new OptionPanel(
                 "Multichannel – No HU",
-                "Process only multichannel images",
+                "Process multichannel images that do not have Hu staining",
                 MultiChannelNoHuPane.Name
         );
         OptionPanel multi = new OptionPanel(
                 "Multichannel - With Hu",
-                "Run full multichannel pipeline",
+                "Process multichannel images that do have Hu staining",
                 MultichannelPane.Name
         );
 

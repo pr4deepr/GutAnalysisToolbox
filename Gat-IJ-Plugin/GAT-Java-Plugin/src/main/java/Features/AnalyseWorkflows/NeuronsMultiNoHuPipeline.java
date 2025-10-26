@@ -22,9 +22,40 @@ import java.util.Map;
 
 import static Features.Tools.RoiManagerHelper.*;
 
+// Class: NeuronsMultiNoHuPipeline
+/**
+ * Multi-marker pipeline for images WITHOUT a Hu channel.
+ *
+ * Key ideas:
+ *  - Works across multiple user-defined markers/channels.
+ *  - Segments each marker (StarDist or custom ROI zip), lets the user review/edit,
+ *    and exports per-marker ROIs, overlays, and counts.
+ *  - Optionally segments ganglia (without relying on Hu) and reports per-ganglion
+ *    cell counts and areas.
+ *  - Computes simple AND-combination markers (markerA+markerB).
+ *  - Can optionally run spatial analysis after export.
+ *
+ * Unlike the Hu pipeline, this does not gate markers by Hu overlap, because Hu does
+ * not exist here. Each marker is segmented independently.
+ */
+
 public class NeuronsMultiNoHuPipeline {
 
-    // ------- spec & params -------
+    // Inner class: MarkerSpec
+    /**
+     * Describes one biological marker/channel to analyze.
+     *
+     * Fields:
+     *  - {@code name}: human-readable marker name (used in output file names).
+     *  - {@code channel}: 1-based channel index in the MAX projection.
+     *  - {@code prob}/{@code nms}: optional overrides for StarDist thresholds for this marker.
+     *  - {@code customRoisZip}: optional pre-existing ROI .zip to import instead of running StarDist.
+     *
+     * Fluent helpers:
+     *  - {@link #withThresh(Double, Double)} to override prob/NMS.
+     *  - {@link #withCustomRois(File)} to inject an ROI zip instead of segmenting.
+     */
+
     public static final class MarkerSpec {
         public final String name;
         public final int channel;     // 1-based in MAX composite
@@ -40,6 +71,19 @@ public class NeuronsMultiNoHuPipeline {
 
 
 
+    // Inner class: MultiParams
+    /**
+     * Parameters for the multi-marker no-Hu pipeline.
+     *
+     * Fields:
+     *  - {@code base}: shared {@link Params} controlling projection, rescaling, ganglia, etc.
+     *  - {@code subtypeModelZip}: StarDist model ZIP to use for each marker channel.
+     *  - {@code multiProb}/{@code multiNms}: default StarDist thresholds if a marker doesn't
+     *    provide its own.
+     *  - {@code overlapFrac}: (kept for parity with other pipelines; combos use AND, not fractions).
+     *  - {@code markers}: list of {@link MarkerSpec} to process.
+     */
+
     public static final class MultiParams {
         public Params base;               // projection / rescale / ganglia options reused
         public String subtypeModelZip;    // StarDist model (ZIP) for subtype channels
@@ -48,6 +92,22 @@ public class NeuronsMultiNoHuPipeline {
         public double overlapFrac = 0.40; // kept for parity; combos are hard AND here
         public final List<MarkerSpec> markers = new ArrayList<>();
     }
+
+
+    // Method: estimateSteps(MultiParams mp)
+    /**
+     * Estimates how many progress-bar steps will be needed for a given
+     * {@link MultiParams} run. Used to initialize the determinate ProgressUI.
+     *
+     * Roughly accounts for:
+     *  - Base prep and (optional) ganglia analysis.
+     *  - Per-marker segmentation + review.
+     *  - Pairwise AND combos.
+     *  - Final CSV/export.
+     *
+     * @param mp  The run configuration.
+     * @return    Approximate number of UI progress steps.
+     */
 
     public static int estimateSteps(MultiParams mp){
 
@@ -74,7 +134,24 @@ public class NeuronsMultiNoHuPipeline {
         return base + perMarker + combos + tail;
     }
 
-    // ------- output / result for the No-Hu multi UI -------
+    // Inner class: NoHuResult
+    /**
+     * Output bundle summarizing a completed no-Hu multi-marker run.
+     *
+     * Contains:
+     *  - {@code outDir}: where results were written.
+     *  - {@code baseName}: basename of the input image.
+     *  - {@code max}: the max-projection used for overlays / preview.
+     *  - {@code totals}: map of marker/combination name → total number of detected cells.
+     *  - {@code perGanglia}: map of marker/combination name → array[ganglionId] of cell counts,
+     *                        if ganglia analysis was run.
+     *  - {@code nGanglia}: number of ganglia detected (nullable if ganglia disabled).
+     *  - {@code gangliaAreaUm2}: per-ganglion area in µm² (nullable if ganglia disabled).
+     *  - {@code doSpatialAnalysis}: whether spatial analysis was requested.
+     *
+     * Used by downstream UI panels and spatial analysis runners.
+     */
+
     public static final class NoHuResult {
         public final File outDir;
         public final String baseName;
@@ -102,7 +179,38 @@ public class NeuronsMultiNoHuPipeline {
 
 
 
-    // ------- run -------
+    // Method: run(MultiParams mp)
+    /**
+     * Executes the multi-marker, no-Hu workflow.
+     *
+     * High-level steps:
+     *   1. Open image, build MAX/EDF projection, compute scaling factors.
+     *   2. (Optional) Run ganglia detection once for the whole image (DeepImageJ / import / manual).
+     *      Export ganglia ROIs and overlays, measure ganglia area.
+     *   3. For each marker in {@code mp.markers}:
+     *        - Extract that channel from MAX, rescale if needed.
+     *        - Either import given ROI zip or run StarDist with the subtype model.
+     *        - Filter/resize labels, push ROIs to ROI Manager.
+     *        - Pop up an interactive review to let the user edit detections.
+     *        - Save final ROIs, count cells, generate overlays.
+     *        - (If ganglia are available) count cells per ganglion.
+     *   4. For every pair of markers, compute an AND-combination mask, count cells,
+     *      export ROIs/overlays, and (optionally) per-ganglion stats.
+     *   5. Write a summary CSV of per-marker and per-combo counts, plus ganglia stats.
+     *   6. Save the MAX projection.
+     *   7. Optionally run spatial analysis for each marker.
+     *   8. Show a summary UI (ResultsMultiNoHuUI) on the EDT.
+     *
+     * Side effects:
+     *   - Writes TIFFs, ROI zips, overlays, and CSVs to {@code mp.base.outputDir}
+     *     (or a default Analysis folder).
+     *   - Pops up interactive review windows for each marker.
+     *
+     * @param mp  The complete analysis configuration, including shared {@link Params},
+     *            model paths, thresholds, and marker list.
+     * @throws IllegalArgumentException if required model files are missing, or no markers provided.
+     * @throws IllegalStateException    if no image is available to analyze.
+     */
     public void run(MultiParams mp) {
 
         try {
@@ -389,7 +497,20 @@ public class NeuronsMultiNoHuPipeline {
 
     }
 
-    // ------- helpers -------
+    // Method (private): countLabels(ImagePlus labels16)
+    /**
+     * Counts connected components in a 16-bit label map by scanning for the
+     * maximum pixel value.
+     *
+     * Assumptions:
+     *   - The label map is a typical connected-components result:
+     *     background = 0, objects have IDs 1..K.
+     *   - IDs are contiguous up to K.
+     *
+     * @param labels16 16-bit label map image.
+     * @return         Number of labeled objects (i.e. max label ID).
+     */
+
     private static int countLabels(ImagePlus labels16) {
         short[] px = (short[]) labels16.getProcessor().getPixels();
         int max = 0;
@@ -397,12 +518,42 @@ public class NeuronsMultiNoHuPipeline {
         return max;
     }
 
+    // Method (private): stripExt(String name)
+    /**
+     * Removes the last file extension from a string.
+     *
+     * Example:
+     *   "foo/bar/image.lif" -> "image"
+     *
+     * Used to compute {@code baseName} for output file naming.
+     *
+     * @param name  The original title or filename.
+     * @return      The same string without the final ".ext" portion.
+     */
+
     private static String stripExt(String name) {
         int dot = (name != null) ? name.lastIndexOf('.') : -1;
         return (dot > 0) ? name.substring(0, dot) : name;
     }
 
-    /** pixelwise AND of two 16-bit label maps -> contiguous relabeled map */
+    // Method (private): andLabels(ImagePlus a, ImagePlus b)
+    /**
+     * Computes the logical AND of two label maps and returns a newly relabeled map.
+     *
+     * Details:
+     *   1. For each pixel, if both {@code a} and {@code b} are non-zero at that location,
+     *      mark that pixel as foreground in a temporary binary image.
+     *   2. Convert that binary image to a fresh 16-bit connected-components label map.
+     *   3. Copy calibration from {@code a}.
+     *
+     * This is how we generate "combo markers" like "MarkerA+MarkerB" in the no-Hu pipeline.
+     * Cells that are positive in both markers become a new set of objects in the combo.
+     *
+     * @param a  First 16-bit label map.
+     * @param b  Second 16-bit label map.
+     * @return   New 16-bit label map for the intersection, with contiguous IDs.
+     */
+
     private static ImagePlus andLabels(ImagePlus a, ImagePlus b) {
         int w = a.getWidth(), h = a.getHeight();
         short[] pa = (short[]) a.getProcessor().getPixels();
@@ -422,6 +573,30 @@ public class NeuronsMultiNoHuPipeline {
         return relabeled;
     }
 
+    // Method (private): runSingleSpatialPerMarker(NoHuResult mr, MultiParams p)
+    /**
+     * Runs per-marker spatial analysis (single cell type) for every marker in a no-Hu run.
+     *
+     * For each marker name:
+     *   - Builds the expected ROI zip path: {@code <marker>_ROIs_<baseName>.zip}.
+     *   - Calls {@code Analysis.SingleCellTypeAnalysis(...)} to compute spatial metrics
+     *     (e.g. nearest-neighbor distances, density maps, etc.).
+     *   - Passes expansion radius and "save parametric" flags from {@code p.base}.
+     *
+     * A note about "Hu":
+     *   - This pipeline is "no-Hu", but spatial analysis code assumes you can pass any
+     *     marker name + ROI zip. We include whatever markers were processed. You already
+     *     populate that list from {@code mp.markers}.
+     *
+     * If an expected ROI zip isn't found, we log and skip that marker.
+     *
+     * @param mr  The {@link NoHuResult} produced by {@link #run(MultiParams)}.
+     * @param p   The same {@link MultiParams} (for spatial settings like expansion radius).
+     *
+     * Side effects:
+     *   - Writes spatial CSVs/etc. to {@code mr.outDir}.
+     *   - Logs failures but does not throw.
+     */
     private void runSingleSpatialPerMarker(NoHuResult mr, MultiParams p) {
         if (mr == null || p == null) return;
 

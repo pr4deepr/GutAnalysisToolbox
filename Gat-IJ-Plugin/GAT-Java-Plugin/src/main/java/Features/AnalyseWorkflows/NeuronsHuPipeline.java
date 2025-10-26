@@ -23,7 +23,44 @@ import javax.swing.*;
 import java.io.File;
 import static Features.Tools.RoiManagerHelper.*;
 
+
+// Class: NeuronsHuPipeline
+/**
+ * End-to-end pipeline for Hu-positive neuron analysis (single-channel Hu workflow).
+ *
+ * Responsibilities:
+ *  - Load input stack (Bio-Formats if needed) and make a max projection / EDF.
+ *  - Extract Hu channel, rescale to training pixel size, and segment neurons via StarDist.
+ *  - Let the user review/edit neuron ROIs interactively, rebuild the final label map,
+ *    and export ROIs, overlays, counts, and TIFFs.
+ *  - Optionally detect ganglia and quantify neurons per ganglion.
+ *  - Optionally run spatial analysis and show a summary UI.
+ *
+ * The pipeline can either:
+ *  - return a {@link HuResult} object (huReturn = true), for reuse in multiplex pipelines, or
+ *  - save outputs / UI and return null (huReturn = false), mirroring the macro flow.
+ */
 public class NeuronsHuPipeline {
+
+    // Inner class: HuResult
+    /**
+     * Output bundle from a Hu-only run.
+     *
+     * Contains:
+     *  - {@code outDir}: output directory used.
+     *  - {@code baseName}: basename of the input image.
+     *  - {@code max}: the max-projection (or EDF) ImagePlus used for visualization.
+     *  - {@code neuronLabels}: final neuron label map (16-bit) in MAX space after user review.
+     *  - {@code totalNeuronCount}: number of Hu-positive neurons after review.
+     *  - {@code gangliaLabels}: final ganglia label map (may be null if ganglia disabled).
+     *  - {@code neuronsPerGanglion}: countsPerGanglion[g] = #neurons in ganglion g (may be null).
+     *  - {@code gangliaAreaUm2}: areaUm2[g] = area(µm²) of ganglion g (may be null).
+     *  - {@code nGanglia}: number of ganglia detected/exported (may be null).
+     *  - {@code doSpatialAnalysis}: whether spatial analysis should be run downstream.
+     *
+     * Instances of this class are returned to multiplex workflows so they can
+     * reuse the Hu segmentation and ganglia info without rerunning Hu.
+     */
 
     public static final class HuResult {
         public final File outDir;
@@ -55,15 +92,70 @@ public class NeuronsHuPipeline {
         }
     }
 
+    // Method: run(Params p, Boolean huReturn)
+    /**
+     * Convenience wrapper for {@link #run(Params, Boolean, ProgressUI)} that
+     * runs without an explicit progress UI.
+     *
+     * @param p         All parameters controlling segmentation, scaling, ganglia, etc.
+     * @param huReturn  If true, return a {@link HuResult} containing in-memory results
+     *                  instead of finalizing UI/export flow.
+     * @return          {@link HuResult} if {@code huReturn == true}, otherwise null.
+     */
     public HuResult run(Params p, Boolean huReturn) {
         return run(p, huReturn, null);
     }
 
+
+    // Method: estimateSteps(Params p)
+    /**
+     * Estimates how many progress steps the Hu pipeline will report to its
+     * {@link ProgressUI}, based on whether ganglia analysis is enabled.
+     *
+     * This is used to size the determinate progress bar.
+     *
+     * @param p  Pipeline parameters.
+     * @return   Approximate number of progress steps.
+     */
     public static int estimateSteps(Params p) {
         // keep this in sync with your step() calls
         return 12 + (p.cellCountsPerGanglia ? 7 : 0);
     }
 
+
+    // Method: run(Params p, Boolean huReturn, ProgressUI progress)
+    /**
+     * Core entry point for the Hu workflow.
+     *
+     * Steps (high-level):
+     *   1. Validate model and open the input image, producing a MAX/EDF projection.
+     *   2. Extract the Hu channel and rescale to the model's training pixel size if requested.
+     *   3. Run StarDist to segment neurons; clean up border-touching or too-small objects.
+     *   4. Convert labels to ROIs and present an interactive review step where the user can
+     *      tweak/add/remove neuron ROIs. Rebuild the final neuron label map from those edits.
+     *   5. Save ROIs, overlays, label maps, counts CSV, etc.
+     *   6. If ganglia analysis is enabled:
+     *        - derive ganglia labels (DeepImageJ / Hu expansion / ROI import / manual),
+     *        - filter them to those containing ≥1 neuron,
+     *        - export ganglia ROIs/overlays and ganglion count tables.
+     *   7. Optionally run spatial analysis on the final segmentation(s).
+     *   8. Optionally show a results summary UI.
+     *
+     * Behavior modes:
+     *   - If {@code huReturn == true}, this method does not finalise the "UI-style" flow.
+     *     Instead it returns a {@link HuResult} so that another pipeline (e.g. multiplex)
+     *     can continue using the Hu labels and ganglia labels in-memory.
+     *
+     *   - If {@code huReturn == false}, this method writes outputs to disk, may show UIs,
+     *     and returns null (matching the original macro behavior).
+     *
+     * @param p         Analysis parameters (channels, scaling factors, thresholds, etc.).
+     * @param huReturn  Whether to return a {@link HuResult} to the caller for reuse.
+     * @param progress  Optional progress UI; if null, a new one is created and closed here.
+     * @return          {@link HuResult} if {@code huReturn == true}; otherwise null.
+     * @throws IllegalArgumentException if required model files or calibration constraints fail.
+     * @throws IllegalStateException    if no valid image can be opened.
+     */
     public HuResult run(Params p, Boolean huReturn, ProgressUI progress) {
 
         try {
@@ -381,12 +473,54 @@ public class NeuronsHuPipeline {
 
 
 
+    // Method (private): stripExt(String name)
+    /**
+     * Utility to remove the file extension from a filename.
+     *
+     * If {@code name} contains a '.', returns the substring before the last '.';
+     * otherwise returns {@code name} unchanged.
+     *
+     * Used to derive a clean {@code baseName} for output files/dirs.
+     *
+     * @param name  Original filename (e.g. "sample.tif").
+     * @return      "sample" in that example.
+     */
+
     private static String stripExt(String name) {
         int dot = name.lastIndexOf('.');
         return dot > 0 ? name.substring(0, dot) : name;
     }
 
 
+    // Method (private): runSpatialFromHu(HuResult hu, Params p)
+    /**
+     * Runs the "single cell type" spatial analysis workflow for Hu neurons only.
+     *
+     * Why private:
+     *   SpatialSingleCellType was originally written to look up images by title in
+     *   ImageJ's WindowManager. To interop cleanly, we temporarily:
+     *     - clone the final Hu neuron label map,
+     *     - give it a known title (e.g. "Cell_labels"),
+     *     - show it so WindowManager can find it,
+     *     - call {@code SpatialSingleCellType.execute(...)} with the right args,
+     *     - close the temporary window afterward.
+     *
+     * What it produces:
+     *   - CSV / summaries of pairwise distances, neighborhood metrics, etc.,
+     *     written under {@code hu.outDir}.
+     *
+     * Uses:
+     *   - {@code p.spatialExpansionUm}: expansion radius (microns).
+     *   - {@code p.spatialSaveParametric}: whether to write per-object parametric data.
+     *
+     * @param hu  The HuResult bundle containing final Hu neuron labels, MAX image, and output dir.
+     * @param p   Global Params with spatial analysis options.
+     *
+     * Notes:
+     *   - This method swallows/LOGs exceptions from the spatial analysis so that the
+     *     core pipeline doesn’t abort if spatial fails.
+     *   - Cleans up temporary ImagePlus windows when done.
+     */
     private void runSpatialFromHu(HuResult hu, Params p) {
         // 1) Ensure the Hu label map is an open ImageJ window with a known title
         ImagePlus huLabels = hu.neuronLabels.duplicate();
@@ -415,6 +549,19 @@ public class NeuronsHuPipeline {
             if (c != null) { c.changes = false; c.close(); }
         }
     }
+
+    // Method: applyWatershedInPlace(ImagePlus bin)
+    /**
+     * Applies a watershed split to a binary mask in-place.
+     *
+     * Expects:
+     *   - {@code bin} is an 8-bit binary image where foreground objects are 255.
+     * Produces:
+     *   - A modified {@code bin} where touching objects are watershed-separated,
+     *     similar to ImageJ's "Watershed" on binary particles.
+     *
+     * @param bin  Binary 8-bit ImagePlus that will be modified in-place.
+     */
 
     public static void applyWatershedInPlace(ImagePlus bin) {
         // Must be an 8-bit binary mask where background=0 and objects=255

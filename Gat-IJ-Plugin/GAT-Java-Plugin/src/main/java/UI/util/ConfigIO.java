@@ -93,6 +93,19 @@ public final class ConfigIO {
                 );
                 return;
             }
+
+            Dimension old = (Dimension) UIManager.get("OptionPane.minimumSize");
+            UIManager.put("OptionPane.minimumSize", new Dimension(400, 150));
+            try {
+                JOptionPane.showMessageDialog(parent,
+                        "Loaded configuration from:\n" + f.getAbsolutePath(),
+                        "Config loaded",
+                        JOptionPane.INFORMATION_MESSAGE);
+            } finally {
+                UIManager.put("OptionPane.minimumSize", old);
+            }
+
+
             applyProps.accept(cfg);
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(parent,
@@ -100,6 +113,8 @@ public final class ConfigIO {
                     "Load config", JOptionPane.ERROR_MESSAGE);
         }
     }
+
+
 
     private static File pickConfigFile(Component parent, boolean save) {
         JFileChooser ch = new JFileChooser();

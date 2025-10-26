@@ -118,6 +118,7 @@ public final class TuningTools {
                 pathLabel.setFont(pathLabel.getFont().deriveFont(11f));
 
                 final JButton previewBtn = new JButton("Preview");
+                final JButton previewAllBtn  = new JButton("Preview All");
                 final JButton okBtn      = new JButton("OK");
                 final JButton cancelBtn  = new JButton("Cancel");
 
@@ -143,6 +144,10 @@ public final class TuningTools {
                     else JOptionPane.showMessageDialog(dlg, "Failed to open:\n" + sel.preview.getAbsolutePath());
                 });
 
+                previewAllBtn.addActionListener(e -> {
+                    showAllPreviews(title + " – All Options", rows);
+                });
+
                 okBtn.addActionListener(e -> {
                     result[0] = list.getSelectedValue();
                     dlg.dispose();
@@ -162,6 +167,7 @@ public final class TuningTools {
 
                 JPanel actions = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
                 actions.add(previewBtn);
+                actions.add(previewAllBtn);
                 actions.add(okBtn);
                 actions.add(cancelBtn);
 
@@ -404,6 +410,146 @@ public final class TuningTools {
             if (closeImp) { imp.changes = false; imp.close(); }
         }
     }
+
+    // ===================== Gallery (preview all) =====================
+    private static void showAllPreviews(final String title, final java.util.List<Row> rows) {
+        if (rows == null || rows.isEmpty()) return;
+
+        SwingUtilities.invokeLater(() -> {
+            final JDialog dlg = new JDialog((java.awt.Frame) null, title, java.awt.Dialog.ModalityType.MODELESS);
+            dlg.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+            dlg.setLayout(new java.awt.BorderLayout(8,8));
+
+            final JPanel listPanel = new JPanel();
+            listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
+            listPanel.setBorder(BorderFactory.createEmptyBorder(8,8,8,8));
+
+            final JScrollPane scroll = new JScrollPane(
+                    listPanel,
+                    ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                    ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+            );
+            scroll.getVerticalScrollBar().setUnitIncrement(24);
+            dlg.add(scroll, java.awt.BorderLayout.CENTER);
+
+            dlg.setSize(1000, 720);
+            dlg.setLocationRelativeTo(null);
+            dlg.setVisible(true);
+
+            // Stream cards in without blocking the EDT
+            new SwingWorker<Void, JPanel>() {
+                @Override protected Void doInBackground() {
+                    for (Row r : rows) {
+                        publish(buildPreviewCard(r));
+                    }
+                    return null;
+                }
+                @Override protected void process(java.util.List<JPanel> chunks) {
+                    for (JPanel card : chunks) {
+                        listPanel.add(card);
+                        listPanel.add(Box.createVerticalStrut(8));
+                    }
+                    listPanel.revalidate();
+                    listPanel.repaint();
+                }
+            }.execute();
+        });
+    }
+
+    private static JPanel buildPreviewCard(Row r) {
+        JPanel card = new JPanel(new java.awt.BorderLayout(6,6));
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new java.awt.Color(220,220,220)),
+                BorderFactory.createEmptyBorder(8,8,8,8)
+        ));
+
+        // Header: x/count
+        String hdr = String.format(java.util.Locale.US, "x = %.3f    count = %d", r.x, r.count);
+        JLabel header = new JLabel(hdr);
+        header.setFont(header.getFont().deriveFont(header.getFont().getSize2D()+1.0f));
+        card.add(header, java.awt.BorderLayout.NORTH);
+
+        // Image placeholder
+        JLabel imageLabel = new JLabel("Loading preview…", SwingConstants.CENTER);
+        imageLabel.setVerticalAlignment(SwingConstants.TOP);
+        imageLabel.setOpaque(true);
+        imageLabel.setBackground(java.awt.Color.WHITE);
+        imageLabel.setBorder(BorderFactory.createEmptyBorder(6,6,6,6));
+        card.add(imageLabel, java.awt.BorderLayout.CENTER);
+
+        // Footer: path + open button
+        JPanel footer = new JPanel(new java.awt.BorderLayout(6,6));
+        String path = (r.preview != null) ? r.preview.getAbsolutePath() : "(no preview file)";
+        JLabel pathLabel = new JLabel(path);
+        pathLabel.setFont(pathLabel.getFont().deriveFont(11f));
+        footer.add(pathLabel, java.awt.BorderLayout.CENTER);
+
+        JButton openBtn = new JButton("Open in IJ");
+        openBtn.addActionListener(e -> {
+            if (r.preview != null && r.preview.isFile()) {
+                ij.ImagePlus imp = ij.IJ.openImage(r.preview.getAbsolutePath());
+                if (imp != null) imp.show();
+                else JOptionPane.showMessageDialog(card, "Failed to open:\n" + r.preview.getAbsolutePath());
+            } else {
+                JOptionPane.showMessageDialog(card, "No preview image available for this option.");
+            }
+        });
+        footer.add(openBtn, java.awt.BorderLayout.EAST);
+        card.add(footer, java.awt.BorderLayout.SOUTH);
+
+        // Async load + scale thumbnail to fit nicely
+        if (r.preview != null && r.preview.isFile()) {
+            new SwingWorker<ImageIcon,Void>() {
+                @Override protected ImageIcon doInBackground() {
+                    try {
+                        java.awt.image.BufferedImage full = javax.imageio.ImageIO.read(r.preview);
+                        if (full == null) return null;
+
+                        // Scale to a sane card size while keeping aspect ratio
+                        int maxW = 940;   // a bit less than dialog width to leave margins
+                        int maxH = 600;   // tall enough, users can scroll
+                        int w = full.getWidth(), h = full.getHeight();
+                        double scale = Math.min(1.0, Math.min(maxW/(double)w, maxH/(double)h));
+                        int nw = Math.max(1, (int)Math.round(w*scale));
+                        int nh = Math.max(1, (int)Math.round(h*scale));
+
+                        java.awt.image.BufferedImage scaled =
+                                new java.awt.image.BufferedImage(nw, nh, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                        java.awt.Graphics2D g2 = scaled.createGraphics();
+                        try {
+                            g2.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                            g2.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING,     java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+                            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,  java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                            g2.drawImage(full, 0, 0, nw, nh, null);
+                        } finally {
+                            g2.dispose();
+                        }
+                        return new ImageIcon(scaled);
+                    } catch (Exception ex) {
+                        return null;
+                    }
+                }
+                @Override protected void done() {
+                    try {
+                        ImageIcon icon = get();
+                        if (icon != null) {
+                            imageLabel.setText(null);
+                            imageLabel.setIcon(icon);
+                        } else {
+                            imageLabel.setText("(failed to load preview)");
+                        }
+                    } catch (Exception ex) {
+                        imageLabel.setText("(failed to load preview)");
+                    }
+                }
+            }.execute();
+        } else {
+            imageLabel.setText("(no preview available)");
+        }
+
+        return card;
+    }
+
 
     private TuningTools(){}
 }

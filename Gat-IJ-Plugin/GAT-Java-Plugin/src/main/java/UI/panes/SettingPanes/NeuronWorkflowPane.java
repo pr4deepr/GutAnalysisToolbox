@@ -115,8 +115,9 @@ public class NeuronWorkflowPane extends JPanel {
         updateRunButtonEnabled();
     }
 
-    // ---------------- UI builders ----------------
-
+    /**
+     * Build the "Basic" tab (image, Hu channel, output, ganglia options, spatial, ROI zip chooser).
+     */
     private JPanel buildBasicTab() {
         JPanel outer = new JPanel(new BorderLayout());
         JPanel p = new JPanel();
@@ -241,6 +242,10 @@ public class NeuronWorkflowPane extends JPanel {
         return outer;
     }
 
+    /**
+     * Build the "Advanced" tab (rescale, calibration, size filters, DIJ folder, model zips,
+     * subtype thresholds, overlap fraction, config load/save).
+     */
     private JPanel buildAdvancedTab() {
 
         JPanel outer = new JPanel(new BorderLayout());
@@ -324,8 +329,14 @@ public class NeuronWorkflowPane extends JPanel {
         return outer;
     }
 
-    // ---------------- Actions ----------------
-
+    /**
+     * Run handler:
+     * 1) Validate output dir and required files
+     * 2) Validate ganglia resources based on selected mode
+     * 3) Launch the pipeline in a background SwingWorker
+     *
+     * UI is re-enabled when background work completes.
+     */
     private void onRun(JButton runBtn) {
         runBtn.setEnabled(false);
 

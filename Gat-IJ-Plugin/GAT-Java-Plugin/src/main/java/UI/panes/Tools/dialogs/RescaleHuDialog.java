@@ -189,7 +189,6 @@ public final class RescaleHuDialog extends JDialog {
         return row;
     }
     private static JPanel wrap(JComponent c){ JPanel p=new JPanel(new FlowLayout(FlowLayout.LEFT,8,0)); p.add(c); return p; }
-    private static JComponent checkWrap(JCheckBox cb){ JPanel p=new JPanel(new FlowLayout(FlowLayout.LEFT,8,0)); p.add(cb); return p; }
 
     private void chooseFile(JTextField tf, String title, String... exts){
         JFileChooser fc = new JFileChooser();

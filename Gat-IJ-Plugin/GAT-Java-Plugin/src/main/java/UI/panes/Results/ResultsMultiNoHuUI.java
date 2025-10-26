@@ -16,8 +16,33 @@ import java.io.IOException;
 import java.util.*;
 import java.util.List;
 
+
+/**
+ * Result viewer for the "Multi-Channel (No Hu)" workflow.
+ *
+ * Presents:
+ *  • A header with output folder and optional ganglia count
+ *  • Thumbnail previews of saved overlays (ganglia and the first two marker overlays)
+ *  • A totals table for markers and combinations
+ *  • Per-ganglion box plots for each marker/combination (if available)
+ *  • Optional spatial-analysis section (histograms + summary stats) if CSVs are present
+ *
+ * Threading & EDT:
+ *  All Swing components are created and mutated on the EDT. Callers should invoke
+ *  {@link #promptAndMaybeShow(NoHuResult)} from any thread; it will open Swing UI safely.
+ *
+ * File I/O:
+ *  Reads overlay images from {@code r.outDir}. Spatial CSVs are expected under
+ *  {@code r.outDir/spatial_analysis/Neighbour_count_<marker>.csv}.
+ */
 public class ResultsMultiNoHuUI {
 
+
+    /**
+     * Ask the user whether to preview results, open the output folder, or end.
+     *
+     * @param r The finished pipeline result (output dir, base name, totals, per-ganglion arrays, etc.).
+     */
     public static void promptAndMaybeShow(NoHuResult r) {
         String msg = "Results saved to:\n" + r.outDir.getAbsolutePath();
         String[] options = {"Preview results…", "Open folder", "End"};
@@ -33,6 +58,12 @@ public class ResultsMultiNoHuUI {
         }
     }
 
+    /**
+     * Attempt to open a folder in the native desktop file manager.
+     * Falls back to showing the absolute path via ImageJ if Desktop API is unsupported.
+     *
+     * @param dir Directory to open.
+     */
     private static void openFolder(File dir) {
         try {
             if (Desktop.isDesktopSupported()) Desktop.getDesktop().open(dir);
@@ -42,6 +73,19 @@ public class ResultsMultiNoHuUI {
         }
     }
 
+    /**
+     * Build and show the results JFrame for a completed "No Hu" run.
+     *
+     * Contents:
+     *  - Header (paths, counts)
+     *  - Overlay thumbnails (ganglia + up to two single-marker overlays; falls back to MAX if none)
+     *  - Totals table for markers & combinations
+     *  - Box plots for per-ganglion counts (Markers / Combinations tabs)
+     *  - Optional spatial analysis section (combined + per-marker histograms)
+     *  - Footer with "Open folder", optional "Save plots…", and "Close"
+     *
+     * @param r Aggregated result of the No-Hu workflow.
+     */
     private static void showResultsFrame(NoHuResult r) {
         JFrame f = new JFrame("Results – " + r.baseName + " (no-Hu multi)");
         f.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -155,8 +199,13 @@ public class ResultsMultiNoHuUI {
         f.setVisible(true);
     }
 
-    // ---------- panels ----------
-
+    /**
+     * Create a scrollable column of box-plot cards for either markers or combinations.
+     *
+     * @param r       The workflow result.
+     * @param combos  If true, include only names containing '+'; otherwise only single markers.
+     * @return A panel ready to be embedded in a tab.
+     */
     private static JPanel makeBoxPlotPanel(NoHuResult r, boolean combos) {
         JPanel col = new JPanel();
         col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
@@ -211,8 +260,12 @@ public class ResultsMultiNoHuUI {
         return outer;
     }
 
-    // ---------- tables ----------
-
+    /**
+     * Build a two-column table: marker_or_combo → total count.
+     *
+     * @param totals LinkedHashMap preserving run order.
+     * @return JTable with fixed row height, tuned column widths, and non-editable cells.
+     */
     private static JTable makeTotalsTable(LinkedHashMap<String,Integer> totals) {
         DefaultTableModel model = new DefaultTableModel(new Object[]{"marker_or_combo","total_cells"}, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
@@ -232,8 +285,13 @@ public class ResultsMultiNoHuUI {
         return t;
     }
 
-    // ---------- plotting (box plot) ----------
-
+    /**
+     * Render a single vertical box plot for "neurons per ganglion".
+     * Skips index 0 and zero counts (ganglia absent for that marker).
+     *
+     * @param countsPerGanglion Array indexed by ganglion id (0 unused).
+     * @return A {@link BufferedImage} ready for embedding into a Swing label.
+     */
     private static BufferedImage makeBoxPlotFromCounts(int[] countsPerGanglion) {
         List<Integer> vals = new ArrayList<>();
         // Skip index 0 (1..G); include only >0 (ganglia with at least 1 cell)
@@ -305,6 +363,13 @@ public class ResultsMultiNoHuUI {
         return bi;
     }
 
+    /**
+     * Compute {min, Q1, median, Q3, max} for integer values using the Tukey-style
+     * “median of halves” approach. For n odd, the median element is excluded from halves.
+     *
+     * @param vals Non-empty list of positive counts.
+     * @return five-number summary.
+     */
     private static double[] fiveNumberSummary(List<Integer> vals) {
         Collections.sort(vals);
         int n = vals.size();
@@ -324,8 +389,7 @@ public class ResultsMultiNoHuUI {
         return new double[]{ vals.get(0), q1, med, q3, vals.get(n-1) };
     }
 
-    // ---------- misc ----------
-
+    /** Small section header panel with bold label and spacing. */
     private static JPanel sectionTitle(String text) {
         JPanel p = new JPanel(new BorderLayout());
         JLabel l = new JLabel(text);
@@ -334,6 +398,16 @@ public class ResultsMultiNoHuUI {
         p.setBorder(new EmptyBorder(2,0,6,0));
         return p;
     }
+
+
+    /**
+     * Make a thumbnail “card” with bold centered title and an ImageIcon scaled to width.
+     *
+     * @param title      Card header text.
+     * @param impForThumb Source image (may be MAX or an opened overlay). Not disposed here.
+     * @param widthPx    Target thumbnail width.
+     * @return Panel for insertion.
+     */
 
     private static JPanel makeThumbCard(String title, ImagePlus impForThumb, int widthPx) {
         JPanel card = new JPanel(new BorderLayout());
@@ -355,6 +429,13 @@ public class ResultsMultiNoHuUI {
         return card;
     }
 
+    /**
+     * Scale an ImagePlus to a fixed width, preserving aspect ratio (bicubic),
+     * returning a BufferedImage for display.
+     *
+     * @param imp Raw or overlay image.
+     * @param w   Desired width.
+     */
     private static BufferedImage makeThumbnail(ImagePlus imp, int w) {
         if (imp == null || imp.getProcessor() == null) {
             BufferedImage bi = new BufferedImage(200, 120, BufferedImage.TYPE_INT_RGB);
@@ -369,11 +450,24 @@ public class ResultsMultiNoHuUI {
         return imp.getProcessor().resize(w, h, true).getBufferedImage();
     }
 
+    /**
+     * Open an image from disk (if the file exists) for thumbnailing; falls back to the provided
+     * MAX image if opening fails. The returned ImagePlus is not disposed here.
+     *
+     * @param f        File to open (.tif overlays).
+     * @param fallback Fallback ImagePlus to use.
+     */
     private static ImagePlus loadForThumb(File f, ImagePlus fallback) {
         ImagePlus imp = (f != null && f.exists()) ? IJ.openImage(f.getAbsolutePath()) : null;
         return (imp != null) ? imp : fallback;
     }
 
+    /**
+     * Save every available box plot (markers and combinations) under {@code r.outDir}.
+     * File names: {@code Plot_box_<name>.png}.
+     *
+     * @throws IOException if writing fails.
+     */
     private static void saveAllPlots(NoHuResult r) throws IOException {
         for (Map.Entry<String,int[]> e : r.perGanglia.entrySet()) {
             String name = e.getKey();
@@ -383,15 +477,18 @@ public class ResultsMultiNoHuUI {
         }
     }
 
+    /** Write a PNG, creating parent dirs if needed. */
     private static void saveImage(BufferedImage img, File out) throws IOException {
         out.getParentFile().mkdirs();
         ImageIO.write(img, "PNG", out);
     }
 
+    /** Sanitize a string for filenames: keep letters, digits, _ - +; replace others with '_'. */
     private static String sanitize(String s) {
         return s.replaceAll("[^A-Za-z0-9_\\-+]+", "_");
     }
 
+    /** Sanitize a string for filenames: keep letters, digits, _ - +; replace others with '_'. */
     private static BufferedImage placeholderImage(int w, int h, String msg) {
         BufferedImage bi = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = bi.createGraphics();
@@ -401,8 +498,17 @@ public class ResultsMultiNoHuUI {
         return bi;
     }
 
-    // ===== Spatial analysis (No-Hu): read CSVs, show histograms with summary =====
-
+    /**
+     * Add a "Spatial analysis" section if per-marker neighbor-count CSVs exist.
+     * Renders a combined histogram first, then one card per marker.
+     *
+     * Expected CSV format per marker:
+     *  "Label,<tab or comma> No of cells around <Marker>"
+     *  rows with integer label + integer count.
+     *
+     * @param center Container in the results frame to which the section is appended.
+     * @param r      No-Hu result object (for dir & names).
+     */
     private static void maybeAddSpatialSection(JPanel center, NoHuResult r) {
         java.util.List<SpatialData> sets = loadAllSpatial(r);
         if (sets.isEmpty()) return;
@@ -443,11 +549,19 @@ public class ResultsMultiNoHuUI {
         center.add(wrap);
     }
 
+    /** Small holder for spatial counts: marker/combination name and its counts. */
     private static final class SpatialData {
         final String name; final int[] counts;
         SpatialData(String n, int[] c){ name=n; counts=c; }
     }
 
+    /**
+     * Load all per-marker spatial datasets from {@code r.outDir/spatial_analysis}.
+     * Skips combination names (those containing '+').
+     *
+     * @param r The No-Hu result.
+     * @return List of parsed datasets; empty if none present.
+     */
     private static java.util.List<SpatialData> loadAllSpatial(NoHuResult r) {
         java.util.List<SpatialData> out = new java.util.ArrayList<>();
         // marker names = totals keys without '+'
@@ -461,6 +575,14 @@ public class ResultsMultiNoHuUI {
         return out;
     }
 
+    /**
+     * Parse a single CSV file "Neighbour_count_<cellType>.csv" into an array of ints.
+     * Ignores headers and malformed rows; accepts comma- or tab-separated values.
+     *
+     * @param outDir   Base output directory.
+     * @param cellType Marker name used in file naming.
+     * @return Counts array or {@code null} if file missing or unreadable.
+     */
     private static int[] loadSpatialCounts(File outDir, String cellType) {
         try {
             File csv = new File(new File(outDir, "spatial_analysis"),
@@ -491,6 +613,12 @@ public class ResultsMultiNoHuUI {
         }
     }
 
+    /**
+     * Concatenate multiple integer arrays preserving order.
+     *
+     * @param sets List of spatial datasets.
+     * @return Flat array containing all values.
+     */
     private static int[] concatAll(java.util.List<SpatialData> sets) {
         int n = 0; for (SpatialData s : sets) n += s.counts.length;
         int[] out = new int[n]; int k=0;
@@ -501,7 +629,16 @@ public class ResultsMultiNoHuUI {
         return out;
     }
 
-    // ----- Card: summary text + histogram + Save button -----
+    /**
+     * Build a card with a 2x3 summary grid (n/mean/median/min/max/stdev),
+     * the histogram image, and a "Save histogram…" button.
+     *
+     * @param title    Card title.
+     * @param values   Data series to summarize/plot.
+     * @param binW     Histogram bin width (integer).
+     * @param savePath Where to write the PNG when saved.
+     * @return Panel to insert in the results UI.
+     */
     private static JPanel makeSpatialCardWithSummary(String title, int[] values, int binW, File savePath) {
         BufferedImage img = makeSpatialHistogram(values, binW);
         Stats st = stats(values);
@@ -554,13 +691,20 @@ public class ResultsMultiNoHuUI {
         return card;
     }
 
-    // ----- Stats + Histogram drawing (same look as other pages) -----
+    /** Simple summary stats container for spatial histograms. */
     private static final class Stats {
         final int n, min, max; final double mean, median, stdev;
         Stats(int n,int min,int max,double mean,double median,double stdev){
             this.n=n; this.min=min; this.max=max; this.mean=mean; this.median=median; this.stdev=stdev;
         }
     }
+
+    /**
+     * Compute n, min, max, mean, median, sample standard deviation for an int array.
+     *
+     * @param a Values (may be empty).
+     * @return Stats with zeros if empty.
+     */
     private static Stats stats(int[] a) {
         if (a == null || a.length == 0) return new Stats(0, 0, 0, 0, 0, 0);
         int n = a.length;
@@ -575,6 +719,13 @@ public class ResultsMultiNoHuUI {
         return new Stats(n,min,max,mean,median,stdev);
     }
 
+    /**
+     * Render a frequency histogram image (bars) with a light grid and axis labels.
+     *
+     * @param values Values to bin (may be empty).
+     * @param binW   Bin width (>=1).
+     * @return 560×300 RGB image (or placeholder if no data).
+     */
     private static BufferedImage makeSpatialHistogram(int[] values, int binW) {
         if (values == null || values.length == 0) return placeholderImage(560,300,"No spatial data");
         int vmax = java.util.Arrays.stream(values).max().orElse(0);

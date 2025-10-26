@@ -125,12 +125,6 @@ public final class GangliaExpansionDialog extends JDialog {
         row.add(browse, gc);
         return row;
     }
-    private static JComponent message(String html){
-        JLabel l = new JLabel(html);
-        l.setBorder(new EmptyBorder(0,0,6,0));
-        return l;
-    }
-    private static JComponent checkWrap(JCheckBox cb){ JPanel p=new JPanel(new FlowLayout(FlowLayout.LEFT,8,0)); p.add(cb); return p; }
 
     private void chooseFile(JTextField tf, String title, String... exts){
         JFileChooser fc = new JFileChooser();

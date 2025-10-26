@@ -8,6 +8,11 @@ import ij.plugin.frame.RoiManager;
 import services.multiplex.config.MultiplexConfig;
 import services.multiplex.util.NamingUtils;
 
+import ij.macro.Interpreter;      // batch mode flag (ImageJ macro engine)
+import javax.swing.*;             // for the final popup (already imported below but safe)
+import java.awt.Desktop;          // to open the Results folder in OS file explorer
+
+
 import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -105,7 +110,13 @@ public class MultiplexRegistrationService {
      *                                  missing ROI correspondences, or pre-existing {@code Results/}.
      */
     public void run() {
-        // ---- 1) Prepare Results/ ----
+        // --- Hide ImageJ windows during processing (batch mode) ---
+        final boolean prevBatch = Interpreter.batchMode;  // remember prior state
+        Interpreter.batchMode = true;
+
+        try {
+
+            // ---- 1) Prepare Results/ ----
         File resultsDir = new File(cfg.saveFolder(), "Results");
         if (resultsDir.exists()) {
             throw new IllegalStateException("Remove Results folder in directory: " + resultsDir.getAbsolutePath());
@@ -315,10 +326,59 @@ public class MultiplexRegistrationService {
             rm.runCommand("Save",
                     new File(resultsDir, "landmark_correspondences.zip").getAbsolutePath());
         }
+// ---- Offer to open results (Aligned_Stack + <common>_stack), batch/EDT safe ----
+            final File alignedTif = new File(resultsDir, "Aligned_Stack.tif");
+            final File commonTif  = new File(resultsDir, cfg.commonMarker() + "_stack.tif");
 
-        // ---- 11) Cleanup + notify ----
+// Temporarily leave batch mode so windows can appear
+            final boolean wasBatch = ij.macro.Interpreter.batchMode;
+            ij.macro.Interpreter.batchMode = false;
+
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                JPanel panel = new JPanel(new java.awt.GridLayout(0, 1, 0, 6));
+                panel.add(new javax.swing.JLabel("<html><b>Multiplex Registration finished.</b><br/>"
+                        + "Results saved in:<br/>" + resultsDir.getAbsolutePath() + "</html>"));
+
+                javax.swing.JCheckBox openAligned = new javax.swing.JCheckBox("Open Aligned_Stack.tif", true);
+                javax.swing.JCheckBox openCommon  = new javax.swing.JCheckBox("Open " + cfg.commonMarker() + "_stack.tif", true);
+                panel.add(openAligned);
+                panel.add(openCommon);
+
+                int choice = javax.swing.JOptionPane.showConfirmDialog(
+                        null, panel, "Open results?", javax.swing.JOptionPane.OK_CANCEL_OPTION,
+                        javax.swing.JOptionPane.INFORMATION_MESSAGE);
+
+                java.util.List<ij.ImagePlus> opened = new java.util.ArrayList<>(2);
+
+                if (choice == javax.swing.JOptionPane.OK_OPTION) {
+                    if (openAligned.isSelected() && alignedTif.exists()) {
+                        ij.ImagePlus imp = ij.IJ.openImage(alignedTif.getAbsolutePath());
+                        if (imp != null) { imp.show(); opened.add(imp); }
+                    }
+                    if (openCommon.isSelected() && commonTif.exists()) {
+                        ij.ImagePlus imp = ij.IJ.openImage(commonTif.getAbsolutePath());
+                        if (imp != null) { imp.show(); opened.add(imp); }
+                    }
+                    // If both opened, tile for convenience
+                    if (opened.size() > 1) {
+                        ij.IJ.run("Tile");
+                    } else if (opened.size() == 1) {
+                        ij.IJ.selectWindow(opened.get(0).getTitle());
+                    }
+                }
+
+                // Restore prior batch mode after user interaction
+                ij.macro.Interpreter.batchMode = wasBatch;
+            });
+
+            // ---- 11) Cleanup + notify ----
         finalStack.close();
         ref.close();
         IJ.showMessage("Multiplex Registration", "Done.\nSaved to: " + resultsDir.getAbsolutePath());
+    } finally {
+// Restore the previous batch mode so ImageJ UI behaves normally afterwards
+            Interpreter.batchMode = prevBatch;
+        }
+
     }
 }

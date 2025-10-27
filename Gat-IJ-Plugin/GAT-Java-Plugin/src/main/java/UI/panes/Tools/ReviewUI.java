@@ -10,6 +10,31 @@ import ij.plugin.frame.RoiManager;
 import ij.process.ImageProcessor;
 import ij.process.ShortProcessor;
 
+/**
+ * Utility class for interactive ROI review and label map rebuilding.
+ * <p>
+ * This class wraps a common review flow used in neuron/ganglia validation:
+ * </p>
+ * <ol>
+ *   <li>Show an image (typically a max projection or segmentation backdrop).</li>
+ *   <li>Show all current ROIs from a {@link ij.plugin.frame.RoiManager} as an overlay.</li>
+ *   <li>Let the user edit ROIs (add, delete, tweak vertex positions) using standard ImageJ tools.</li>
+ *   <li>After the user confirms, rasterize the final ROIs into a label image
+ *       where each ROI is assigned a unique integer ID.</li>
+ *   <li>If the user removed everything, optionally fall back to a provided
+ *       default label map.</li>
+ * </ol>
+ *
+ * <p>
+ * The goal is to give users a human-in-the-loop correction step before
+ * finalizing segmentation masks. The resulting mask can then be passed
+ * downstream for counting, morphology, ganglia extraction, etc.
+ * </p>
+ *
+ * <p>
+ * {@code ReviewUI} is a static helper and is not meant to be instantiated.
+ * </p>
+ */
 public final class ReviewUI {
     /**
      * Private constructor to prevent instantiation.

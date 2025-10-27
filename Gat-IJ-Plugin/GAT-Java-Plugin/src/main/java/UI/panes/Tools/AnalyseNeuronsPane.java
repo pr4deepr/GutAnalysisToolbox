@@ -10,7 +10,38 @@ import java.awt.event.MouseEvent;
 import java.util.Arrays;
 import UI.panes.SettingPanes.*;
 
-
+/**
+ * High-level entry panel for neuron analysis workflows.
+ * <p>
+ * This Swing panel presents three mutually exclusive analysis modes:
+ * </p>
+ * <ul>
+ *   <li><b>Analyse Neurons</b> – run the standard neuron workflow.</li>
+ *   <li><b>Multichannel – No HU</b> – process multichannel images without Hu staining.</li>
+ *   <li><b>Multichannel – With Hu</b> – run the full multichannel workflow including Hu neurons.</li>
+ * </ul>
+ *
+ * <p>
+ * The user picks exactly one of these options (they act like radio buttons),
+ * then clicks "Go". When "Go" is pressed, the panel uses the provided
+ * {@link UI.Handlers.Navigator} to navigate to the pane that implements
+ * the chosen workflow.
+ * </p>
+ *
+ * <p>
+ * Visually, the pane consists of:
+ * </p>
+ * <ol>
+ *   <li>A title ("Neuron Analysis Options").</li>
+ *   <li>A row of clickable {@code OptionPanel} tiles, one per workflow mode.</li>
+ *   <li>A single "Go" button to continue with the selected mode.</li>
+ * </ol>
+ *
+ * <p>
+ * This pane does not itself run image analysis; it just gathers intent
+ * from the user and forwards them to the appropriate workflow UI.
+ * </p>
+ */
 public class AnalyseNeuronsPane extends JPanel {
     public static final String Name = "Analyse Neurons";
 
@@ -81,6 +112,29 @@ public class AnalyseNeuronsPane extends JPanel {
     }
 
 
+    /**
+     * A clickable, self-contained tile representing one analysis workflow option.
+     * <p>
+     * An {@code OptionPanel} shows:
+     * </p>
+     * <ul>
+     *   <li>A short title (e.g. "Multichannel – No HU").</li>
+     *   <li>A brief description (rendered as wrapped HTML text).</li>
+     * </ul>
+     *
+     * <p>
+     * Clicking the tile marks it as selected and visually highlights it. Only one
+     * tile in a group may be selected at a time. The currently selected tile
+     * controls which downstream workflow pane will be shown when the user
+     * presses "Go".
+     * </p>
+     *
+     * <p>
+     * Internally each {@code OptionPanel} remembers a {@code targetName}, which
+     * corresponds to the {@link UI.Handlers.Navigator} pane name that should
+     * be shown for this option.
+     * </p>
+     */
     private static class OptionPanel extends JPanel {
         private final String targetName;
         private boolean selected = false;

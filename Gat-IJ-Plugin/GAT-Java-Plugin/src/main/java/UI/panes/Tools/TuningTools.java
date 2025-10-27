@@ -18,9 +18,59 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 
+/**
+ * Static helpers for running parameter sweeps and capturing user picks.
+ * <p>
+ * {@code TuningTools} does the heavy lifting behind the "Tuning Tools"
+ * UI. For each sweep type (rescale, probability, ganglia expansion), it:
+ * </p>
+ * <ol>
+ *   <li>Opens the user-selected image via Bio-Formats.</li>
+ *   <li>Builds or reuses baseline {@link Features.Core.Params}.</li>
+ *   <li>Iterates over a numeric range (scale factors, probability cutoffs,
+ *       or spatial expansion distances).</li>
+ *   <li>Calls low-level segmentation helpers (e.g. {@code SegOne.runHuAtProb(...)})
+ *       to generate a mask/overlay for each tested value.</li>
+ *   <li>Writes previews and counts to disk in a "Tuning" folder.</li>
+ *   <li>Shows an interactive chooser where the user can preview and pick
+ *       whichever sweep entry looks most correct.</li>
+ *   <li>Saves the chosen value back into {@link UI.util.GatSettings} and
+ *       offers to export an Advanced-only config snippet ({@code .cfg}).</li>
+ * </ol>
+ *
+ * <p>
+ * The sweeps are designed for expert calibration: they let you dial in
+ * model probability thresholds, neuron rescaling to match training pixel
+ * size, and ganglia expansion radii without editing global defaults by hand.
+ * </p>
+ *
+ * <p>
+ * This class is not meant to be instantiated.
+ * </p>
+ */
 public final class TuningTools {
 
 
+
+    /**
+     * One candidate setting from a sweep, plus its preview data.
+     * <p>
+     * A {@code Row} binds together:
+     * </p>
+     * <ul>
+     *   <li>{@code x} – the parameter value tested (e.g. 0.45 probability,
+     *       1.25 rescale factor, 8.0 µm expansion).</li>
+     *   <li>{@code count} – how many objects / cells / ganglia were found
+     *       using that setting (a quick quality proxy).</li>
+     *   <li>{@code preview} – a PNG or similar overlay image written to disk
+     *       so the user can visually inspect results for that setting.</li>
+     * </ul>
+     *
+     * <p>
+     * These rows are displayed in a chooser dialog where the user can scroll,
+     * preview each PNG in ImageJ, and then select the row that "looks best".
+     * </p>
+     */
     public static final class Row {
         public final double x;
         public final int    count;
@@ -655,5 +705,11 @@ public final class TuningTools {
         }
     }
 
+    /**
+     * Private constructor to prevent instantiation.
+     * <p>
+     * {@code TuningTools} is a static utility holder and should not be created.
+     * </p>
+     */
     private TuningTools(){}
 }

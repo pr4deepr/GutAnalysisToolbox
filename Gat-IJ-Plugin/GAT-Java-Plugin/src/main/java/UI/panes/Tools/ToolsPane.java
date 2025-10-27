@@ -11,6 +11,43 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.io.File;
 
+/**
+ * "Tuning Tools" panel for expert/advanced parameter sweeps.
+ * <p>
+ * This panel exposes three tuning workflows that help users calibrate
+ * segmentation parameters on their own data:
+ * </p>
+ * <ul>
+ *   <li><b>Test Rescaling</b> – sweep image rescaling factors to match training pixel size.</li>
+ *   <li><b>Test Probability</b> – sweep detection probability thresholds (Hu or subtype).</li>
+ *   <li><b>Test Ganglia expansion (µm)</b> – sweep spatial expansion radii used to merge
+ *       neuron ROIs into putative ganglia outlines.</li>
+ * </ul>
+ *
+ * <p>
+ * Each button opens a dedicated dialog (e.g. {@link UI.panes.Tools.dialogs.RescaleHuDialog})
+ * that asks for input image(s), sweep ranges, model ZIP paths if needed,
+ * and output directory. After the dialog returns, the sweep is executed
+ * in the background.
+ * </p>
+ *
+ * <p>
+ * While a sweep is running:
+ * </p>
+ * <ul>
+ *   <li>All buttons are disabled.</li>
+ *   <li>The cursor switches to a wait cursor.</li>
+ *   <li>A status label shows progress or completion.</li>
+ * </ul>
+ *
+ * <p>
+ * Results from each sweep include preview PNGs and CSV summaries
+ * under a "Tuning" output folder, and the user is prompted to choose
+ * a "best" candidate. The chosen settings are cached in
+ * {@link UI.util.GatSettings} and can also be exported as a minimal
+ * {@code .cfg} that replays those advanced parameters.
+ * </p>
+ */
 public class ToolsPane extends JPanel {
 
     public static final String Name = "Tools";

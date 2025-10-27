@@ -146,7 +146,13 @@ public final class RescaleHuDialog extends JDialog {
         // --- Prob + Overlap sliders ---
         JPanel sliders = new JPanel();
         sliders.setLayout(new BoxLayout(sliders, BoxLayout.Y_AXIS));
-        sliders.add(wrapLabelCentered("<html>Default Probability is 0.5 and Overlap threshold is 0.3. Leave as default when first trying.<br/>More info: https://www.imagej.net/StarDist</html>",520));
+        sliders.add(wrapLabelCentered(
+                "Default Probability is 0.5 and Overlap threshold is 0.3. " +
+                        "Leave as default when first trying.<br/>" +
+                        "More info: https://www.imagej.net/StarDist<br/>" +
+                        "<b>Large images may freeze or hang.</b>",
+                520
+        ));
 
         JPanel probRow = new JPanel(new BorderLayout(8,0));
         probRow.add(new JLabel("Probability (if staining is weak, use low values)"), BorderLayout.NORTH);

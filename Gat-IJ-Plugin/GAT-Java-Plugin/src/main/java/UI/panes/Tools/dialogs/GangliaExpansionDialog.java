@@ -146,8 +146,9 @@ public final class GangliaExpansionDialog extends JDialog {
         cancel.addActionListener(e -> { result = null; dispose(); });
         ok.addActionListener(e -> onOK());
 
+        setPreferredSize(new Dimension(900, 600));
+        setMinimumSize(new Dimension(900, 500));
         pack();
-        setSize(Math.min(820, getWidth()), getHeight());
         setLocationRelativeTo(owner);
     }
 

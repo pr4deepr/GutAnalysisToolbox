@@ -167,7 +167,8 @@ public final class ProbabilityDialog extends JDialog {
         center.add(wrapLabelCentered(
                 "Test a range of probability thresholds to get the value with the most accurate cell segmentation. " +
                         "Default is 0.4. Default rescaling_factor is 1.0 and Overlap threshold is 0.3. " +
-                        "Leave it as default when first trying this. More info: https://www.imagej.net/StarDist/",
+                        "Leave it as default when first trying this. More info: https://www.imagej.net/StarDist/" +
+                        ". Large images may freeze or hang.",
                 520
         ));
         center.add(Box.createVerticalStrut(6));

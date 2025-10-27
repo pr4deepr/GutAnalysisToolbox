@@ -13,7 +13,34 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.LinkedHashMap;
 import java.util.Map;
-
+/**
+ * Main entry point for the Gut Analysis Toolbox (GAT) ImageJ/Fiji plugin UI.
+ *
+ * <p>
+ * This class is registered as an {@link ij.plugin.PlugIn}, so ImageJ calls
+ * {@link #run(String)} when the user launches the plugin. We then:
+ * </p>
+ *
+ * <ol>
+ *   <li>Install/confirm the Material look & feel (static initialiser).</li>
+ *   <li>Run a preflight environment check via {@link UI.Preflight} to verify
+ *       required models, DeepImageJ engines, GPU support, etc.</li>
+ *   <li>If preflight is OK, construct and show the main Swing dialog that
+ *       hosts all analysis panes (Neuron workflow, Multichannel workflows,
+ *       Tools, Spatial Analysis, etc.) using a {@link CardLayout} for navigation.</li>
+ * </ol>
+ *
+ * <p>
+ * Navigation between panes is mediated by a simple {@code Navigator} functional
+ * interface. We expose one here that just calls {@link CardLayout#show(Container, String)}
+ * on the shared {@code cardPanel}.
+ * </p>
+ *
+ * <p>
+ * The dialog we build is modeless (it does not block ImageJ) but is effectively
+ * treated as the main application window for the toolbox.
+ * </p>
+ */
 public class GatPluginUI implements PlugIn {
 
     private CardLayout cards = new CardLayout();
@@ -32,6 +59,26 @@ public class GatPluginUI implements PlugIn {
         }
     }
 
+    /**
+     * Launch hook called by ImageJ/Fiji.
+     *
+     * <p>
+     * Steps:
+     * </p>
+     * <ol>
+     *   <li>Define the expected StarDist model names we want to find under
+     *       {@code Fiji/models} (neuron model and subtype model).</li>
+     *   <li>Call {@link UI.Preflight#runAll(String, String)} to verify the install.
+     *       If anything important is missing (DeepImageJ engines not initialized,
+     *       required plugins unavailable, required models not found), we abort and
+     *       do not show the UI.</li>
+     *   <li>If preflight passes, schedule {@link #buildAndShow()} on the EDT to
+     *       actually construct and display the Swing UI.</li>
+     * </ol>
+     *
+     * @param arg
+     *        Unused ImageJ argument string.
+     */
     @Override
     public void run(String arg){
         String expectedNeuronModel  = "2D_enteric_neuron_V4_1.zip"; // e.g.
@@ -46,6 +93,28 @@ public class GatPluginUI implements PlugIn {
 
     }
 
+    /**
+     * Build and display the main GAT window.
+     *
+     * <p>
+     * This method:
+     * </p>
+     * <ul>
+     *   <li>Creates a fixed-size {@link JDialog} (non-modal) titled "GAT Plugin".</li>
+     *   <li>Builds a persistent left-hand vertical button bar. Each button
+     *       switches the active center panel via the shared {@link CardLayout}.</li>
+     *   <li>Initializes and registers all panes (Home, Neuron Workflow, Multichannel,
+     *       Tools, Spatial Analysis, Calcium Imaging, etc.) into {@code cardPanel},
+     *       keyed by each pane's static {@code Name} constant.</li>
+     *   <li>Adds both the left bar and the {@code cardPanel} to the dialog,
+     *       packs it, centers it, shows it, and finally navigates to the Home pane.</li>
+     * </ul>
+     *
+     * <p>
+     * The dialog is marked non-resizable and given a fixed preferred/minimum size
+     * so layout is predictable.
+     * </p>
+     */
     private void buildAndShow(){
 
 

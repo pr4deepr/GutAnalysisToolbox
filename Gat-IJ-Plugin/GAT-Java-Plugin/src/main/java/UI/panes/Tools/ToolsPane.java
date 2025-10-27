@@ -21,6 +21,27 @@ public class ToolsPane extends JPanel {
     private final JButton btnGanglia = new JButton("Test Ganglia expansion (µm)");
     private final JLabel  status     = new JLabel(" ");
 
+    /**
+     * Builds the "Tuning Tools" panel.
+     * <p>
+     * This panel exposes three tuning helpers:
+     * </p>
+     * <ul>
+     *   <li>"Test Rescaling" – sweep rescaling factors for neuron shapes</li>
+     *   <li>"Test Probability" – sweep detection probability thresholds</li>
+     *   <li>"Test Ganglia expansion (µm)" – sweep ganglionic expansion radius</li>
+     * </ul>
+     *
+     * <p>
+     * Clicking any button launches the corresponding dialog to collect
+     * parameters and then runs the tuning workflow in the background.
+     * While a workflow runs, buttons are disabled and a status label shows
+     * progress.
+     * </p>
+     *
+     * @param navigator navigation handle (not currently used to switch panes
+     *                  here, but provided for consistency with other panes)
+     */
     public ToolsPane(Navigator navigator) {
         this.settings = GatSettings.loadOrDefaults();
 
@@ -43,7 +64,21 @@ public class ToolsPane extends JPanel {
         btnGanglia.addActionListener(e -> startGanglia());
     }
 
-    // ---------- Actions ----------
+    /**
+     * Launches the "Rescaling sweep" dialog and, if confirmed, runs the
+     * rescaling sweep in the background.
+     * <p>
+     * Steps:
+     * </p>
+     * <ol>
+     *   <li>Create a baseline {@link Params} with sensible defaults.</li>
+     *   <li>Show {@link RescaleHuDialog} to collect sweep parameters.</li>
+     *   <li>Ensure we know where the neuron (Hu) StarDist model ZIP is.</li>
+     *   <li>Copy thresholds/properties from the dialog config into {@code base}.</li>
+     *   <li>Normalize / create the output directory.</li>
+     *   <li>Kick off {@link TuningTools#runRescaleSweep} on a background thread.</li>
+     * </ol>
+     */
     private void startRescale() {
         Params base = defaultBaseParams();
 
@@ -64,6 +99,18 @@ public class ToolsPane extends JPanel {
                 TuningTools.runRescaleSweep(base, outDir, settings, cfg));
     }
 
+    /**
+     * Ensures the given directory exists and returns a usable output directory.
+     * <p>
+     * If {@code dir} is {@code null}, a default location under
+     * {@code ~/Analysis/Tuning} is created/returned. If {@code dir} is not
+     * {@code null} but does not exist, the directory (and parents if needed)
+     * is created.
+     * </p>
+     *
+     * @param dir user-chosen directory (may be {@code null})
+     * @return a directory guaranteed to exist and be writable (best effort)
+     */
     private static File ensureDir(File dir) {
         if (dir == null) {
             File def = new File(new File(System.getProperty("user.home"), "Analysis"), "Tuning");
@@ -74,6 +121,22 @@ public class ToolsPane extends JPanel {
         return dir;
     }
 
+    /**
+     * Launches the "Probability sweep" dialog and, if confirmed, runs the
+     * probability sweep in the background.
+     * <p>
+     * Steps:
+     * </p>
+     * <ol>
+     *   <li>Create a baseline {@link Params} with defaults.</li>
+     *   <li>Show {@link UI.panes.Tools.dialogs.ProbabilityDialog} to
+     *       configure sweep range and thresholds.</li>
+     *   <li>If the user chose NEURON mode, ensure we can locate the Hu model
+     *       ZIP before proceeding.</li>
+     *   <li>Run {@link TuningTools#runProbSweep} asynchronously, passing the
+     *       dialog config.</li>
+     * </ol>
+     */
     private void startProbability() {
         Params base = defaultBaseParams();
 
@@ -93,6 +156,17 @@ public class ToolsPane extends JPanel {
                 TuningTools.runProbSweep(base, null, settings, cfg));
     }
 
+    /**
+     * Launches the "Ganglia expansion sweep" dialog and, if confirmed,
+     * runs the expansion sweep in the background.
+     * <p>
+     * Ganglia expansion tuning uses Hu neuron segmentation as input,
+     * so we first ensure that a neuron (Hu) StarDist model is available.
+     * </p>
+     *
+     * @see TuningTools#runGangliaExpansionSweep(Params, File, UI.util.GatSettings,
+     *      UI.panes.Tools.dialogs.GangliaExpansionDialog.Config)
+     */
     private void startGanglia() {
         Params base = defaultBaseParams();
         if (!ensureNeuronModelZip(base)) return; // Hu segmentation required
@@ -106,7 +180,22 @@ public class ToolsPane extends JPanel {
                 TuningTools.runGangliaExpansionSweep(base, null, settings, cfg));
     }
 
-    // ---------- Async plumbing ----------
+    /**
+     * Runs a potentially long tuning task (e.g. rescale sweep) on a background
+     * {@link SwingWorker}, while updating UI state.
+     * <p>
+     * This method:
+     * </p>
+     * <ol>
+     *   <li>Disables the tuning buttons and shows a "Running..." message.</li>
+     *   <li>Executes the provided {@code task} on a worker thread.</li>
+     *   <li>If the task throws, shows an error dialog on the EDT.</li>
+     *   <li>When finished, re-enables the UI and marks the task as done.</li>
+     * </ol>
+     *
+     * @param label short human-readable label for status messages
+     * @param task  code to run in the background
+     */
     private void runAsync(String label, Runnable task) {
         setBusy(true, "Running: " + label + " … (this might take a while)");
         SwingWorker<Void, Void> w = new SwingWorker<Void, Void>() {
@@ -122,6 +211,16 @@ public class ToolsPane extends JPanel {
         };
         w.execute();
     }
+
+    /**
+     * Enables or disables the tuning buttons and updates the status label /
+     * cursor to reflect "busy" or "idle".
+     *
+     * @param b   {@code true} to enter busy state (disable controls, wait cursor),
+     *            {@code false} to return to idle state
+     * @param msg message to display in the status label (may be {@code null}
+     *            to clear)
+     */
     private void setBusy(boolean b, String msg) {
         setCursor(Cursor.getPredefinedCursor(b ? Cursor.WAIT_CURSOR : Cursor.DEFAULT_CURSOR));
         btnRescale.setEnabled(!b);
@@ -130,7 +229,17 @@ public class ToolsPane extends JPanel {
         status.setText(msg != null ? msg : " ");
     }
 
-    // ---------- Defaults ----------
+    /**
+     * Builds a fresh {@link Params} object populated with baseline/default
+     * values used by tuning sweeps.
+     * <p>
+     * These defaults cover channel indices, rescaling assumptions, minimum
+     * neuron size, and ganglia post-processing parameters. Callers are free
+     * to override fields before passing the {@link Params} onward.
+     * </p>
+     *
+     * @return a new {@link Params} pre-filled with standard neuron settings
+     */
     private static Params defaultBaseParams() {
         Params p = new Params();
         p.huChannel = 3;
@@ -150,6 +259,20 @@ public class ToolsPane extends JPanel {
         return p;
     }
 
+    /**
+     * Tries to locate the StarDist neuron (Hu) model ZIP on disk and attach
+     * it to the supplied {@link Params}.
+     * <p>
+     * By convention this looks under ImageJ's "models" directory for a file
+     * like {@code 2D_enteric_neuron_V4_1.zip} (or a known fallback). The
+     * absolute path of the first match found is stored in
+     * {@code p.stardistModelZip}.
+     * </p>
+     *
+     * @param p params object to update with the discovered model path
+     * @return {@code true} if a plausible model ZIP was found and recorded,
+     *         {@code false} otherwise
+     */
     private static boolean ensureNeuronModelZip(Params p) {
         // Point this at your Hu (neuron) StarDist model zip.
         // If your Hu model is "2D_enteric_neuron_V4_1.zip", use that.
@@ -163,6 +286,17 @@ public class ToolsPane extends JPanel {
         return model.isFile();  // <— return true if we found a model
     }
 
+    /**
+     * Lets the user pick an output directory, or falls back to a default.
+     * <p>
+     * Shows a {@link JFileChooser} starting in {@code preselect}. If the user
+     * approves a directory, that directory is returned. Otherwise the method
+     * falls back to {@code ~/Analysis}.
+     * </p>
+     *
+     * @param preselect directory to open the chooser in initially
+     * @return the user-selected directory, or {@code ~/Analysis} if cancelled
+     */
     private static File chooseOutDirOrDefault(File preselect) {
         JFileChooser fc = new JFileChooser(preselect);
         fc.setDialogTitle("Choose output folder (optional)");
@@ -172,6 +306,19 @@ public class ToolsPane extends JPanel {
         if (ret == JFileChooser.APPROVE_OPTION && fc.getSelectedFile() != null) return fc.getSelectedFile();
         return new File(System.getProperty("user.home"), "Analysis");
     }
+
+    /**
+     * Ensures there is a {@code Tuning/} subfolder and returns it.
+     * <p>
+     * If {@code parent} is {@code null}, {@code ~/Analysis} is used first,
+     * and then {@code Tuning/} is created under it. If {@code parent} is
+     * non-null, the {@code Tuning/} subfolder is created under that parent.
+     * </p>
+     *
+     * @param parent base directory to contain the {@code Tuning/} folder
+     * @return a {@link File} pointing to {@code parent/Tuning}, guaranteed
+     *         to exist (best effort)
+     */
     private static File ensureTuningDir(File parent) {
         File base = (parent != null) ? parent : new File(System.getProperty("user.home"), "Analysis");
         File tuning = new File(base, "Tuning");

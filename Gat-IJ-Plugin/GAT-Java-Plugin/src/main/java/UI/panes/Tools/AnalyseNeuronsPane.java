@@ -10,9 +10,23 @@ import java.awt.event.MouseEvent;
 import java.util.Arrays;
 import UI.panes.SettingPanes.*;
 
+
 public class AnalyseNeuronsPane extends JPanel {
     public static final String Name = "Analyse Neurons";
 
+
+    /**
+     * Creates the "Analyse Neurons" options panel.
+     * <p>
+     * The panel shows three mutually exclusive pipeline choices (Analyse Neurons,
+     * Multichannel – No HU, Multichannel – With Hu) and a single "Go" button.
+     * Clicking "Go" navigates to the pane associated with the currently selected
+     * option.
+     * </p>
+     *
+     * @param navigator the app-level navigation controller. Used to switch to
+     *                  the pane associated with the user's chosen option.
+     */
     public AnalyseNeuronsPane(Navigator navigator) {
         setLayout(new BorderLayout(10,10));
         setBorder(new EmptyBorder(10,10,10,10));
@@ -66,7 +80,7 @@ public class AnalyseNeuronsPane extends JPanel {
         add(goPanel, BorderLayout.SOUTH);
     }
 
-    /** A clickable panel that highlights when selected. */
+
     private static class OptionPanel extends JPanel {
         private final String targetName;
         private boolean selected = false;
@@ -74,6 +88,19 @@ public class AnalyseNeuronsPane extends JPanel {
         private final Color defaultBg;
         private final Color highlightBg = new Color(56, 56, 56); // grey for now
 
+        /**
+         * Builds a clickable option tile representing one analysis workflow.
+         * <p>
+         * Each tile renders a title and short description, highlights when selected,
+         * and remembers the logical target pane name so the caller can navigate
+         * there when the user presses "Go".
+         * </p>
+         *
+         * @param title         short label shown at the top of the tile
+         * @param description   explanatory text shown under the title
+         * @param targetName    the Navigator pane name to activate if this option
+         *                      ends up selected when the user clicks "Go"
+         */
         OptionPanel(String title, String description, String targetName) {
             this.targetName = targetName;
 
@@ -105,18 +132,48 @@ public class AnalyseNeuronsPane extends JPanel {
             });
         }
 
+        /**
+         * Declares the other {@code OptionPanel}s in the group.
+         * <p>
+         * Panels in the same group behave like radio buttons: when this panel
+         * becomes selected, all of its siblings are automatically deselected.
+         * </p>
+         *
+         * @param siblings array of peer {@code OptionPanel}s, including this one
+         */
         void setSiblings(OptionPanel[] siblings) {
             this.siblings = siblings;
         }
 
+        /**
+         * Returns the logical destination pane name associated with this option.
+         *
+         * @return the {@link Navigator} target name this panel represents
+         */
         String getTargetName() {
             return targetName;
         }
 
+        /**
+         * Reports whether this option is currently selected.
+         *
+         * @return {@code true} if this tile is highlighted/active,
+         *         {@code false} otherwise
+         */
         boolean isSelected() {
             return selected;
         }
 
+        /**
+         * Marks (or unmarks) this option as selected and updates visual state.
+         * <p>
+         * When selecting this option ({@code sel == true}), all sibling options
+         * are first told to deselect themselves so only one remains active at
+         * a time.
+         * </p>
+         *
+         * @param sel {@code true} to select this option, {@code false} to deselect it
+         */
         void setSelected(boolean sel) {
             // When selecting, deselect the others first
             if (sel && siblings != null) {
@@ -127,6 +184,16 @@ public class AnalyseNeuronsPane extends JPanel {
             updateSelected(sel);
         }
 
+        /**
+         * Applies the visual "selected" state to this tile.
+         * <p>
+         * This updates the internal {@code selected} flag and swaps the panel
+         * background color between the default and the highlight color.
+         * It does not affect sibling panels.
+         * </p>
+         *
+         * @param sel {@code true} to mark as selected and show the highlight
+         */
         private void updateSelected(boolean sel) {
             this.selected = sel;
             // Swap background

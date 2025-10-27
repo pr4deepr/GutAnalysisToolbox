@@ -16,8 +16,23 @@ import java.io.IOException;
 import java.util.*;
 import java.util.List;
 
+/**
+ * Result viewer for the Hu-gated Multiplex workflow.
+ *
+ * Shows:
+ *  • Header with output folder, Hu total, and optional ganglia count
+ *  • Neurons and ganglia overlay thumbnails
+ *  • Ganglia table and Hu "neurons per ganglion" box plot (if available)
+ *  • Summary table of Hu-gated totals (markers and combinations)
+ *  • Tabs with "Markers" and "Combinations" per-ganglion box plots
+ *  • Optional spatial histograms (combined + per-dataset) if CSVs are present
+ */
 public class ResultsMultiUI {
 
+    /**
+     * End-of-workflow prompt: preview, open folder, or end.
+     * @param r Completed multiplexer result bundle.
+     */
     public static void promptAndMaybeShow(MultiResult r) {
         String msg = "Results saved to:\n" + r.outDir.getAbsolutePath();
         String[] options = {"Preview results…", "Open folder", "End"};
@@ -33,6 +48,7 @@ public class ResultsMultiUI {
         }
     }
 
+    /** Try to open {@code dir} in the native file manager; log/show path on failure. */
     private static void openFolder(File dir) {
         try {
             if (Desktop.isDesktopSupported()) Desktop.getDesktop().open(dir);
@@ -42,6 +58,7 @@ public class ResultsMultiUI {
         }
     }
 
+    /** Build the Hu ganglia table: ganglion_id, neuron_count, area_um2 (skips empty rows). */
     private static JTable makeGangliaTable(MultiResult r) {
         DefaultTableModel model = new DefaultTableModel(
                 new Object[]{"ganglion_id","neuron_count","area_um2"}, 0) {
@@ -75,6 +92,12 @@ public class ResultsMultiUI {
     }
 
 
+    /**
+     * Build and display the main results window for the Multiplex run.
+     * See class-level Javadoc for included sections.
+     *
+     * @param r Aggregated outputs and measurements from the pipeline.
+     */
     private static void showResultsFrame(MultiResult r) {
         JFrame f = new JFrame("Results – " + r.baseName + " (multi)");
         f.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -228,8 +251,14 @@ public class ResultsMultiUI {
         f.setVisible(true);
     }
 
-    // ---------- panels ----------
 
+    /**
+     * Create a scrollable column of per-ganglion box plots, filtering by single markers or
+     * combinations depending on the {@code combos} flag.
+     *
+     * @param r      Workflow results.
+     * @param combos True to include only names containing '+', false for single markers.
+     */
     private static JPanel makeBoxPlotPanel(MultiResult r, boolean combos) {
         // Build a scrollable column of box plots (one per marker/combo)
         JPanel col = new JPanel();
@@ -287,8 +316,10 @@ public class ResultsMultiUI {
         return outer;
     }
 
-    // ---------- tables ----------
-
+    /**
+     * Create a 2-column table: "marker_or_combo" and "hu_gated_total".
+     * @param totals LinkedHashMap preserving run order.
+     */
     private static JTable makeTotalsTable(LinkedHashMap<String,Integer> totals) {
         DefaultTableModel model = new DefaultTableModel(new Object[]{"marker_or_combo","hu_gated_total"}, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
@@ -309,8 +340,10 @@ public class ResultsMultiUI {
         return t;
     }
 
-    // ---------- plotting ----------
-
+    /**
+     * Construct a box plot image for per-ganglion counts (skipping id 0 and zeros).
+     * @param countsPerGanglion Array indexed by ganglion id (0 unused).
+     */
     private static BufferedImage makeBoxPlotFromCounts(int[] countsPerGanglion) {
         // Skip index 0 and zeros (zeros = absent ganglia for this marker)
         List<Integer> vals = new ArrayList<>();
@@ -392,6 +425,11 @@ public class ResultsMultiUI {
         return bi;
     }
 
+    /**
+     * Five-number summary for a sorted list of integers using “median of halves”.
+     * @param vals Non-empty list of positive counts.
+     * @return {min, Q1, median, Q3, max}.
+     */
     private static double[] fiveNumberSummary(List<Integer> vals) {
         Collections.sort(vals);
         int n = vals.size();
@@ -463,6 +501,7 @@ public class ResultsMultiUI {
         return (imp != null) ? imp : fallback;
     }
 
+    /** Save every available box plot and the Hu box plot (if present). */
     private static void saveAllPlots(MultiResult r) throws IOException {
         // markers and combos
         for (Map.Entry<String,int[]> e : r.perGanglia.entrySet()) {
@@ -481,15 +520,18 @@ public class ResultsMultiUI {
 
     }
 
+    /** PNG writer with parent directory creation. */
     private static void saveImage(BufferedImage img, File out) throws IOException {
         out.getParentFile().mkdirs();
         ImageIO.write(img, "PNG", out);
     }
 
+    /** Filename-safe transformation. */
     private static String sanitize(String s) {
         return s.replaceAll("[^A-Za-z0-9_\\-+]+", "_");
     }
 
+    /** Placeholder (white background) with message. */
     private static BufferedImage placeholderImage(int w, int h, String msg) {
         BufferedImage bi = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = bi.createGraphics();
@@ -499,8 +541,13 @@ public class ResultsMultiUI {
         return bi;
     }
 
-    // ===== Spatial histograms (single-cell CSVs) =====
-
+    /**
+     * Add the "Spatial histograms" section (combined, then one card per dataset).
+     * Datasets are parsed from {@code outDir/spatial_analysis/Neighbour_count_*.csv}.
+     *
+     * @param center Container to append to.
+     * @param r      Multiplex result.
+     */
     private static void addSpatialHistogramsSection(JPanel center, MultiResult r) {
         java.util.List<SpatialDataset> sets = loadAllSpatialDatasets(r.outDir);
         if (sets.isEmpty()) return;
@@ -545,11 +592,13 @@ public class ResultsMultiUI {
         center.add(sp);
     }
 
+    /** Holder for a spatial dataset (name + values). */
     private static final class SpatialDataset {
         final String name; final int[] counts;
         SpatialDataset(String n, int[] c){ name=n; counts=c; }
     }
 
+    /** Load all datasets under {@code spatial_analysis/}. */
     private static java.util.List<SpatialDataset> loadAllSpatialDatasets(File outDir) {
         java.util.List<SpatialDataset> list = new java.util.ArrayList<>();
         File dir = new File(outDir, "spatial_analysis");
@@ -567,6 +616,7 @@ public class ResultsMultiUI {
         return list;
     }
 
+    /** Parse neighbor-count CSV (lenient on separators and headers). */
     private static int[] loadSpatialCountsFromCsv(File csv) {
         java.util.ArrayList<Integer> vals = new java.util.ArrayList<>();
         try {
@@ -590,6 +640,7 @@ public class ResultsMultiUI {
         return vals.stream().mapToInt(i->i).toArray();
     }
 
+    /** Draw the histogram image with a common bin width. */
     private static BufferedImage makeSpatialHistogram(int[] values, int binW) {
         if (values == null || values.length == 0) return placeholderImage(560,300,"No spatial data");
         int vmax = java.util.Arrays.stream(values).max().orElse(0);
@@ -654,7 +705,7 @@ public class ResultsMultiUI {
         return bi;
     }
 
-    // ===== Summary stats (same style as the single-channel results) =====
+    /** Stats and card builder identical in spirit to ResultsMultiNoHuUI (see there for details). */
     private static final class Stats {
         final int n, min, max; final double mean, median, stdev;
         Stats(int n,int min,int max,double mean,double median,double stdev){

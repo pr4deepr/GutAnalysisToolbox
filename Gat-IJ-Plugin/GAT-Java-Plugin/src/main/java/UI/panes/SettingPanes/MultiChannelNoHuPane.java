@@ -19,6 +19,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+/**
+ * Settings panel (Swing) for the "Multi-Channel (No Hu)" workflow.
+ *
+ * Tabs:
+ *  • Basic    – input/output, ganglia (no-Hu variants), spatial toggle
+ *  • Markers  – dynamic list of markers (channel + optional custom ROI zip)
+ *  • Advanced – subtype model, thresholds, rescale controls, DIJ model folder, config load/save
+ *
+ * Interaction:
+ *  • "Run Multi-Channel (No Hu)" triggers input validation and launches a background SwingWorker
+ *    to execute {@code new NeuronsMultiNoHuPipeline().run(mp)}.
+ *
+ * Persisted defaults:
+ *  • Uses {@link UI.util.ConfigIO} to save/load a minimal property set (see toConfig/applyConfig).
+ */
 public class MultiChannelNoHuPane extends JPanel {
 
     public static final String Name = "Multi-Channel No Hu";
@@ -72,6 +87,12 @@ public class MultiChannelNoHuPane extends JPanel {
 
     private final List<MarkerRow> markerRows = new ArrayList<>();
 
+    /**
+     * Construct the settings pane and wire actions for all controls.
+     * Adds tabs, bottom action bar, and loads initial defaults.
+     *
+     * @param navigator (Optional) app navigator (not used here but kept for parity).
+     */
     public MultiChannelNoHuPane(Navigator navigator) {
         super(new BorderLayout(10,10));
         this.navigator = navigator;
@@ -95,8 +116,13 @@ public class MultiChannelNoHuPane extends JPanel {
         loadDefaults();
     }
 
-    // ---------------- UI builders ----------------
-
+    /**
+     * Build and return the "Basic" tab:
+     *  - Image chooser + Preview
+     *  - Output folder + "Save flattened overlays"
+     *  - Ganglia options for no-Hu (mode, channels, model folder / ROI zip)
+     *  - Spatial analysis checkbox
+     */
     private JPanel buildBasicTab() {
         JPanel outer = new JPanel(new BorderLayout());
         JPanel p = new JPanel();
@@ -218,6 +244,11 @@ public class MultiChannelNoHuPane extends JPanel {
         return outer;
     }
 
+    /**
+     * Build the "Markers" tab – a scrollable list of cards, each defining:
+     *  name, 1-based channel index, optional “use custom ROI .zip”.
+     *  Includes “Add marker” and “Remove selected” controls.
+     */
     private JPanel buildMarkersTab() {
         JPanel outer = new JPanel(new BorderLayout(8,8));
 
@@ -247,6 +278,10 @@ public class MultiChannelNoHuPane extends JPanel {
         return outer;
     }
 
+    /**
+     * Build the "Advanced" tab – subtype model path, default thresholds (prob/NMS/overlap),
+     * rescale controls, DIJ model folder, and config load/save buttons.
+     */
     private JPanel buildAdvancedTab() {
         JPanel outer = new JPanel(new BorderLayout());
         JPanel p = new JPanel();
@@ -311,8 +346,16 @@ public class MultiChannelNoHuPane extends JPanel {
         return outer;
     }
 
-    // ---------------- Marker rows ----------------
-
+    /**
+     * Append a new marker row to the list.
+     *
+     * @param name    Marker display name (nullable → "marker").
+     * @param channel 1-based channel index to prefill.
+     * @param prob    Unused here (kept for parity); can be null.
+     * @param nms     Unused here (kept for parity); can be null.
+     * @param custom  Whether "custom ROI zip" is initially checked.
+     * @param roiZip  Optional initial zip file.
+     */
     private void addMarkerRow(String name, int channel, Double prob, Double nms, boolean custom, File roiZip) {
         MarkerRow row = new MarkerRow(name, channel, custom, roiZip);
         markerRows.add(row);
@@ -321,6 +364,7 @@ public class MultiChannelNoHuPane extends JPanel {
         markersPanel.repaint();
     }
 
+    /** Remove all selected marker rows; if none selected, remove the last row. */
     private void removeSelectedMarkerRow() {
         boolean removedAny = false;
 
@@ -346,6 +390,10 @@ public class MultiChannelNoHuPane extends JPanel {
         markersPanel.repaint();
     }
 
+    /**
+     * Row widget representing one marker input. Produces a {@code MarkerSpec} for the pipeline.
+     * Validates custom ROI zip if enabled.
+     */
     private final class MarkerRow {
         final JPanel panel = new JPanel(new GridBagLayout());
         final JCheckBox cbSelect = new JCheckBox();
@@ -427,8 +475,12 @@ public class MultiChannelNoHuPane extends JPanel {
         }
     }
 
-    // ---------------- Actions ----------------
-
+    /**
+     * Validate inputs, construct {@link NeuronsMultiNoHuPipeline.MultiParams}, and run the pipeline
+     * in a background {@link SwingWorker}. Errors are shown via JOptionPane.
+     *
+     * Disables the run button while work is in progress.
+     */
     private void onRun(JButton runBtn) {
         runBtn.setEnabled(false);
 
@@ -473,6 +525,14 @@ public class MultiChannelNoHuPane extends JPanel {
         };
         worker.execute();
     }
+
+    /**
+     * Build {@link NeuronsMultiNoHuPipeline.MultiParams} from current UI state.
+     * Populates {@code mp.base} with generic {@link Params} (rescale, overlays, ganglia, etc.),
+     * then fills subtype model thresholds and marker list.
+     *
+     * @return Parameter bundle for the No-Hu pipeline.
+     */
 
     private NeuronsMultiNoHuPipeline.MultiParams buildMultiParamsFromUI() {
         // base Params reused by all pipelines (projection, rescale, ganglia, etc.)

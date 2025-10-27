@@ -18,19 +18,105 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 
+/**
+ * Static helpers for running parameter sweeps and capturing user picks.
+ * <p>
+ * {@code TuningTools} does the heavy lifting behind the "Tuning Tools"
+ * UI. For each sweep type (rescale, probability, ganglia expansion), it:
+ * </p>
+ * <ol>
+ *   <li>Opens the user-selected image via Bio-Formats.</li>
+ *   <li>Builds or reuses baseline {@link Features.Core.Params}.</li>
+ *   <li>Iterates over a numeric range (scale factors, probability cutoffs,
+ *       or spatial expansion distances).</li>
+ *   <li>Calls low-level segmentation helpers (e.g. {@code SegOne.runHuAtProb(...)})
+ *       to generate a mask/overlay for each tested value.</li>
+ *   <li>Writes previews and counts to disk in a "Tuning" folder.</li>
+ *   <li>Shows an interactive chooser where the user can preview and pick
+ *       whichever sweep entry looks most correct.</li>
+ *   <li>Saves the chosen value back into {@link UI.util.GatSettings} and
+ *       offers to export an Advanced-only config snippet ({@code .cfg}).</li>
+ * </ol>
+ *
+ * <p>
+ * The sweeps are designed for expert calibration: they let you dial in
+ * model probability thresholds, neuron rescaling to match training pixel
+ * size, and ganglia expansion radii without editing global defaults by hand.
+ * </p>
+ *
+ * <p>
+ * This class is not meant to be instantiated.
+ * </p>
+ */
 public final class TuningTools {
 
-    // ---------- Row (one option in a sweep) ----------
+
+
+    /**
+     * One candidate setting from a sweep, plus its preview data.
+     * <p>
+     * A {@code Row} binds together:
+     * </p>
+     * <ul>
+     *   <li>{@code x} – the parameter value tested (e.g. 0.45 probability,
+     *       1.25 rescale factor, 8.0 µm expansion).</li>
+     *   <li>{@code count} – how many objects / cells / ganglia were found
+     *       using that setting (a quick quality proxy).</li>
+     *   <li>{@code preview} – a PNG or similar overlay image written to disk
+     *       so the user can visually inspect results for that setting.</li>
+     * </ul>
+     *
+     * <p>
+     * These rows are displayed in a chooser dialog where the user can scroll,
+     * preview each PNG in ImageJ, and then select the row that "looks best".
+     * </p>
+     */
     public static final class Row {
         public final double x;
         public final int    count;
         public final File   preview;
+
+        /**
+         * Creates a single sweep entry representing one tested parameter value.
+         * <p>
+         * For example, a row might correspond to:
+         * </p>
+         * <ul>
+         *   <li>a specific probability threshold,</li>
+         *   <li>a specific rescaling factor,</li>
+         *   <li>or a specific ganglia expansion radius in µm,</li>
+         * </ul>
+         * plus the object count produced at that setting and a preview image
+         * saved to disk.
+         *
+         * @param x        the numeric parameter value tested (e.g. 0.50 prob, 1.25 rescale, 8.0 µm)
+         * @param count    how many objects (cells / ganglia / etc.) were detected at this setting
+         * @param preview  PNG (or other) preview written during the sweep; may be {@code null}
+         */
         public Row(double x, int count, File preview){ this.x=x; this.count=count; this.preview=preview; }
+
+        /**
+         * Returns a short label for UI lists, combining the parameter value and count.
+         *
+         * @return formatted string like {@code "0.500  —  42"}
+         */
         @Override public String toString(){ return String.format(java.util.Locale.US, "%.3f  —  %d", x, count); }
     }
 
-    // ===================== General helpers =====================
-
+    /**
+     * Ensures and returns the directory to use for sweep outputs.
+     * <p>
+     * The general rule is:
+     * </p>
+     * <ul>
+     *   <li>If {@code outDir} is {@code null}, fall back to {@code ~/Analysis}.</li>
+     *   <li>If that directory is already named {@code Tuning}, use it directly.</li>
+     *   <li>Otherwise create (or reuse) a {@code Tuning/} subfolder.</li>
+     * </ul>
+     *
+     * @param outDir preferred output directory from the caller; may be {@code null}
+     * @return a {@link File} representing the sweep output folder (created if needed)
+     */
     private static File ensureSweepDir(File outDir) {
         File base = outDir;
         if (base == null) {
@@ -46,8 +132,40 @@ public final class TuningTools {
         return t;
     }
 
+    /**
+     * Rounds a double to three decimal places.
+     * <p>
+     * Used when writing sweep values (probability, scale factor, µm expansion)
+     * so filenames and CSVs look consistent.
+     * </p>
+     *
+     * @param d input value
+     * @return {@code d} rounded to 3 decimal places
+     */
     private static double round3(double d){ return Math.round(d*1000.0)/1000.0; }
 
+
+    /**
+     * Produces a maximum-intensity projection of an image stack.
+     * <p>
+     * If {@code src} is already 2D (single slice), this returns a duplicate.
+     * Otherwise:
+     * </p>
+     * <ul>
+     *   <li>If {@code base.useClij2EDF} is true, uses the application's
+     *       CLIJ2-based EDF routine.</li>
+     *   <li>Otherwise calls ImageJ's "Z Project..." with "Max Intensity".</li>
+     * </ul>
+     *
+     * <p>
+     * The returned {@link ImagePlus} is hidden (not shown) if created here.
+     * </p>
+     *
+     * @param src  input {@link ImagePlus}, possibly multi-slice
+     * @param base baseline {@link Params} whose flags decide which projection path to use
+     * @return a new {@link ImagePlus} representing a 2D max projection of {@code src}
+     * @throws IllegalArgumentException if {@code src} is {@code null}
+     */
     private static ImagePlus toMaxProjection(ImagePlus src, Params base) {
         if (src == null) throw new IllegalArgumentException("Image is null");
         if (src.getNSlices() <= 1) return src.duplicate();
@@ -63,6 +181,22 @@ public final class TuningTools {
         }
     }
 
+
+    /**
+     * Writes the sweep summary rows to a CSV file.
+     * <p>
+     * The CSV has columns:
+     * </p>
+     * <pre>
+     * x,count,preview
+     * </pre>
+     * where {@code x} is the tested parameter value, {@code count} is the
+     * number of detections, and {@code preview} is the absolute path to
+     * the preview image for that row (if any).
+     *
+     * @param rows list of {@link Row} entries to export
+     * @param csv  destination file; any existing file will be overwritten
+     */
     private static void saveRowsCsv(List<Row> rows, File csv) {
         try {
             java.io.PrintWriter pw = new java.io.PrintWriter(csv, "UTF-8");
@@ -76,11 +210,33 @@ public final class TuningTools {
         } catch (Exception ignore) { }
     }
 
-    // ===================== Picker with Preview (modeless) =====================
+
 
     /**
-     * Modeless chooser that still blocks the calling (background) thread with a latch.
-     * Not always-on-top; preview opens PNG via IJ and you can freely close/move it.
+     * Presents a modeless chooser dialog that lets the user inspect and pick
+     * one {@link Row} (a sweep entry).
+     * <p>
+     * The dialog shows all rows in a list, a Preview button that opens the
+     * row's PNG in ImageJ, and OK/Cancel. The chosen {@link Row} is returned.
+     * </p>
+     *
+     * <p>
+     * Threading details:
+     * </p>
+     * <ul>
+     *   <li>If called off the EDT (typical case), this method spins up
+     *       the chooser on the EDT and then blocks the caller using a
+     *       {@link java.util.concurrent.CountDownLatch} until the dialog
+     *       closes.</li>
+     *   <li>If called on the EDT (unexpected in normal usage), it falls
+     *       back to a standard {@link JOptionPane#showInputDialog} to
+     *       avoid deadlock.</li>
+     * </ul>
+     *
+     * @param title title for the chooser window / dialog
+     * @param rows  list of sweep rows to present to the user
+     * @return the {@link Row} the user picked, or {@code null} if the user
+     *         cancelled or the list was empty
      */
     private static Row pickWithPreview(final String title, final java.util.List<Row> rows) {
         if (rows == null || rows.isEmpty()) return null;
@@ -184,20 +340,47 @@ public final class TuningTools {
         return result[0];
     }
 
-    // ===================== TEST (.cfg) saving =====================
 
+    /**
+     * Convenience: puts a key/value pair into a {@link Properties} if
+     * the value is non-null.
+     *
+     * @param pr   target properties
+     * @param key  property key
+     * @param val  value to store (ignored if {@code null})
+     */
     private static void put(Properties pr, String key, Object val) {
         if (val == null) return;
         pr.setProperty(key, String.valueOf(val));
     }
 
-    /** Stamp as a "testing" config so ConfigIO will allow it anywhere. */
+    /**
+     * Marks a {@link Properties} bundle as an "Advanced-only testing config".
+     * <p>
+     * This stamps fields so downstream config loaders/validators know that
+     * this is not a full workflow config, but rather a tuning snapshot
+     * created by the sweeps.
+     * </p>
+     *
+     * @param pr properties object to tag
+     */
     private static void markAsTesting(Properties pr) {
         pr.setProperty("workflow", "test");
         if (!pr.containsKey("cfgVersion")) pr.setProperty("cfgVersion", "1");
     }
 
-    /** Save a tiny, Advanced-only config file next to the sweep outputs. */
+    /**
+     * Prompts the user to save a minimal {@code .cfg} file containing only
+     * "Advanced" keys relevant to the specific sweep they just ran.
+     * <p>
+     * The file is created next to the sweep outputs and can later be loaded
+     * via "Load Config" in the UI to quickly reapply the tuned values.
+     * </p>
+     *
+     * @param pr               properties to write
+     * @param sweepDir         directory where sweep results were stored
+     * @param baseNameNoExt    suggested base filename (without extension)
+     */
     private static void saveRunCfg(Properties pr, File sweepDir, String baseNameNoExt) {
         markAsTesting(pr);
         JFileChooser fc = new JFileChooser(sweepDir);
@@ -221,9 +404,23 @@ public final class TuningTools {
         }
     }
 
-    // ---- Build Advanced-only test props for each sweep ----
-
-    /** Advanced keys for Hu rescale tuning. */
+    /**
+     * Builds the minimal "Advanced-only" config for a Hu rescale sweep.
+     * <p>
+     * Captures:
+     * </p>
+     * <ul>
+     *   <li>Hu model ZIP path</li>
+     *   <li>Probability / NMS thresholds used during the sweep</li>
+     *   <li>The chosen rescale factor (the output of the sweep)</li>
+     *   <li>Pixel scaling assumptions</li>
+     * </ul>
+     *
+     * @param base baseline params in effect during the sweep
+     * @param cfg  dialog config from {@link RescaleHuDialog}
+     * @param pick the row the user selected as "best", may be {@code null}
+     * @return {@link Properties} containing only advanced/tunable keys
+     */
     private static Properties testCfgForRescale(Params base,
                                                 RescaleHuDialog.Config cfg,
                                                 Row pick) {
@@ -243,7 +440,23 @@ public final class TuningTools {
         return pr;
     }
 
-    /** Advanced keys for Hu probability tuning. */
+    /**
+     * Builds the minimal "Advanced-only" config for a Hu probability sweep.
+     * <p>
+     * Captures:
+     * </p>
+     * <ul>
+     *   <li>Model ZIP path</li>
+     *   <li>The user's chosen probability threshold</li>
+     *   <li>NMS / overlap threshold</li>
+     *   <li>Rescale assumptions used in that sweep</li>
+     * </ul>
+     *
+     * @param base baseline params in effect during the sweep
+     * @param cfg  dialog config from {@link ProbabilityDialog} (NEURON mode)
+     * @param pick the row the user chose as best, may be {@code null}
+     * @return {@link Properties} representing only the advanced keys
+     */
     private static Properties testCfgForProbHu(Params base,
                                                ProbabilityDialog.Config cfg,
                                                Row pick) {
@@ -262,7 +475,21 @@ public final class TuningTools {
         return pr;
     }
 
-    /** Advanced keys for Subtype probability tuning. */
+    /**
+     * Builds the minimal "Advanced-only" config for a subtype probability sweep.
+     * <p>
+     * Captures:
+     * </p>
+     * <ul>
+     *   <li>Subtype model ZIP</li>
+     *   <li>Chosen probability threshold for that subtype</li>
+     *   <li>NMS / overlap for subtype objects</li>
+     * </ul>
+     *
+     * @param cfg  dialog config from {@link ProbabilityDialog} (SUBTYPE mode)
+     * @param pick the row the user picked as best, may be {@code null}
+     * @return {@link Properties} with subtype-related advanced keys
+     */
     private static Properties testCfgForProbSubtype(ProbabilityDialog.Config cfg,
                                                     Row pick) {
         Properties pr = new Properties();
@@ -273,7 +500,16 @@ public final class TuningTools {
         return pr;
     }
 
-    /** Advanced keys for Ganglia expansion tuning (map to Hu-dilation control). */
+    /**
+     * Builds the minimal "Advanced-only" config for a ganglia expansion sweep.
+     * <p>
+     * The only advanced knob here is how far (in µm) Hu-positive neurons
+     * are spatially expanded to approximate the ganglion boundary.
+     * </p>
+     *
+     * @param pick the chosen sweep row, which encodes the preferred expansion µm
+     * @return {@link Properties} storing the picked ganglia expansion distance
+     */
     private static Properties testCfgForGanglia(Row pick) {
         Properties pr = new Properties();
         // Neuron advanced: the dilation (µm) control in Ganglia post-processing
@@ -281,9 +517,30 @@ public final class TuningTools {
         return pr;
     }
 
-    // ===================== Sweeps =====================
-
-    // ---- Rescale sweep (Hu) ----
+    /**
+     * Runs the Hu rescale sweep for neuron detection.
+     * <p>
+     * High-level flow:
+     * </p>
+     * <ol>
+     *   <li>Open the image with Bio-Formats, create a max projection.</li>
+     *   <li>For each rescale factor in {@code cfg} (min → max with step):</li>
+     *   <li>Call {@code SegOne.runHuAtScale(...)} to segment at that scale and
+     *       capture a {@link Row} containing the result count and preview PNG.</li>
+     *   <li>Let the user pick their favorite row with {@link #pickWithPreview}.</li>
+     *   <li>Save a tiny .cfg snapshot for re-use and write a CSV of all rows.</li>
+     * </ol>
+     *
+     * <p>
+     * This method toggles ImageJ batch mode on/off around the sweep to
+     * avoid repeated UI redraw.
+     * </p>
+     *
+     * @param base      baseline neuron params (will be mutated for thresholds)
+     * @param outDir    optional output directory from the dialog; may be {@code null}
+     * @param settings  app settings store; updated with the chosen rescale factor
+     * @param cfg       user-entered sweep configuration from {@link RescaleHuDialog}
+     */
     public static void runRescaleSweep(Params base,
                                        File outDir,
                                        GatSettings settings,
@@ -323,7 +580,32 @@ public final class TuningTools {
         }
     }
 
-    // ---- Probability sweep (Hu or Subtype) ----
+    /**
+     * Runs a probability sweep for either Hu neurons or a specific neuron subtype.
+     * <p>
+     * High-level flow:
+     * </p>
+     * <ol>
+     *   <li>Open the source image and make a max projection.</li>
+     *   <li>For each probability in {@code cfg.probMin..probMax}:</li>
+     *   <li>
+     *     <ul>
+     *       <li>If NEURON mode: call {@code SegOne.runHuAtProb(...)}.</li>
+     *       <li>If SUBTYPE mode: call {@code SegOne.runSubtypeAtProb(...)} with
+     *           a {@link NeuronsMultiPipeline.MultiParams} that includes the
+     *           subtype model ZIP.</li>
+     *     </ul>
+     *   </li>
+     *   <li>Show the picker so the user can choose the "best" row.</li>
+     *   <li>Persist tuned values to {@link GatSettings} and write a .cfg snapshot
+     *       + CSV summary.</li>
+     * </ol>
+     *
+     * @param base          baseline neuron params (prob/NMS/etc. will be set)
+     * @param unusedOutDir  unused; kept for API symmetry with other sweeps
+     * @param s             settings store to update with the chosen probability
+     * @param cfg           dialog config describing sweep bounds and mode
+     */
     public static void runProbSweep(Params base,
                                     File unusedOutDir,
                                     GatSettings s,
@@ -378,7 +660,25 @@ public final class TuningTools {
         }
     }
 
-    // ---- Ganglia expansion (µm) ----
+    /**
+     * Runs a ganglia expansion sweep (in micrometers).
+     * <p>
+     * A series of expansion radii (µm) is tested. For each one, Hu-positive
+     * neurons are expanded spatially to approximate ganglion boundaries,
+     * and a {@link Row} is recorded with object counts and a preview.
+     * The user then picks the expansion distance that looks best.
+     * </p>
+     *
+     * <p>
+     * The chosen expansion distance is stored in {@link GatSettings} and a
+     * minimal tuning .cfg is offered for saving.
+     * </p>
+     *
+     * @param base          baseline params, including Hu channel index
+     * @param unusedOutDir  unused; reserved for future symmetry
+     * @param s             settings store to update with the chosen expansion µm
+     * @param cfg           dialog config defining min/max/step expansion radii and output directory
+     */
     public static void runGangliaExpansionSweep(Params base,
                                                 File unusedOutDir,
                                                 GatSettings s,
@@ -550,6 +850,11 @@ public final class TuningTools {
         return card;
     }
 
-
+      /**
+     * Private constructor to prevent instantiation.
+     * <p>
+     * {@code TuningTools} is a static utility holder and should not be created.
+     * </p>
+     */
     private TuningTools(){}
 }

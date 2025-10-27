@@ -5,13 +5,33 @@ import ij.ImagePlus;
 import ij.process.ImageProcessor;
 import ij.process.ShortProcessor;
 
+
+/**
+ * Utilities for reasoning about label maps (16-bit integer segmentation maps).
+ * Mostly focused on "Hu-gated subtypes":
+ *  - find which Hu neurons are positive for a marker,
+ *  - keep only those Hu neurons,
+ *  - rebuild contiguous labels from masks.
+ */
 public final class LabelOps {
     private LabelOps(){}
 
     /**
-     * For every Hu label ID in huLabels, compute fraction of its pixels that
-     * overlap ANY >0 pixel in markerLabels. Return boolean[ maxHuId+1 ],
-     * where keep[huId] = true if fraction >= fracThresh.
+     * For each Hu neuron ID in a Hu label map, compute how much of that neuron's
+     * area overlaps a marker label map. If the overlap fraction >= fracThresh,
+     * mark that neuron as "positive".
+     *
+     * Returns a boolean[] keep[] where keep[id] is true if neuron 'id' is marker-positive.
+     *
+     * Assumptions:
+     *   - huLabels is a 16-bit label map where each neuron has its own ID (1..N).
+     *   - markerLabels is a 16-bit label map from StarDist/segmentation of
+     *     some marker channel (nonzero means positive).
+     *
+     * @param huLabels      Hu neuron label map.
+     * @param markerLabels  Marker-specific label map.
+     * @param fracThresh    Minimum fractional overlap (0..1) required to call that neuron positive.
+     * @return              boolean array of length maxHuId+1, where index==Hu label ID.
      */
     public static boolean[] neuronsPositiveByOverlap(ImagePlus huLabels, ImagePlus markerLabels, double fracThresh) {
         ImageProcessor hu = huLabels.getProcessor();
@@ -50,8 +70,21 @@ public final class LabelOps {
 
 
     /**
-     * Keep only Hu labels whose keep[id] is true. Returns a NEW 16-bit label map
-     * by converting the kept pixels to binary and re-labeling to 1..K (contiguous).
+     * Build a new label map that only keeps Hu neuron IDs marked as true in 'keep'.
+     *
+     * Steps:
+     *   - For each pixel: if its Hu neuron ID is in-bounds and keep[id] is true, mark 255 in a binary mask.
+     *   - Convert that binary mask to a fresh, contiguous 16-bit label image
+     *     (connected components labeling).
+     *   - Copy calibration from the input.
+     *
+     * Use case:
+     *   After deciding which Hu neurons express MarkerX, this returns a clean,
+     *   relabeled ImagePlus of only those MarkerX+ Hu neurons.
+     *
+     * @param huLabels Hu neuron label map (16-bit).
+     * @param keep     boolean mask from neuronsPositiveByOverlap(...).
+     * @return         New 16-bit label map ImagePlus of kept neurons only.
      */
     public static ImagePlus keepHuLabels(ImagePlus huLabels, boolean[] keep) {
         int w = huLabels.getWidth(), h = huLabels.getHeight();

@@ -14,8 +14,19 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * Result viewer for the single-channel Hu pipeline.
+ *
+ * Displays:
+ *  • Output folder, total neurons, optional ganglia count
+ *  • Neurons and ganglia overlay thumbnails
+ *  • Ganglia table
+ *  • Hu “neurons per ganglion” box plot
+ *  • Optional spatial analysis for Hu if CSV present
+ */
 public class ResultsUI {
 
+    /** Prompt to preview results, open the output folder, or finish. */
     public static void promptAndMaybeShow(HuResult r) {
         String msg = "Results saved to:\n" + r.outDir.getAbsolutePath();
         String[] options = {"Preview results…", "Open folder", "End"};
@@ -31,6 +42,9 @@ public class ResultsUI {
         }
     }
 
+
+
+    /** Open a directory using the Desktop API; fall back to showing the path in ImageJ. */
     private static void openFolder(File dir) {
         try {
             if (Desktop.isDesktopSupported()) Desktop.getDesktop().open(dir);
@@ -40,6 +54,10 @@ public class ResultsUI {
         }
     }
 
+    /**
+     * Create and show the results window for a Hu run.
+     * @param r Hu pipeline result bundle.
+     */
     private static void showResultsFrame(HuResult r) {
         JFrame f = new JFrame("Results – " + r.baseName);
         f.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -144,8 +162,7 @@ public class ResultsUI {
         f.setVisible(true);
     }
 
-    // ---------- helpers ----------
-
+    /** Small bold section header. */
     private static JPanel sectionTitle(String text) {
         JPanel p = new JPanel(new BorderLayout());
         JLabel l = new JLabel(text);
@@ -155,6 +172,10 @@ public class ResultsUI {
         return p;
     }
 
+    /**
+     * Render the Hu “neurons per ganglion” box plot using the same visual style as
+     * multiplex pages (light grid, central box, whiskers, median line, and inline stats).
+     */
     private static BufferedImage makeGangliaBoxPlot(HuResult r) {
         if (r.neuronsPerGanglion == null || r.neuronsPerGanglion.length <= 1) {
             return placeholderImage(420, 240, "No ganglia data");
@@ -246,6 +267,10 @@ public class ResultsUI {
     }
 
 
+    /**
+     * Five-number summary for an integer list.
+     * @param vals Sorted (or unsorted; the method sorts internally) list of counts > 0.
+     */
     private static double[] fiveNumberSummary(java.util.List<Integer> vals) {
         java.util.Collections.sort(vals);
         int n = vals.size();
@@ -319,6 +344,10 @@ public class ResultsUI {
     }
 
 
+    /**
+     * Build the Hu ganglia table: ganglion_id, neuron_count, area_um2.
+     * Skips row 0 and empty rows.
+     */
     private static JTable makeGangliaTable(HuResult r) {
         DefaultTableModel model = new DefaultTableModel(new Object[]{"ganglion_id","neuron_count","area_um2"}, 0) {
             @Override public boolean isCellEditable(int row, int col) { return false; }
@@ -355,11 +384,16 @@ public class ResultsUI {
 
 
 
+    /** Save a {@link BufferedImage} to PNG, ensuring the parent directory exists. */
     private static void saveImage(BufferedImage img, File out) throws IOException {
         out.getParentFile().mkdirs();
         javax.imageio.ImageIO.write(img, "PNG", out);
     }
 
+    /**
+     * If present, read {@code spatial_analysis/Neighbour_count_Hu.csv} and add
+     * a summary+histogram card to the Results UI with a "Save spatial plots…" button.
+     */
     private static void addSpatialSectionFromCsv(JPanel center, File outDir, String cellType) {
         File csv = new File(new File(outDir, "spatial_analysis"), "Neighbour_count_" + cellType + ".csv");
         if (!csv.isFile()) return;
@@ -429,11 +463,12 @@ public class ResultsUI {
         center.add(btnRow);
     }
 
-    // ===== Spatial analysis helpers =====
 
 
 
 
+
+    /** Summary stats & histogram rendering for Hu spatial analysis. */
     private static final class Stats {
         final int n, min, max; final double mean, median, stdev;
         Stats(int n,int min,int max,double mean,double median,double stdev){

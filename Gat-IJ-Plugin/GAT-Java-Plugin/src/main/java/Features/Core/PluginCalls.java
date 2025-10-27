@@ -12,13 +12,40 @@ import java.awt.*;
 import java.io.File;
 import java.text.DecimalFormat;
 
+
+/**
+ * Centralized wrapper for "run this ImageJ / Fiji thing" calls.
+ *
+ * Goals:
+ *  - Hide ImageJ macro-style IJ.run(...) boilerplate behind named helpers.
+ *  - Ensure we consistently propagate calibration, hide temp windows,
+ *    and clean up after plugin calls.
+ *  - Provide deterministic "new image" capture (findNewImageSince).
+ *
+ * Pipelines call these helpers instead of sprinkling IJ.run() everywhere.
+ */
 public final class PluginCalls {
     private PluginCalls(){}
 
+
+    /** Formatter used for building macro command strings with predictable decimal separators
+     *  (US locale, no commas). Used when passing thresholds to StarDist, etc.
+     */
     private static final DecimalFormat DF = new DecimalFormat("0.######",
             java.text.DecimalFormatSymbols.getInstance(java.util.Locale.US));
 
-    /** Bio-Formats opener that leaves the image active */
+    /**
+     * Open an image using Bio-Formats with consistent options (composite, etc.),
+     * then hide the resulting window.
+     *
+     * Behavior:
+     *   - Runs "Bio-Formats" importer via IJ.run
+     *   - Returns the ImagePlus that Bio-Formats created
+     *   - Keeps it open but not visible (so future calls can still access it)
+     *
+     * @param path absolute path to the image file (LIF, CZI, etc.).
+     * @return     hidden ImagePlus in memory, or null if Bio-Formats failed.
+     */
     public static ImagePlus openWithBioFormats(String path) {
         IJ.run("Bio-Formats", "open=[" + path + "] color_mode=Composite rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT");
         ImagePlus imp = IJ.getImage();
@@ -26,7 +53,19 @@ public final class PluginCalls {
         return imp;
     }
 
-    //Build the ganglia rgb image so that we can display it in the results page
+    /**
+     * Build an RGB composite image for visualizing ganglia vs Hu neurons.
+     *
+     * R = Hu channel, G = ganglia marker channel, B = Hu again
+     * → Hu shows as magenta, ganglia marker as green.
+     *
+     * Used mainly for overlays in review/export UIs.
+     *
+     * @param maxProj       MAX or EDF projection (multi-channel).
+     * @param gangliaCh1    1-based index of ganglia/neurite channel.
+     * @param huCh1         1-based index of Hu/neuron channel.
+     * @return              Hidden RGB ImagePlus with calibration copied.
+     */
     public static ImagePlus buildGangliaRgbForOverlay(ImagePlus maxProj, int gangliaCh1, int huCh1) {
         ImagePlus g  = Features.Tools.ImageOps.extractChannel(maxProj, gangliaCh1);
         ImagePlus hu = Features.Tools.ImageOps.extractChannel(maxProj, huCh1);
@@ -48,7 +87,19 @@ public final class PluginCalls {
         return rgb;
     }
 
-    /** CLIJ2 EDF (variance) projection, returns pulled image */
+    /**
+     * Create an Extended Depth of Focus projection (variance fusion) using CLIJ2.
+     * Falls back to IJ.run() integration points for CLIJ2.
+     *
+     * Steps:
+     *   - Push current Z stack to GPU
+     *   - Run "Extended Depth Of Focus (variance)"
+     *   - Pull single-plane result
+     *   - Copy calibration and hide it
+     *
+     * @param src  Original Z-stack ImagePlus
+     * @return     A new 2D ImagePlus called "EDF_<srcTitle>", hidden.
+     */
     public static ImagePlus clij2EdfVariance(ImagePlus src) {
         src.show();
         IJ.run("CLIJ2 Macro Extensions", "cl_device=");
@@ -64,19 +115,48 @@ public final class PluginCalls {
         return out;
     }
 
+    /**
+     * Quick unit check for microns.
+     *
+     * @param unit Calibration unit string from ImagePlus.getCalibration().getUnit()
+     * @return     true if it's one of "µm", "um", "micron", "microns" (case-insensitive).
+     */
     public static boolean isMicronUnit(String unit) {
         if (unit == null) return false;
         String u = unit.trim().toLowerCase(java.util.Locale.ROOT);
         return u.equals("µm") || u.equals("um") || u.equals("micron") || u.equals("microns");
     }
 
-    /** MorphoLibJ: Label Image -> ROIs */
+    /**
+     * Convert a 16-bit label image to ROIs via MorphoLibJ's
+     * "Label Map to ROIs".
+     *
+     * Side effect:
+     *   - Populates the global RoiManager with one ROI per label.
+     *
+     * @param labels 16-bit connected-component label map.
+     */
     public static void labelsToRois(ImagePlus labels) {
         // MorphoLibJ "Label Map to ROIs"
         String opts = "Connectivity=C8 Vertex Location=Corners Name Pattern=r%03d";
         SilentRun.on(labels, "Label Map to ROIs", opts);
     }
 
+
+    /**
+     * Remove labels that touch the border of the image using MorphoLibJ's
+     * "Remove Border Labels".
+     *
+     * We:
+     *   - Ensure the input is treated as a single-slice 16-bit label map.
+     *   - Remember which images existed before running the command.
+     *   - Run the command on the label map.
+     *   - Grab the newly created output from ImageJ.
+     *   - Copy calibration, hide it, and close temps.
+     *
+     * @param labels 16-bit label map (possibly multi-slice).
+     * @return       New 16-bit label map with border-touching objects removed.
+     */
     public static ImagePlus removeBorderLabels(ImagePlus labels) {
         ImagePlus lab2d = ensure2DLabel(labels);
         int[] before = ij.WindowManager.getIDList();
@@ -92,7 +172,17 @@ public final class PluginCalls {
         return out;
     }
 
-    /** MorphoLibJ: Label Size Filtering (>= threshold in pixels; faithful to macro) */
+    /**
+     * Apply "Label Size Filtering" (MorphoLibJ) to remove objects smaller than a
+     * pixel-area threshold.
+     *
+     * Used to drop tiny debris after StarDist or DIJ.
+     *
+     * @param labels 16-bit label map.
+     * @param minPx  Minimum allowed size in pixels.
+     * @return       New 16-bit label map, cleaned and hidden.
+     * @throws IllegalStateException if MorpholibJ didn't return output.
+     */
     public static ImagePlus labelMinSizeFilterPx(ImagePlus labels, int minPx) {
         int[] before = ij.WindowManager.getIDList();
         SilentRun.on(labels, "Label Size Filtering",
@@ -106,7 +196,14 @@ public final class PluginCalls {
         return out;
     }
 
-    /** Heuristic tiling, same thresholds as the macro (after potential rescale) */
+    /**
+     * Heuristic tile-count for StarDist based on image size.
+     * Larger images get more tiles to avoid memory issues during inference.
+     *
+     * @param w image width in pixels
+     * @param h image height in pixels
+     * @return  suggested nTiles parameter for StarDist.
+     */
     public static int suggestTiles(int w, int h) {
         int n = 4;
         if (w > 2000 || h > 2000) n = 5;
@@ -118,11 +215,15 @@ public final class PluginCalls {
 
 
     /**
-     * StarDist 2D (ZIP model) -> Label Image.
-     * Mirrors the macro’s call (normalize 1–99.8, user prob/nms, output=Label Image).
+     * INTERNAL HELPER (private): showHidden(ImagePlus imp)
+     *
+     * Ensures an ImagePlus is registered with ImageJ/WindowManager (so plugins
+     * can find it by title), but keeps the actual window invisible to the user.
+     *
+     * StarDist wants to look up an 'input' image by name, so we do this:
+     *   - give our input image a safe title,
+     *   - show it, then immediately hide its frame.
      */
-// in PluginCalls
-    // --- Add this helper near the top of PluginCalls ---
     private static void showHidden(ImagePlus imp) {
         if (imp == null) return;
         // Ensure the image is registered for lookup by title,
@@ -131,7 +232,25 @@ public final class PluginCalls {
         if (imp.getWindow() != null) imp.getWindow().setVisible(false);
     }
 
-    // --- Replace your runStarDist2DLabel with this version ---
+    /**
+     * Run StarDist 2D on a single-channel image and get back a label image.
+     *
+     * What this does:
+     *   1. Make sure the input image has a stable, legal title (StarDist finds it by name).
+     *   2. Snapshot currently-open images.
+     *   3. Build and run the StarDist command via IJ.run("Command From Macro", ...).
+     *   4. Capture the new label image that StarDist created.
+     *   5. Copy calibration, hide the result, return it.
+     *
+     * @param input    Single-channel image to segment (already pre-scaled and contrast-normalized by caller).
+     * @param modelZip Path to the StarDist .zip model.
+     * @param prob     Probability threshold.
+     * @param nms      NMS threshold.
+     * @return         16-bit label map ImagePlus (hidden). Each object has a unique label ID (1..N).
+     *
+     * @throws IllegalArgumentException if the modelZip doesn't exist.
+     * @throws IllegalStateException    if StarDist didn't create a label image.
+     */
     public static ImagePlus runStarDist2DLabel(ImagePlus input, String modelZip, double prob, double nms) {
         if (modelZip == null || !new File(modelZip).isFile())
             throw new IllegalArgumentException("StarDist ZIP not found: " + modelZip);
@@ -184,7 +303,17 @@ public final class PluginCalls {
     }
 
 
-    /** Return the newly-created ImagePlus since the 'before' snapshot, or null if none. */
+    /**
+     * Returns the first ImagePlus that appeared after a snapshot of window IDs.
+     *
+     * Typical pattern:
+     *   int[] before = WindowManager.getIDList();
+     *   IJ.run("Some Command", ...);
+     *   ImagePlus out = findNewImageSince(before);
+     *
+     * @param beforeIds Snapshot of open image IDs before running some plugin.
+     * @return          The new ImagePlus created, or null if nothing new opened.
+     */
     public static ImagePlus findNewImageSince(int[] beforeIds) {
         java.util.HashSet<Integer> prev = new java.util.HashSet<>();
         if (beforeIds != null) for (int id : beforeIds) prev.add(id);
@@ -199,6 +328,17 @@ public final class PluginCalls {
         }
         return null;
     }
+
+    /**
+     * INTERNAL HELPER (private): ensure2DLabel(ImagePlus src)
+     *
+     * Guarantees we have a single-slice, 16-bit label map for MorphoLibJ ops
+     * that don't like hyperstacks. If the input has multiple slices, we take
+     * slice 1. We then force 16-bit just in case.
+     *
+     * @param src Input label map, possibly multi-slice or not 16-bit.
+     * @return    A duplicate single-slice 16-bit label map with same calibration.
+     */
     private static ImagePlus ensure2DLabel(ImagePlus src) {
         ImagePlus lab2d;
         if (src.getStackSize() > 1) {
@@ -214,13 +354,35 @@ public final class PluginCalls {
     }
 
 
+    /**
+     * Container object for ganglia segmentation prep.
+     *
+     * dijInput3C: a hidden 3-channel float hyperstack (C=3,Z=1,T=1) normalized to [0..1]
+     *             ready to feed DeepImageJ.
+     * rgbForOverlay: an RGB visualization where Hu is magenta and ganglia channel is green,
+     *                used for overlay review / saving pretty figures.
+     */
     public static final class GangliaPrep {
         public final ImagePlus dijInput3C;   // 3-channel, 32-bit hyperstack (C=3,Z=1,T=1), 0..1
         public final ImagePlus rgbForOverlay; // RGB Color image for painting overlay
         GangliaPrep(ImagePlus d, ImagePlus r) { dijInput3C=d; rgbForOverlay=r; }
     }
 
-    /** Prepare both inputs with no IJ.run converters/dialogs. */
+    /**
+     * Prepare inputs for ganglia segmentation.
+     *
+     * Produces:
+     *   - a 3-channel float hyperstack (R=Hu, G=Ganglia, B=Hu) normalized to [0..1] for DeepImageJ,
+     *   - an RGB preview image for overlay/QA, with calibration copied.
+     *
+     * This mirrors the macro's "build RGB preview and DIJ input" steps,
+     * but does it in code without popping ImageJ dialogs.
+     *
+     * @param maxProj    The MAX/EDF projection with all channels.
+     * @param gangliaCh1 1-based channel index for ganglia/neurite signal.
+     * @param huCh1      1-based channel index for Hu/neuron signal.
+     * @return           GangliaPrep bundle (both images hidden in memory).
+     */
     public static GangliaPrep prepareGangliaInputs(ImagePlus maxProj, int gangliaCh1, int huCh1) {
         // 1) Extract the two source channels (grayscale, no UI)
         ImagePlus g  = Features.Tools.ImageOps.extractChannel(maxProj, gangliaCh1); // ganglia marker
@@ -273,7 +435,34 @@ public final class PluginCalls {
 
 
 
-    // full macro-faithful path for ganglia (RGB + im_preprocessing + DIJ + post)
+    /**
+     * Full ganglia segmentation pipeline using DeepImageJ, including cleanup and optional manual review.
+     *
+     * Steps:
+     *   1. Build DeepImageJ input (3-channel float stack) and an RGB overlay preview (prepareGangliaInputs).
+     *   2. Run "DeepImageJ Run" on the model in {@code modelFolderName} (under Fiji/models).
+     *   3. Threshold probability map to binary (gangliaProbThresh01).
+     *   4. Morphological open / size filtering in µm² (converted to px using calibration).
+     *   5. (Optional) Interactive paint step where user can fix the ganglia mask
+     *      using a white/black brush palette (showPaintPalette).
+     *   6. Additional size opening passes to clean up.
+     *
+     * Returns:
+     *   - A final 8-bit binary mask of ganglia (foreground=255).
+     *     The caller can convert that to labels if needed.
+     *
+     * @param maxProj            MAX/EDF projection.
+     * @param gangliaCh1         1-based ganglia marker channel index.
+     * @param huCh1              1-based Hu channel index.
+     * @param modelFolderName    Name of the DeepImageJ model folder under Fiji/models.
+     * @param minAreaUm2         Minimum ganglion size cutoff in µm² (fallback to params if 0).
+     * @param p                  Params (for thresholds, interactive review toggle, etc.).
+     * @param progress           Progress UI; we temporarily hide it during manual review.
+     * @return                   8-bit binary mask image ("ganglia_mask"-like), hidden.
+     *
+     * @throws IllegalArgumentException if model folder isn't found.
+     * @throws IllegalStateException    if DeepImageJ doesn't return an output.
+     */
     public static ImagePlus runDeepImageJForGanglia(
             ImagePlus maxProj, int gangliaCh1, int huCh1,
             String modelFolderName, double minAreaUm2, Params p, ProgressUI progress) {
@@ -375,6 +564,13 @@ public final class PluginCalls {
         if (out.getWindow() != null) out.hide();
         return out;
     }
+
+    /**
+     * Clear any active threshold overlay (red LUT) on an ImagePlus.
+     * Safe to call on null.
+     *
+     * @param imp image whose threshold should be reset.
+     */
     public static void clearThreshold(ImagePlus imp) {
         if (imp != null && imp.getProcessor() != null) {
             imp.getProcessor().resetThreshold();  // clears the red overlay
@@ -383,6 +579,20 @@ public final class PluginCalls {
     }
 
 
+    /**
+     * Convert a probability/probability-like map (0..1 scaled or grayscale)
+     * into a binary (0/255) mask using a given threshold in [0..1].
+     *
+     * Steps:
+     *   - Ensure 8-bit.
+     *   - Threshold: t = round(thresh01 * 255).
+     *   - Convert to Mask (IJ.run).
+     *   - Clear the visual threshold overlay.
+     *
+     * @param prob       Input probability map.
+     * @param thresh01   Threshold in [0..1] where pixels >= thresh become 255.
+     * @return           The same ImagePlus, now an 8-bit binary mask.
+     */
     public static ImagePlus probToBinary(ImagePlus prob, double thresh01) {
         if (prob.getBitDepth() != 8) IJ.run(prob, "8-bit", ""); // scales 0..255
         int t = (int)Math.round(Math.max(0, Math.min(255, thresh01 * 255.0)));
@@ -395,7 +605,17 @@ public final class PluginCalls {
 
 
 
-    /** From a BINARY mask -> label image (connected components). */
+    /**
+     * Convert an 8-bit binary mask into a 16-bit label map via "Connected Components Labeling",
+     * and hide the result.
+     *
+     * Assumes:
+     *   - Foreground is 255, background is 0.
+     *
+     * @param binary 8-bit mask.
+     * @return       16-bit label map (1..N), calibration copied.
+     * @throws IllegalStateException if labeling didn't produce an output.
+     */
     public static ImagePlus binaryToLabels(ImagePlus binary) {
         SilentRun.on(binary, "Convert to Mask", "");
         int[] before = ij.WindowManager.getIDList();
@@ -410,7 +630,19 @@ public final class PluginCalls {
         return labels;
     }
 
-    /** Fill ROIs into a blank mask with same size as ref. */
+    /**
+     * Paint the current contents of a RoiManager into a binary mask with the same
+     * spatial size and calibration as {@code ref}.
+     *
+     * Implementation:
+     *   - Create a blank 8-bit image.
+     *   - Associate RoiManager with it.
+     *   - "Show All without labels" + "Fill" to burn ROIs in.
+     *
+     * @param ref Reference image for width/height/calibration.
+     * @param rm  RoiManager containing ROIs to rasterize.
+     * @return    8-bit binary mask ImagePlus (foreground=255 where ROIs were).
+     */
     public static ImagePlus roisToBinary(ImagePlus ref, RoiManager rm) {
         ImagePlus mask = IJ.createImage("ganglia_binary", "8-bit black", ref.getWidth(), ref.getHeight(), 1);
         mask.setCalibration(ref.getCalibration());
@@ -423,12 +655,38 @@ public final class PluginCalls {
         return mask;
     }
 
-    // --- keep these tiny helpers (or add them if you don't have them) ---
+    /**
+     * INTERNAL HELPER (private): setAddMode()
+     *
+     * Helper for showPaintPalette(): sets ImageJ's paintbrush FG color to white
+     * (add foreground) and BG to black.
+     */
     private static void setAddMode() { ij.IJ.setForegroundColor(255,255,255); ij.IJ.setBackgroundColor(0,0,0); }
+    /**
+     * INTERNAL HELPER (private): setEraseMode()
+     *
+     * Helper for showPaintPalette(): sets ImageJ's paintbrush FG color to black
+     * (erase) and BG to white.
+     */
     private static void setEraseMode(){ ij.IJ.setForegroundColor(0,0,0);     ij.IJ.setBackgroundColor(255,255,255); }
 
-    /** Modeless palette: user can paint on the image while it's open.
-     *  Blocks the calling (pipeline) thread until "Done" is pressed (uses a latch).
+    /**
+     * Pops up a tiny always-on-top palette with:
+     *   - a toggle button ("Add (white)" / "Erase (black)") that flips the
+     *     brush's foreground/background colors,
+     *   - a "Done" button to finish editing.
+     *
+     * Meanwhile, the user can directly paint onto the currently open ganglia mask
+     * image using ImageJ's paintbrush tool (we set/tool it before opening the dialog).
+     *
+     * This method:
+     *   - Brings the image window to the front so brush input goes there.
+     *   - Blocks the calling (pipeline) thread until "Done" is clicked,
+     *     but does NOT block the Swing EDT (palette is MODELESS).
+     *
+     * @param owner    Parent window to center the palette near (can be null).
+     * @param title    Title for the palette dialog.
+     * @param helpLine Small HTML-friendly help text to show in the palette.
      */
     public static void showPaintPalette(java.awt.Window owner, String title, String helpLine) {
         // start in ADD mode by default
@@ -480,10 +738,6 @@ public final class PluginCalls {
             try { latch.await(); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
         }
     }
-
-
-
-
 
 
 

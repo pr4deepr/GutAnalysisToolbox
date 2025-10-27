@@ -17,16 +17,35 @@ import java.io.File;
 import static Features.Tools.RoiManagerHelper.*;
 
 /**
- * Shared, minimal segmentation helpers for the Tuning tools.
- * - Hu single-run (with rescale / prob override)
- * - Subtype single-run (uses MultiParams thresholds)
- * - Quick overlay PNG writers
- * - Simple ganglia-from-Hu expansion for preview (binary dilate → CC label)
+ * Shared segmentation helpers used by the "Tuning" / preview tools and by
+ * interactive parameter sweeps.
+ *
+ * Responsibilities:
+ *  - Run Hu segmentation once with custom overrides (segmentHuOne)
+ *  - Run subtype/marker segmentation once (segmentSubtypeOne)
+ *  - Build quick-and-dirty ganglia previews from Hu ROIs
+ *  - Save flattened overlay PNGs for UI previews
+ *
+ * Everything here is meant to be "single-shot" (one channel, one setting)
+ * rather than running the whole pipeline.
  */
 public final class SegCommon {
 
-    // ----------------------- Result wrapper -----------------------
 
+    /**
+     * Result of a quick segmentation pass.
+     *
+     * rm:
+     *   RoiManager containing one ROI per detected object.
+     *
+     * labels16:
+     *   16-bit label map aligned to the MAX image. May be null for certain subtype runs.
+     *
+     * count:
+     *   number of detected objects (basically max label ID).
+     *
+     * Call dispose() after you're done to hide/close temporary images and clear the RM.
+     */
     public static final class SegResult {
         public final RoiManager rm;
         public final ImagePlus labels16;   // label map aligned to MAX (may be null for subtype)
@@ -37,6 +56,12 @@ public final class SegCommon {
             this.labels16 = labels16;
             this.count = count;
         }
+
+        /**
+         * Dispose/cleanup helper:
+         *  - Closes label map (without prompting to save).
+         *  - Resets and hides the RoiManager.
+         */
         public void dispose() {
             try {
                 if (labels16 != null) { labels16.changes = false; labels16.close(); }
@@ -48,11 +73,25 @@ public final class SegCommon {
     // ----------------------- HU (single run) ----------------------
 
     /**
-     * Segment Hu on one channel image, applying rescale + size filter + border removal.
-     * @param ch   single-channel ImagePlus (extracted from MAX)
-     * @param max  original MAX (for calibration + output alignment)
-     * @param p    Params (uses trainingPixelSizeUm, trainingRescaleFactor, rescaleToTrainingPx, neuronSegLowerLimitUm, stardistModelZip)
-     * @param probOverride if non-null, overrides p.probThresh
+     * Segment Hu-positive neurons from a single channel and return ROIs + count.
+     *
+     * Steps (mirrors main Hu pipeline but simplified):
+     *   1. Compute rescale factor so pixel size matches StarDist training size.
+     *   2. Resize the channel if needed.
+     *   3. Run StarDist to get a label map.
+     *   4. Remove border-touching labels.
+     *   5. Size-filter based on neuronSegLowerLimitUm (in microns → px).
+     *   6. Resize labels back up to MAX size if we downscaled.
+     *   7. Dump labels to a RoiManager.
+     *
+     * @param ch            single-channel image (Hu channel extracted from MAX).
+     * @param max           the full MAX/EDF projection image (used for calibration and alignment).
+     * @param p             Params containing StarDist model path and size thresholds.
+     * @param probOverride  if non-null, overrides p.probThresh for just this run (used by tuning sliders).
+     *
+     * @return SegResult with ROIs, final relabeled mask, and object count.
+     *
+     * @throws IllegalArgumentException if inputs are missing or invalid.
      */
     public static SegResult segmentHuOne(ImagePlus ch, ImagePlus max, Params p, Double probOverride) {
         if (ch == null || ch.getProcessor() == null) throw new IllegalArgumentException("channel image is null");
@@ -116,8 +155,21 @@ public final class SegCommon {
     // -------------------- Subtype (single run) --------------------
 
     /**
-     * Segment one subtype channel using MultiParams thresholds (prob/nms) and base rescaling.
-     * Returns ROIs + count; label map is resized back to MAX dims.
+     * Segment one subtype/marker channel (e.g. ChAT+, VIP+, etc.) using MultiParams.
+     *
+     * Similar to segmentHuOne() except:
+     *   - Uses mp.subtypeModelZip plus mp.multiProb/mp.multiNms thresholds.
+     *   - Uses mp.base (a Params) for rescale rules.
+     *   - Returns labels resized to MAX dimensions and pushed into a fresh RoiManager.
+     *
+     * This does NOT apply Hu gating. It's just "cells in this marker channel".
+     * Hu gating happens in the full multi pipeline.
+     *
+     * @param ch    extracted single channel for the marker.
+     * @param max   MAX/EDF projection for alignment/calibration.
+     * @param mp    MultiParams from NeuronsMultiPipeline (must include mp.base).
+     *
+     * @return SegResult with ROIs, label map, and object count.
      */
     public static SegResult segmentSubtypeOne(ImagePlus ch, ImagePlus max, NeuronsMultiPipeline.MultiParams mp) {
         if (ch == null || ch.getProcessor() == null) throw new IllegalArgumentException("channel image is null");
@@ -179,8 +231,22 @@ public final class SegCommon {
     // ------------------- Ganglia (Hu expansion) -------------------
 
     /**
-     * Quick preview builder: take Hu ROIs → binary → dilate (µm) → connected components → labels.
-     * Uses iterative "Dilate" as a simple morphology. For preview/tuning only.
+     * Quick ganglia preview based on Hu neurons only.
+     *
+     * Used in tuning: "What does my ganglia look like if I just dilate Hu neurons by X µm?"
+     *
+     * Steps:
+     *   1. Take all Hu ROIs, rasterize them to a binary mask.
+     *   2. Morphologically dilate the mask N times, where N ≈ expansionUm / pixelSize.
+     *   3. Connected components to get a ganglia label map.
+     *
+     * This is intentionally lightweight and approximate. The real pipeline might
+     * call DeepImageJ etc.
+     *
+     * @param max         MAX projection (for size + calibration).
+     * @param huRm        RoiManager containing Hu neurons.
+     * @param expansionUm how far (µm) to dilate.
+     * @return            16-bit label map of "ganglia-like blobs".
      */
     public static ImagePlus gangliaByExpansionPreview(ImagePlus max, RoiManager huRm, double expansionUm) {
         if (max == null) throw new IllegalArgumentException("max is null");
@@ -206,9 +272,22 @@ public final class SegCommon {
         return labels;
     }
 
-    // ---------------------- Overlay savers (PNG) ------------------
 
-    /** Save a flattened PNG of MAX with given ROIs overlaid. */
+    /**
+     * Save an RGB PNG preview of MAX with the given ROIs outlined in red.
+     *
+     * Steps:
+     *   - Duplicate MAX
+     *   - Build an Overlay with each ROI stroked red, width 1.5px
+     *   - dup.flatten() → RGB
+     *   - Write to disk as .png
+     *
+     * @param max      base image for context.
+     * @param rm       RoiManager with ROIs to draw.
+     * @param outDir   directory to save into (will mkdirs()).
+     * @param fileName desired filename (".png" appended if missing).
+     * @return         File pointing to the written PNG, or null on failure.
+     */
     public static File saveOverlay(ImagePlus max, RoiManager rm, File outDir, String fileName) {
         try {
             if (!outDir.exists()) outDir.mkdirs();
@@ -238,7 +317,19 @@ public final class SegCommon {
         }
     }
 
-    /** Save a flattened PNG of MAX with a label/binary painted as ROIs. */
+    /**
+     * Save an RGB PNG where we first convert a label map or binary mask to ROIs,
+     * then draw those ROIs on top of MAX.
+     *
+     * Convenience wrapper around saveOverlay() that takes a label/binary image
+     * instead of an RoiManager.
+     *
+     * @param max           base image.
+     * @param labelsOrMask  16-bit label map or 8-bit mask.
+     * @param outDir        destination folder.
+     * @param fileName      suggested filename (.png appended if missing).
+     * @return              File pointing to saved PNG, or null on failure.
+     */
     public static File saveMaskOverlay(ImagePlus max, ImagePlus labelsOrMask, File outDir, String fileName) {
         try {
             RmHandle rmh = ensureGlobalRM();
@@ -258,9 +349,15 @@ public final class SegCommon {
         }
     }
 
-    // ------------------------- Utilities --------------------------
-
-    /** Count labels in a 16-bit label map (max pixel value). */
+    /**
+     * Count how many distinct objects are in a 16-bit label map.
+     * We assume labels are contiguous integers 1..N.
+     *
+     * Implementation detail: just find the max pixel value.
+     *
+     * @param labels16 16-bit label map.
+     * @return         number of labeled objects (max label ID).
+     */
     public static int countLabels(ImagePlus labels16) {
         if (labels16 == null || labels16.getProcessor() == null) return 0;
         ImageProcessor ip = labels16.getProcessor();

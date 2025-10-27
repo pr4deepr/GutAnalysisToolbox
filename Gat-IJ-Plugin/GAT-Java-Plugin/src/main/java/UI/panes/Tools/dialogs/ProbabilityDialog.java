@@ -9,6 +9,38 @@ import java.io.File;
 
 import static UI.panes.Tools.dialogs.RescaleHuDialog.wrapLabelCentered;
 
+/**
+ * Modal dialog for configuring a StarDist probability threshold sweep.
+ * <p>
+ * This dialog is aimed at helping the user choose a good probability cutoff
+ * for neuron segmentation. It can operate in two modes:
+ * </p>
+ *
+ * <ul>
+ *   <li><b>NEURON</b>: Segment Hu-positive neurons directly from the Hu
+ *       channel.</li>
+ *   <li><b>SUBTYPE</b>: Segment a specific neuron subtype from another
+ *       marker channel using a provided StarDist model ZIP.</li>
+ * </ul>
+ *
+ * <p>The user can:</p>
+ * <ul>
+ *   <li>Pick the image to segment</li>
+ *   <li>Select mode (NEURON vs SUBTYPE) and the 1-based image channel</li>
+ *   <li>Define a sweep of probability thresholds (min/max/step)</li>
+ *   <li>Specify fixed parameters used during the sweep, such as the
+ *       rescaling factor and the overlap threshold</li>
+ *   <li>(If SUBTYPE mode) choose the StarDist model ZIP</li>
+ *   <li>Select an output directory for generated previews/CSVs</li>
+ * </ul>
+ *
+ * <p>Pressing OK validates all inputs and produces a
+ * {@link ProbabilityDialog.Config} instance. If validation fails, the
+ * dialog warns the user and stays open. Call {@link #showAndGet()} to
+ * show the dialog and retrieve the final config (or {@code null} if
+ * the user cancelled).</p>
+ */
+
 public final class ProbabilityDialog extends JDialog {
 
     public enum Mode { NEURON, SUBTYPE }
@@ -66,6 +98,18 @@ public final class ProbabilityDialog extends JDialog {
     private final JButton ok = new JButton("OK");
     private final JButton cancel = new JButton("Cancel");
 
+
+    /**
+     * Builds and initializes the ProbabilityDialog UI.
+     * <p>
+     * This dialog lets the user sweep over a range of StarDist probability thresholds
+     * (and optionally subtype model settings) to find a good segmentation cutoff.
+     * The dialog is modal, lays out all controls, wires up listeners, and prepares
+     * validation.
+     * </p>
+     *
+     * @param owner parent window for modality/centering; may be a Frame or Dialog
+     */
     public ProbabilityDialog(Window owner) {
         super(owner, "Test neuron probability", ModalityType.APPLICATION_MODAL);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -156,16 +200,45 @@ public final class ProbabilityDialog extends JDialog {
         setLocationRelativeTo(owner);
     }
 
+    /**
+     * Enables or disables the "model ZIP" controls depending on the chosen mode.
+     * <p>
+     * In NEURON mode the subtype model is not required, so the model file
+     * textfield and Browse button are disabled. In SUBTYPE mode those
+     * controls are enabled because a model ZIP is mandatory.
+     * </p>
+     */
+
     private void updateModelVisibility() {
         boolean subtype = rbSubtype.isSelected();
         modelTf.setEnabled(subtype);
         browseZip.setEnabled(subtype);
     }
 
+    /**
+     * Wraps the given text in HTML and constrains it to a fixed width so it wraps
+     * instead of stretching the layout horizontally.
+     *
+     * @param text    plain text or HTML snippet to display
+     * @param widthPx maximum width, in pixels, for wrapping
+     * @return a JLabel containing the wrapped HTML block
+     */
     private  JLabel wrapLabel(String text, int widthPx) {
         String html = "<html><div style='width:" + widthPx + "px; white-space: normal;'>" + text + "</div></html>";
         return new JLabel(html);
     }
+
+    /**
+     * Creates a horizontal row containing a text field (usually a path) and a Browse button.
+     * <p>
+     * The row uses GridBagLayout so the text field can expand horizontally while
+     * keeping the Browse button at its preferred size.
+     * </p>
+     *
+     * @param tf     the text field that will hold the selected file/folder path
+     * @param browse the button that triggers a chooser
+     * @return a JPanel suitable for embedding in a labeled() row
+     */
     private JPanel rowWithBrowse(JTextField tf, JButton browse){
         JPanel row = new JPanel(new GridBagLayout());
         GridBagConstraints gc = new GridBagConstraints();
@@ -174,6 +247,16 @@ public final class ProbabilityDialog extends JDialog {
         gc.gridx=1; gc.weightx=0; gc.fill=GridBagConstraints.NONE;       row.add(browse, gc);
         return row;
     }
+
+    /**
+     * Creates a two-column row with a descriptive label on the left (wrapped so it
+     * doesn't blow out the dialog width) and an arbitrary component (such as a
+     * rowWithBrowse(...) panel) on the right.
+     *
+     * @param label text to display in the left column
+     * @param comp  component to place in the right column
+     * @return a JPanel with BorderLayout.WEST for the label and CENTER for the component
+     */
     private JPanel labeled(String label, JComponent comp){
         JPanel p = new JPanel(new BorderLayout(8,0));
         // cap label width so it wraps instead of stretching the dialog
@@ -182,8 +265,17 @@ public final class ProbabilityDialog extends JDialog {
         return p;
     }
 
-    private static JComponent checkWrap(JCheckBox cb){ JPanel p=new JPanel(new FlowLayout(FlowLayout.LEFT,8,0)); p.add(cb); return p; }
-
+    /**
+     * Opens a file chooser and writes the chosen file path into the provided text field.
+     * <p>
+     * If extensions are provided, a FileNameExtensionFilter is applied so the user
+     * only sees allowed file types (e.g. TIFF, ZIP).
+     * </p>
+     *
+     * @param tf    destination text field that will receive the chosen path
+     * @param title title to display in the chooser dialog
+     * @param exts  optional list of allowed file extensions (without dots), e.g. "tif", "zip"
+     */
     private void chooseFile(JTextField tf, String title, String... exts){
         JFileChooser fc = new JFileChooser();
         fc.setDialogTitle(title);
@@ -193,6 +285,13 @@ public final class ProbabilityDialog extends JDialog {
             tf.setText(fc.getSelectedFile().getAbsolutePath());
         }
     }
+
+    /**
+     * Opens a directory chooser (JFileChooser in DIRECTORIES_ONLY mode) and writes the
+     * chosen folder path into the provided text field.
+     *
+     * @param tf destination text field that will receive the chosen directory path
+     */
     private void chooseDir(JTextField tf){
         JFileChooser fc = new JFileChooser();
         fc.setDialogTitle("Choose output folder");
@@ -204,6 +303,18 @@ public final class ProbabilityDialog extends JDialog {
         }
     }
 
+    /**
+     * Validates all user inputs and, if everything is acceptable:
+     * <ul>
+     *   <li>Builds a {@link Config} object reflecting the user's selections</li>
+     *   <li>Saves it to {@code result}</li>
+     *   <li>Disposes the dialog</li>
+     * </ul>
+     *
+     * <p>If validation fails (missing image, invalid range, missing model in
+     * SUBTYPE mode, missing/invalid output directory, etc.), a warning dialog
+     * is shown and the dialog remains open for correction.</p>
+     */
     private void onOK() {
         Config c = new Config();
 
@@ -272,8 +383,22 @@ public final class ProbabilityDialog extends JDialog {
         dispose();
     }
 
+    /**
+     * Returns the trimmed contents of a text field.
+     *
+     * @param tf text field to read
+     * @return the field's text with leading/trailing whitespace removed,
+     *         or the empty string if the field text is null
+     */
     private static String text(JTextField tf){ return tf.getText()==null? "" : tf.getText().trim(); }
 
+    /**
+     * Shows this dialog modally and returns the collected configuration if the
+     * user pressed OK and validation passed.
+     *
+     * @return a populated {@link Config}, or {@code null} if the user cancelled
+     *         or closed the dialog
+     */
     public Config showAndGet() { setVisible(true); return result; }
 
 

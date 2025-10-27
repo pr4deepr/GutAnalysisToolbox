@@ -4,6 +4,23 @@ package Features.Core;
 import java.awt.*;
 import java.util.List;
 
+/**
+ * Bag of global parameters for all analysis workflows.
+ *
+ * One instance of this is passed into pipelines (Hu-only, multi-marker, no-Hu, spatial, etc).
+ * UI code writes into this, and the pipelines read from it.
+ *
+ * Key groups:
+ *  - I/O / source image config
+ *  - neuron segmentation config (StarDist + postprocessing)
+ *  - ganglia segmentation config
+ *  - spatial analysis config
+ *  - calcium imaging analysis config
+ *  - temporal color projection config
+ *
+ * Many fields map to legacy ImageJ macro parameters so we keep names 1:1
+ * (like trainingPixelSizeUm, neuronSegLowerLimitUm, etc).
+ */
 public class Params {
 
     //Ganglia no hu param
@@ -115,7 +132,22 @@ public class Params {
     public String projectionMethod = null; 
     public boolean createColorScale = false;
     public boolean batchMode = false;
-  
+
+
+
+
+    /**
+     * Deep copy (clone) of this Params.
+     * Only copies fields that are currently used by the pipelines/UI.
+     *
+     * This is used when we branch a set of Params to run a slightly different
+     * pipeline (e.g. per-marker) without mutating the original object
+     * that the GUI is still editing.
+     *
+     * @return a new Params with duplicated scalar values and references
+     *         to mutable objects where appropriate (e.g. uiAnchor is carried over,
+     *         Lists are NOT deeply copied here except where handled externally).
+     */
     public Params copy() {
       Params c = new Params();
       c.gangliaCellChannel = this.gangliaCellChannel;

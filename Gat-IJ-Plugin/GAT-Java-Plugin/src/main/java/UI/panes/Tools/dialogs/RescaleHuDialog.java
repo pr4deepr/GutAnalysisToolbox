@@ -6,6 +6,48 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.File;
 
+/**
+ * Modal dialog for configuring a rescaling-factor sweep of neuron ROIs.
+ * <p>
+ * The "rescaling factor" here is a multiplicative factor applied to
+ * detected neuron outlines (e.g. StarDist polygons). By sweeping
+ * rescaleMin → rescaleMax in fixed steps, you can estimate which scaling
+ * best fits the true neuron boundary under your staining / imaging
+ * conditions.
+ * </p>
+ *
+ * <p>This dialog also lets the user fine-tune the fixed segmentation
+ * thresholds that apply across the whole sweep:</p>
+ *
+ * <ul>
+ *   <li>Probability (StarDist object acceptance threshold)</li>
+ *   <li>Overlap / NMS threshold</li>
+ * </ul>
+ *
+ * <p>Just like {@link ProbabilityDialog}, this dialog supports two modes:</p>
+ * <ul>
+ *   <li><b>NEURON</b>: Work with Hu+ neurons directly.</li>
+ *   <li><b>SUBTYPE</b>: Work with a specific neuron subtype, requiring a
+ *       StarDist model ZIP and a specific channel.</li>
+ * </ul>
+ *
+ * <p>The user selects:</p>
+ * <ul>
+ *   <li>The image to analys
+ *   e</li>
+ *   <li>Mode and channel</li>
+ *   <li>Rescaling sweep parameters (min / max / step)</li>
+ *   <li>Fixed probability and overlap thresholds</li>
+ *   <li>(If SUBTYPE mode) the StarDist model ZIP</li>
+ *   <li>An output directory for previews/CSVs</li>
+ * </ul>
+ *
+ * <p>When the user hits OK, inputs are validated and captured into a
+ * {@link RescaleHuDialog.Config} object. If validation fails, an
+ * explanatory warning is shown and the dialog stays open. Use
+ * {@link #showAndGet()} to present the dialog and retrieve the config.</p>
+ */
+
 public final class RescaleHuDialog extends JDialog {
 
     public enum Mode { NEURON, SUBTYPE }
@@ -58,6 +100,22 @@ public final class RescaleHuDialog extends JDialog {
     private final JButton ok  = new JButton("OK");
     private final JButton cancel = new JButton("Cancel");
 
+    /**
+     * Builds and initializes the RescaleHuDialog UI.
+     * <p>
+     * This dialog configures a sweep over neuron "rescaling factors," which are
+     * used to multiply the StarDist polygon size before evaluating neuron masks.
+     * The user can also set probability / overlap thresholds that remain fixed
+     * during that sweep, choose NEURON vs SUBTYPE mode, pick the relevant channel,
+     * and (in SUBTYPE mode) provide a StarDist model ZIP.
+     * </p>
+     *
+     * <p>The dialog is modal. This constructor sets up layout, listeners,
+     * validation hooks, and default values, but does not block. Call
+     * {@link #showAndGet()} to display it and retrieve the results.</p>
+     *
+     * @param owner parent window for modality and centering; may be a Frame or Dialog
+     */
     public RescaleHuDialog(Window owner) {
         super(owner, "Neuron Rescaling Sweep", ModalityType.APPLICATION_MODAL);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -156,11 +214,30 @@ public final class RescaleHuDialog extends JDialog {
         setLocationRelativeTo(owner);
     }
 
+    /**
+     * Toggles the model ZIP controls based on the selected mode.
+     * <p>
+     * If the user selected "Neuron subtype segmentation" (SUBTYPE mode),
+     * the StarDist model ZIP is required, so the model file text field and
+     * Browse button are enabled. Otherwise they are disabled.
+     * </p>
+     */
+
     private void updateModelVisibility() {
         boolean subtype = rbSubtype.isSelected();
         modelTf.setEnabled(subtype);
         browseZip.setEnabled(subtype);
     }
+
+    /**
+     * Creates a labeled row with a wrapped label on the left (so long text won't
+     * force the dialog to expand horizontally) and an arbitrary component (often a
+     * textfield+Browse row) on the right.
+     *
+     * @param label human-readable description for the left column
+     * @param comp  component to display in the right column
+     * @return a JPanel with BorderLayout.WEST/CENTER layout
+     */
 
     private static JPanel labeled(String label, JComponent comp){
         JPanel p = new JPanel(new BorderLayout(8,0));
@@ -168,6 +245,20 @@ public final class RescaleHuDialog extends JDialog {
         p.add(comp, BorderLayout.CENTER);
         return p;
     }
+
+    /**
+     * Builds a row containing a path text field and a "Browse" button.
+     * <p>
+     * GridBagLayout is used so the text field can request horizontal stretch
+     * (for Material-style full-width underline) while keeping the Browse button
+     * at its preferred size.
+     * </p>
+     *
+     * @param tf     the text field that will receive the chosen file/folder path
+     * @param browse the button that triggers a chooser
+     * @return JPanel suitable for embedding in a labeled(...) row
+     */
+
     private static JPanel rowWithBrowse(JTextField tf, JButton browse){
         JPanel row = new JPanel(new GridBagLayout());
         GridBagConstraints gc = new GridBagConstraints();
@@ -188,9 +279,31 @@ public final class RescaleHuDialog extends JDialog {
 
         return row;
     }
-    private static JPanel wrap(JComponent c){ JPanel p=new JPanel(new FlowLayout(FlowLayout.LEFT,8,0)); p.add(c); return p; }
-    private static JComponent checkWrap(JCheckBox cb){ JPanel p=new JPanel(new FlowLayout(FlowLayout.LEFT,8,0)); p.add(cb); return p; }
+    /**
+     * Wraps a component in a tiny left-aligned FlowLayout (no vertical padding).
+     * <p>
+     * This is mainly used to right-align live-updating value labels next to sliders
+     * (e.g. "0.50" for probability).
+     * </p>
+     *
+     * @param c the component to wrap
+     * @return a JPanel containing {@code c} with a left-aligned FlowLayout
+     */
 
+    private static JPanel wrap(JComponent c){ JPanel p=new JPanel(new FlowLayout(FlowLayout.LEFT,8,0)); p.add(c); return p; }
+
+
+    /**
+     * Opens a file chooser and puts the selected file path into the provided text field.
+     * <p>
+     * If extensions are supplied, a FileNameExtensionFilter is applied to limit
+     * visible file types (for example, TIFF images or StarDist model ZIPs).
+     * </p>
+     *
+     * @param tf    destination text field to receive the selected file path
+     * @param title title of the chooser dialog
+     * @param exts  optional allowed extensions (without dots), e.g. "tif", "zip"
+     */
     private void chooseFile(JTextField tf, String title, String... exts){
         JFileChooser fc = new JFileChooser();
         fc.setDialogTitle(title);
@@ -198,6 +311,13 @@ public final class RescaleHuDialog extends JDialog {
         int ret = fc.showOpenDialog(this);
         if (ret == JFileChooser.APPROVE_OPTION && fc.getSelectedFile()!=null) tf.setText(fc.getSelectedFile().getAbsolutePath());
     }
+
+    /**
+     * Opens a directory chooser (JFileChooser in DIRECTORIES_ONLY mode) and writes
+     * the chosen folder path into the provided text field.
+     *
+     * @param tf destination text field to receive the selected directory path
+     */
     private void chooseDir(JTextField tf){
         JFileChooser fc = new JFileChooser();
         fc.setDialogTitle("Choose output folder");
@@ -207,6 +327,18 @@ public final class RescaleHuDialog extends JDialog {
         if (ret == JFileChooser.APPROVE_OPTION && fc.getSelectedFile()!=null) tf.setText(fc.getSelectedFile().getAbsolutePath());
     }
 
+    /**
+     * Creates a JLabel that displays multi-line, centered HTML text constrained
+     * to a fixed maximum width. This is used for explanatory help text in the dialog.
+     * <p>
+     * Unlike a plain JLabel, this forces wrapping and center alignment without
+     * letting the label stretch horizontally in a BoxLayout.
+     * </p>
+     *
+     * @param text     plain text or HTML snippet to show
+     * @param widthPx  maximum width in pixels for wrapping
+     * @return a JLabel containing the wrapped, centered HTML block
+     */
     public static JLabel wrapLabelCentered(String text, int widthPx) {
         String html = "<html><div style='width:" + widthPx +
                 "px; white-space:normal; text-align:center; margin:0 auto;'>" +
@@ -219,6 +351,20 @@ public final class RescaleHuDialog extends JDialog {
         return lbl;
     }
 
+    /**
+     * Validates all user inputs and, if valid:
+     * <ul>
+     *   <li>Creates a {@link Config} describing the sweep parameters
+     *       (rescaleMin/rescaleMax/rescaleStep, fixed prob and overlap, etc.)</li>
+     *   <li>Stores it in {@code result}</li>
+     *   <li>Disposes the dialog</li>
+     * </ul>
+     *
+     * <p>If any required input is missing or invalid (e.g. no image file,
+     * rescale bounds are nonsensical, SUBTYPE mode without a model ZIP,
+     * or output directory that can't be created), a warning dialog is shown
+     * and the dialog remains open.</p>
+     */
     private void onOK() {
         Config c = new Config();
 
@@ -272,13 +418,35 @@ public final class RescaleHuDialog extends JDialog {
         result = c;
         dispose();
     }
+
+    /**
+     * Wraps the given text in a fixed-width HTML block so it will wrap
+     * lines instead of stretching the layout.
+     *
+     * @param text     plain text or HTML snippet to render
+     * @param widthPx  maximum width in pixels
+     * @return a JLabel that renders the wrapped text
+     */
     private static JLabel wrapLabel(String text, int widthPx) {
         String html = "<html><div style='width:" + widthPx + "px; white-space: normal;'>" + text + "</div></html>";
         return new JLabel(html);
     }
 
+    /**
+     * Returns the trimmed text contents of a JTextField.
+     *
+     * @param tf the text field
+     * @return the field's text with leading/trailing whitespace removed,
+     *         or the empty string if the text is null
+     */
     private static String text(JTextField tf){ return tf.getText()==null? "" : tf.getText().trim(); }
 
-    /** Show the dialog and return config on OK, or null if cancelled. */
+    /**
+     * Shows the dialog modally (blocks until the user either clicks OK or Cancel)
+     * and returns the final {@link Config}.
+     *
+     * @return a populated {@link Config} if the user pressed OK and validation
+     *         succeeded; {@code null} if the user cancelled or closed the dialog
+     */
     public Config showAndGet() { setVisible(true); return result; }
 }

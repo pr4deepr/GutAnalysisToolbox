@@ -17,10 +17,42 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+// Class: NeuronsMultiPipeline
+/**
+ * Full multiplex workflow for Hu + subtype markers.
+ *
+ * This pipeline:
+ *  - Runs the Hu pipeline once to get Hu neuron labels and (optionally) ganglia.
+ *  - For each additional marker channel:
+ *      * Segments that channel (or imports ROIs),
+ *      * Gates detections to Hu by overlap fraction,
+ *      * Lets the user review the gated ROIs,
+ *      * Saves ROIs/overlays/counts.
+ *  - Builds pairwise combinations (markerA+markerB) by ANDing Hu-gated masks.
+ *  - Exports a summary CSV (per marker / combo, per ganglion if available).
+ *  - Optionally runs spatial analysis (pairwise and per-marker).
+ *
+ * This is the "Hu-gated multiplex" analysis: every subtype marker is interpreted
+ * in terms of which Hu-positive cells express it.
+ */
 
 public class NeuronsMultiPipeline {
 
-    // ----- Input spec ---------------------------------------------------------
+    // Inner class: MarkerSpec
+    /**
+     * Describes one subtype marker/channel in the multiplex workflow.
+     *
+     * Fields:
+     *  - {@code name}: marker name (used in output file names and UI labels).
+     *  - {@code channel}: 1-based channel index in the max projection.
+     *  - {@code prob}/{@code nms}: optional StarDist thresholds overriding {@code mp.multiProb/multiNms}.
+     *  - {@code customRoisZip}: optional existing ROI zip; if provided, segmentation is skipped
+     *    and those ROIs are rasterized instead.
+     *
+     * Utility:
+     *  - {@link #copy()} produces a deep copy suitable for cloning {@link MultiParams}.
+     */
+
     public static final class MarkerSpec {
         public final String name;
         public final int channel;      // 1-based
@@ -51,6 +83,21 @@ public class NeuronsMultiPipeline {
         }
     }
 
+    // Inner class: MultiParams
+    /**
+     * Configuration for a multiplex (Hu + subtype) run.
+     *
+     * Fields:
+     *  - {@code base}: a {@link Params} describing Hu channel, ganglia mode, scaling, etc.
+     *  - {@code subtypeModelZip}: StarDist model ZIP for subtypes.
+     *  - {@code multiProb}/{@code multiNms}: default StarDist thresholds for subtype segmentation.
+     *  - {@code overlapFrac}: minimum fractional overlap required for a Hu neuron to count
+     *                         as positive for this marker.
+     *  - {@code markers}: list of subtype {@link MarkerSpec}s to evaluate against Hu.
+     *
+     * Includes {@link #copy()} which deep-copies everything (including {@code base} and each marker).
+     */
+
     public static final class MultiParams {
         public Params base;                          // your existing Params (Hu + ganglia config)
         public String subtypeModelZip;               // StarDist model zip for subtype channels
@@ -78,7 +125,26 @@ public class NeuronsMultiPipeline {
 
     }
 
-    // ----- Output / result for the multi-stage UI -----------------------------
+    // Inner class: MultiResult
+    /**
+     * Output bundle summarizing a Hu + multiplex run.
+     *
+     * Contains:
+     *  - {@code outDir}: destination directory for all saved outputs.
+     *  - {@code baseName}: basename of the source image.
+     *  - {@code max}: the final max-projection ImagePlus (for thumbnails and overlays).
+     *  - {@code totalHu}: total Hu-positive neuron count after review.
+     *  - {@code nGanglia}: number of ganglia detected (nullable if ganglia disabled).
+     *  - {@code gangliaAreaUm2}: area per ganglion in µm² (nullable).
+     *  - {@code gangliaLabels}: ganglia label map (nullable).
+     *  - {@code totals}: map markerOrCombo → Hu-gated neuron count.
+     *  - {@code perGanglia}: map markerOrCombo → array[ganglionId] of Hu-gated neuron counts.
+     *  - {@code doSpatialAnalysis}: whether spatial analysis should be executed downstream.
+     *  - {@code neuronsPerGanglion}: Hu-only neuron counts per ganglion (index 1..G).
+     *
+     * This bundle is passed to downstream UI panels and spatial-analysis runners.
+     */
+
     public static final class MultiResult {
         public final File outDir;
         public final String baseName;
@@ -122,7 +188,50 @@ public class NeuronsMultiPipeline {
     }
 
 
-    // ----- Run ----------------------------------------------------------------
+    // Method: run(MultiParams mp)
+    /**
+     * Executes the full Hu-gated multiplex workflow.
+     *
+     * Steps:
+     *   1. Run the Hu pipeline in "return mode" to get:
+     *        - Hu neuron label map (after user review),
+     *        - ganglia labels / counts (if enabled),
+     *        - MAX projection and output directory.
+     *
+     *   2. For each marker in {@code mp.markers}:
+     *        a. Extract that marker's channel from MAX and rescale if needed.
+     *        b. Segment it with StarDist (or import ROIs from a zip).
+     *        c. Filter/resize labels and remove tiny/border objects.
+     *        d. Gate those detections against the Hu label map:
+     *             - A Hu neuron is considered "positive" if
+     *               the overlap with this marker ≥ {@code mp.overlapFrac}.
+     *        e. Seed the ROI Manager with the gated Hu neurons, pop up an interactive
+     *           review dialog where the user can edit them, then rebuild a clean
+     *           label map from the edits.
+     *        f. Save final ROIs, save overlay images, and record per-marker counts.
+     *        g. If ganglia are available, count per-ganglion marker expression.
+     *
+     *   3. Build pairwise AND combinations across markers:
+     *        - Intersect ("AND") the Hu-gated masks from two markers.
+     *        - Save ROIs/overlays and include them in per-ganglion stats.
+     *
+     *   4. Write a multiplex CSV summarizing Hu totals, per-marker totals,
+     *      pairwise combo totals, per-ganglion breakdowns, and ganglia areas.
+     *
+     *   5. Optionally run spatial analysis:
+     *        - Pairwise two-marker spatial analysis.
+     *        - Per-marker single-cell-type spatial analysis.
+     *
+     *   6. Show a summary UI (ResultsMultiUI) on the EDT.
+     *
+     * Side effects:
+     *   - Creates/overwrites files in the output directory for ROIs, overlays, TIFFs, and CSVs.
+     *   - Shows interactive review dialogs during execution.
+     *
+     * @param mp  Fully-specified multiplex configuration.
+     * @throws IllegalArgumentException if required StarDist model(s) or markers are missing.
+     */
+
     public void run(MultiParams mp) {
 
 
@@ -377,6 +486,23 @@ public class NeuronsMultiPipeline {
 
     }
 
+    // Method (private): andMasks(boolean[] a, boolean[] b)
+    /**
+     * Element-wise AND of two boolean arrays of possibly different lengths.
+     *
+     * This is used to build combo markers (e.g. "Marker1+Marker2") in the Hu-gated pipeline:
+     *   - We track, for each Hu neuron ID, whether it was "kept" (positive) for Marker1
+     *     and separately for Marker2.
+     *   - The AND array marks Hu neurons that were positive for BOTH markers.
+     *
+     * Implementation detail:
+     *   - The result length is max(a.length, b.length).
+     *   - Missing indices in the shorter array are treated as false.
+     *
+     * @param a  Inclusion mask for marker A, indexed by Hu neuron ID.
+     * @param b  Inclusion mask for marker B, indexed by Hu neuron ID.
+     * @return   Array where out[i] = a[i] && b[i].
+     */
     private static boolean[] andMasks(boolean[] a, boolean[] b) {
         int n = Math.max(a.length, b.length);
         boolean[] out = new boolean[n];
@@ -388,8 +514,37 @@ public class NeuronsMultiPipeline {
         return out;
     }
 
-    // In NeuronsMultiPipeline (Java 8)
 
+    // Method (private): runSpatialFromHu(MultiResult mr, MultiParams p)
+    /**
+     * Runs pairwise spatial analysis between every distinct pair of markers from
+     * a Hu-gated multiplex run.
+     *
+     * For each pair (A,B):
+     *   - Looks up their exported ROI zips:
+     *       A_ROIs_<baseName>.zip
+     *       B_ROIs_<baseName>.zip
+     *   - Calls {@code Analysis.TwoCellTypeAnalysis(...)} to compute spatial co-localization,
+     *     proximity, etc., writing the outputs into {@code mr.outDir}.
+     *
+     * Includes:
+     *   - expansion radius (microns) from {@code p.base.spatialExpansionUm}
+     *   - flag for saving per-object parametric output from {@code p.base.spatialSaveParametric}
+     *
+     * If either ROI zip is missing, we log a note and skip that pair.
+     *
+     * Why "Hu-gated":
+     *   - Marker ROIs are already Hu-gated when saved (only Hu neurons that pass a given marker's
+     *     overlapFrac are exported). So this spatial analysis is effectively "spatial relationships
+     *     between Hu+MarkerA cells and Hu+MarkerB cells".
+     *
+     * @param mr  The {@link MultiResult} object from the multiplex run (contains outDir/baseName).
+     * @param p   The same {@link MultiParams} used to run the pipeline, for spatial settings.
+     *
+     * Side effects:
+     *   - Writes spatial analysis CSVs/tables/plots to {@code mr.outDir}.
+     *   - Logs errors but does not throw.
+     */
     private void runSpatialFromHu(MultiResult mr, MultiParams p) {
         if (mr == null || p == null) return;
 
@@ -440,6 +595,23 @@ public class NeuronsMultiPipeline {
             }
         }
     }
+
+
+    // Method: runSingleSpatialPerMarker(MultiResult mr, MultiParams p)
+    /**
+     * Runs per-marker spatial analysis treating each marker independently
+     * (plus Hu). This is similar to {@link #runSpatialFromHu} but for single
+     * cell types instead of pairs.
+     *
+     * For each marker (and for Hu):
+     *   - Locates the corresponding ROI zip saved during the run.
+     *   - Calls the single-cell-type spatial analysis code.
+     *   - Logs and skips if the ROI zip is missing.
+     *
+     * @param mr  The {@link MultiResult} bundle from this run.
+     * @param p   The {@link MultiParams} specifying spatial settings such as
+     *            expansion radius and whether to save parametric output.
+     */
 
     private void runSingleSpatialPerMarker(MultiResult mr, MultiParams p) {
         if (mr == null || p == null) return;
@@ -492,12 +664,19 @@ public class NeuronsMultiPipeline {
     }
 
 
-
-
-
-
-
-
+    // Method (private): countLabels(ImagePlus labels16)
+    /**
+     * Counts labeled objects in a Hu- or combo-derived label map.
+     *
+     * We assume the label map is a relabeled connected-component image
+     * where each object ID is an integer in [1..K]. We just scan for
+     * the largest ID and interpret that as "number of objects".
+     *
+     * Used after rebuilding ROIs into a label map post-review.
+     *
+     * @param labels16 16-bit label map image.
+     * @return         K, i.e. how many labeled objects are present.
+     */
     private static int countLabels(ImagePlus labels16) {
         // Label map with values 0..K; just find max label ID (they’re contiguous after binary re-label)
         short[] px = (short[]) labels16.getProcessor().getPixels();

@@ -13,12 +13,66 @@ import java.util.*;
 import ij.WindowManager;
 import net.haesleinhuepf.clij2.CLIJ2;
 
+/**
+ * Environment / dependency preflight for GAT.
+ *
+ * <p>
+ * Before the UI is allowed to open, we run a series of checks to make sure
+ * the user's Fiji installation is set up in a way that won't immediately
+ * explode:
+ * </p>
+ *
+ * <ul>
+ *   <li>Confirm DeepImageJ has been initialised (its engine files are present).</li>
+ *   <li>Confirm expected model files exist under {@code Fiji/models} (e.g. neuron + subtype StarDist zips).</li>
+ *   <li>Check for required ImageJ commands / plugins (CLIJ2, DeepImageJ, MorphoLibJ, etc.).</li>
+ *   <li>Log basic system info (heap size, GPU name if available).</li>
+ *   <li>Handle a "first run" sentinel so we can warn the user the very first time.</li>
+ * </ul>
+ *
+ * <p>
+ * All logging goes to ImageJ's Log window via {@link ij.IJ#log(String)}.
+ * We will also pop up {@link JOptionPane} dialogs if something critical is missing.
+ * </p>
+ *
+ * <p>
+ * The class is static-only.
+ * </p>
+ */
 public final class Preflight {
     private Preflight(){}
 
     /**
-     * Run everything. Pass expected model filenames (just the names inside Fiji/models), or null to only list what’s found.
-     * Returns true if it’s safe to continue launching the UI.
+     * Run the full preflight procedure and decide if it's safe to continue.
+     *
+     * <p>
+     * Workflow:
+     * </p>
+     * <ol>
+     *   <li>Open (or create) a log header and remember if the Log window was
+     *       already showing.</li>
+     *   <li>Check DeepImageJ initialization and perform first-run setup
+     *       ({@link #firstRunAndDeepImageJ()}).</li>
+     *   <li>Log system info / memory / GPU via {@link #reportSystem()}.</li>
+     *   <li>Check that key model assets exist in {@code Fiji/models} via
+     *       {@link #checkModels(String, String)}.</li>
+     *   <li>Check that required plugins/commands are available via
+     *       {@link #checkPlugins()}.</li>
+     *   <li>If everything is OK, optionally close the Log window again if
+     *       we opened it just for this run.</li>
+     * </ol>
+     *
+     * @param expectedNeuronModel
+     *        Filename (just the basename) of the neuron StarDist model we expect
+     *        under {@code Fiji/models}. May be {@code null} if you only want
+     *        a listing of what's there.
+     *
+     * @param expectedSubtypeModel
+     *        Filename of the subtype StarDist model we expect. May be {@code null}.
+     *
+     * @return {@code true} if all checks pass and it is safe to continue
+     *         launching the UI, {@code false} if we detected a blocking problem
+     *         and already warned the user.
      */
     public static boolean runAll(String expectedNeuronModel, String expectedSubtypeModel) {
         boolean logWasOpen = isLogOpen();
@@ -45,8 +99,31 @@ public final class Preflight {
         return true;
     }
 
-    // ---------- 1) First-run + DeepImageJ engines ----------
-
+    /**
+     * First-run initialisation and DeepImageJ readiness check.
+     *
+     * <p>
+     * Steps:
+     * </p>
+     * <ol>
+     *   <li>Figure out the Fiji install directory via {@code IJ.getDirectory("imagej")}.</li>
+     *   <li>Ensure a "sentinel" file exists in {@code Fiji/scripts/GAT/Tools/commands}.
+     *       If it doesn't, we consider this a first run and show a small welcome /
+     *       DeepImageJ notice, then create it.</li>
+     *   <li>Check that the {@code engines/} folder exists in the Fiji directory.
+     *       This is how DeepImageJ indicates its runtime engines have been
+     *       downloaded/installed.</li>
+     * </ol>
+     *
+     * <p>
+     * If DeepImageJ has not been initialized, we log guidance and show the user
+     * a dialog explaining how to run DeepImageJ once to trigger engine download.
+     * In that case we return {@code false} so the main UI doesn't open yet.
+     * </p>
+     *
+     * @return {@code true} if DeepImageJ appears ready and we were able to create
+     *         the sentinel if needed; {@code false} if something critical is missing.
+     */
     private static boolean firstRunAndDeepImageJ() {
         String fijiDir = IJ.getDirectory("imagej"); // ends with separator on IJ1
         if (fijiDir == null) {
@@ -86,8 +163,25 @@ public final class Preflight {
         return true;
     }
 
-    // ---------- 2) System report ----------
 
+    /**
+     * Log basic system information to ImageJ's Log window.
+     *
+     * <p>
+     * What we record:
+     * </p>
+     * <ul>
+     *   <li>Current timestamp.</li>
+     *   <li>Maximum / total / free JVM heap memory in GB, plus a note if the heap
+     *       is relatively small (&lt; ~20 GB).</li>
+     *   <li>Best-effort GPU/accelerator info via CLIJ2 (OpenCL device name),
+     *       if available.</li>
+     * </ul>
+     *
+     * <p>
+     * Any failures are caught and logged as non-fatal.
+     * </p>
+     */
     private static void reportSystem() {
         try {
             IJ.log("****** System Config ******");
@@ -119,8 +213,37 @@ public final class Preflight {
         }
     }
 
-    // ---------- 3) Model checks ----------
-
+    /**
+     * Check that required model assets exist under {@code Fiji/models}.
+     *
+     * <p>
+     * We:
+     * </p>
+     * <ul>
+     *   <li>Resolve the {@code models/} directory under the current Fiji install.</li>
+     *   <li>If {@code expectedNeuronModel} and/or {@code expectedSubtypeModel}
+     *       are non-empty, verify those specific entries exist (file or folder),
+     *       logging "OK" or "Missing" for each.</li>
+     *   <li>If either expected model name is {@code null}/{@code ""}, we instead
+     *       list candidate model entries (e.g. {@code *.zip} or folders containing
+     *       DeepImageJ descriptors like {@code bioimage.io}).</li>
+     * </ul>
+     *
+     * <p>
+     * If anything critical is missing, we show a blocking {@link JOptionPane}
+     * telling the user to install/copy the missing model(s) and return {@code false}.
+     * Otherwise we return {@code true}.
+     * </p>
+     *
+     * @param expectedNeuronModel
+     *        Basename of the neuron model ZIP we require, or {@code null} to skip strict checking.
+     *
+     * @param expectedSubtypeModel
+     *        Basename of the subtype model ZIP we require, or {@code null} to skip strict checking.
+     *
+     * @return {@code true} if models folder exists and required models are present;
+     *         {@code false} (with user warning) if something is missing.
+     */
     private static boolean checkModels(String expectedNeuronModel, String expectedSubtypeModel) {
         String fijiDir = IJ.getDirectory("imagej");
         File modelsDir = new File(fijiDir, "models");
@@ -178,8 +301,34 @@ public final class Preflight {
         return ok;
     }
 
-    // ---------- 4) Plugin/command checks ----------
 
+    /**
+     * Verify that required ImageJ / Fiji commands are installed and callable.
+     *
+     * <p>
+     * We build a small map of "command name → how to install if missing"
+     * covering DeepImageJ, CLIJ2, MorphoLibJ, StackReg, etc. We then compare
+     * those command names against {@link ij.Menus#getCommands()}.
+     * </p>
+     *
+     * <p>
+     * For each required command:
+     * </p>
+     * <ul>
+     *   <li>If it's found, we log "OK!".</li>
+     *   <li>If not found, we log "Missing: ..." plus a hint which update site
+     *       to enable (e.g. DeepImageJ, IJPB-plugins, CLIJ2, BIG-EPFL).</li>
+     * </ul>
+     *
+     * <p>
+     * After scanning, if any commands were missing, we pop up an error dialog
+     * telling the user to review the Log for details and return {@code false}.
+     * Otherwise we return {@code true}.
+     * </p>
+     *
+     * @return {@code true} if all required commands/plugins seem available;
+     *         {@code false} if something important is missing.
+     */
     private static boolean checkPlugins() {
         IJ.log("****** Checking required plugins/commands ******");
 
@@ -228,6 +377,27 @@ public final class Preflight {
         return true;
     }
 
+    /**
+     * Helper used by {@link #checkPlugins()} to test if a required command is present.
+     *
+     * <p>
+     * We try:
+     * </p>
+     * <ul>
+     *   <li>Exact match ({@code keys.contains(want)}).</li>
+     *   <li>Case-insensitive comparisons.</li>
+     *   <li>Prefix / substring matches to handle slight naming differences,
+     *       spacing, or version suffixes in Fiji menus.</li>
+     * </ul>
+     *
+     * @param keys
+     *        All available command names from {@link ij.Menus#getCommands()}.
+     *
+     * @param want
+     *        The "friendly" name we expect (e.g. "DeepImageJ Run").
+     *
+     * @return {@code true} if we find a good-enough match; {@code false} otherwise.
+     */
     private static boolean hasCommand(Set<String> keys, String want) {
         if (keys.contains(want)) return true;
         // Try forgiving matches for names with/without spaces / suffixes
@@ -241,19 +411,55 @@ public final class Preflight {
         return false;
     }
 
-    // ---------- utils ----------
 
+    /**
+     * Log a standard header block into the ImageJ Log window.
+     *
+     * <p>
+     * Called at the start of {@link #runAll(String, String)} so it's easy
+     * for users to see where the preflight section begins.
+     * </p>
+     */
     private static void logHeader() {
         IJ.log("===============================================");
         IJ.log("GAT – Environment check");
         IJ.log("===============================================");
     }
 
+    /**
+     * Convenience to both log and pop up a blocking error dialog, then continue
+     * returning {@code false} to abort launch.
+     *
+     * <p>
+     * Used when we detect something fatal like "cannot find Fiji/models" or
+     * DeepImageJ engines not initialized.
+     * </p>
+     *
+     * @param msg
+     *        Human-readable explanation of what's wrong and what to do.
+     */
     private static void warnStop(String msg) {
         IJ.log(msg);
         JOptionPane.showMessageDialog(null, msg, "GAT – Check failed", JOptionPane.ERROR_MESSAGE);
     }
 
+    /**
+     * Write a short text file, creating parent directories if needed.
+     *
+     * <p>
+     * Used to drop a "first run sentinel" file so we know we already warned
+     * the user about DeepImageJ initialization.
+     * </p>
+     *
+     * @param f
+     *        Destination file.
+     *
+     * @param text
+     *        Contents to write (UTF-8).
+     *
+     * @throws java.io.IOException
+     *         If the directory cannot be created or the file cannot be written.
+     */
     private static void writeText(File f, String text) throws IOException {
         f.getParentFile().mkdirs();
         try (PrintWriter pw = new PrintWriter(f, "UTF-8")) {
@@ -261,11 +467,32 @@ public final class Preflight {
         }
     }
 
+    /**
+     * Check whether the ImageJ "Log" window is currently visible.
+     *
+     * <p>
+     * We use this so we can politely close the Log window at the end of preflight
+     * if we opened it just for this check, but leave it alone if the user
+     * already had it open.
+     * </p>
+     *
+     * @return {@code true} if a frame titled "Log" is showing, {@code false} otherwise.
+     */
     private static boolean isLogOpen() {
         java.awt.Frame f = WindowManager.getFrame("Log");
         return f != null && f.isShowing();
     }
 
+
+    /**
+     * Close the ImageJ "Log" window if it's open.
+     *
+     * <p>
+     * We call this at the end of {@link #runAll(String, String)} only if we
+     * determined the log was not already open before we started. That way
+     * we don't rudely close a window the user was intentionally using.
+     * </p>
+     */
     private static void closeLogWindowIfOpen() {
         java.awt.Frame f = WindowManager.getFrame("Log");
         if (f != null) {

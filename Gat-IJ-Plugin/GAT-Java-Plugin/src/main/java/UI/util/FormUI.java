@@ -6,15 +6,47 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 
 /**
- * Small UI utilities for consistent section boxes, info-badge tooltips,
- * and compact form layouts across panels.
+ * Small Swing UI helpers to keep layout and styling consistent across panes.
+ *
+ * <p>
+ * Responsibilities:
+ * </p>
+ * <ul>
+ *   <li>Standard "section box" panels with titled borders and optional info badges.</li>
+ *   <li>Common layout primitives (rows, columns, label/value grids).</li>
+ *   <li>Utility helpers for width normalization and control sizing.</li>
+ *   <li>Reusable "info" badge (ⓘ) icons with wrapped tooltips.</li>
+ * </ul>
+ *
+ * <p>
+ * All methods are static; the class is not instantiable.
+ * </p>
  */
 public final class FormUI {
     private FormUI() {}
 
-    // ------------------ Section boxes ------------------
 
-    /** Plain titled box; fills available width. */
+    /**
+     * Create a standard titled section box.
+     *
+     * <p>
+     * Produces a {@link JPanel} with:
+     * </p>
+     * <ul>
+     *   <li>An etched {@link javax.swing.border.TitledBorder} using {@code title}.</li>
+     *   <li>{@code content} placed in the center.</li>
+     *   <li>Width normalized via {@link #normalizeSectionWidth(JComponent)} so that
+     *       multiple sections line up nicely in a vertical {@link BoxLayout}.</li>
+     * </ul>
+     *
+     * @param title
+     *        Title text for the border.
+     *
+     * @param content
+     *        Inner component for this section.
+     *
+     * @return A {@link JPanel} ready to insert into a BoxLayout column.
+     */
     public static JPanel box(String title, Component content) {
         JPanel outer = new JPanel(new BorderLayout());
         outer.setBorder(BorderFactory.createTitledBorder(
@@ -28,8 +60,29 @@ public final class FormUI {
     }
 
     /**
-     * Titled box with a small info badge. The badge lives in the same row as
-     * the content (top-right) so it doesn’t add extra vertical space.
+     * Create a titled section box with a small "info" badge docked at top-right.
+     *
+     * <p>
+     * The badge is a clickable-looking {@link JLabel} with an info icon and a tooltip
+     * built from {@code helpHtml}. It's placed in the same visual row as {@code content}
+     * (no extra header row), using a nested BorderLayout + GridBagLayout trick.
+     * </p>
+     *
+     * <p>
+     * The outer panel is also given compact inner padding, and normalized width.
+     * </p>
+     *
+     * @param title
+     *        Border title for the section.
+     *
+     * @param content
+     *        The main content component.
+     *
+     * @param helpHtml
+     *        Short HTML snippet explaining the setting/section.
+     *        This will be wrapped in a nicer tooltip via {@link #wrapTooltip(String, int)}.
+     *
+     * @return A {@link JPanel} containing the content and a help badge in the corner.
      */
     public static JPanel boxWithHelp(String title, JComponent content, String helpHtml) {
         JPanel outer = new JPanel(new BorderLayout());
@@ -64,16 +117,42 @@ public final class FormUI {
         return outer;
     }
 
-    /** Make a section expand horizontally but keep its preferred height. */
+    /**
+     * Force a section box (or any component) to expand horizontally
+     * but keep its preferred height in layouts like BoxLayout(Y_AXIS).
+     *
+     * <p>
+     * We do this by:
+     * </p>
+     * <ul>
+     *   <li>Left-aligning the component.</li>
+     *   <li>Setting {@code maximumSize} to (infinite width, preferred height),
+     *       which prevents unwanted vertical stretching while allowing
+     *       horizontal fill.</li>
+     * </ul>
+     *
+     * @param c
+     *        The panel or component to normalize.
+     */
     public static void normalizeSectionWidth(JComponent c) {
         c.setAlignmentX(Component.LEFT_ALIGNMENT);
         Dimension pref = c.getPreferredSize();
         c.setMaximumSize(new Dimension(Integer.MAX_VALUE, pref.height));
     }
 
-    // ------------------ Layout helpers ------------------
-
-    /** Horizontal row with gentle gaps; left-aligned. */
+    /**
+     * Convenience for a single horizontal row of components with small gaps,
+     * left-aligned.
+     *
+     * <p>
+     * Good for simple "Label + Field + Button" lines.
+     * </p>
+     *
+     * @param comps
+     *        Components to add in order.
+     *
+     * @return A {@link JPanel} using {@link FlowLayout} (LEFT, hgap=8, vgap=4).
+     */
     public static JPanel row(JComponent... comps) {
         JPanel r = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
         for (JComponent c : comps) r.add(c);
@@ -81,7 +160,19 @@ public final class FormUI {
         return r;
     }
 
-    /** Vertical column with a small vertical gap between children. */
+    /**
+     * Convenience for a vertical stack of components with a small vertical spacer
+     * (6 px) between each.
+     *
+     * <p>
+     * Each child is left-aligned so they line up nicely in pane layouts.
+     * </p>
+     *
+     * @param comps
+     *        Components to stack in order.
+     *
+     * @return A {@link JPanel} using {@link BoxLayout} on the Y axis.
+     */
     public static JPanel column(JComponent... comps) {
         JPanel col = new JPanel();
         col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
@@ -94,8 +185,23 @@ public final class FormUI {
     }
 
     /**
-     * Two-column grid for label/value rows.
-     * Right column grows (good for text fields).
+     * Build a flexible 2-column grid for label/value pairs.
+     *
+     * <p>
+     * The left column is anchored WEST and does not grow.
+     * The right column ({@code rc}) expands horizontally (weightx=1, fill=HORIZONTAL),
+     * making it ideal for text fields or anything that should stretch.
+     * </p>
+     *
+     * <p>
+     * You pass components in alternating key/value order:
+     * {@code grid2(new JLabel("Name"), nameField, new JLabel("Size"), sizeSpinner, ...)}.
+     * </p>
+     *
+     * @param kvPairs
+     *        Even-length list of components, in label,value,label,value... order.
+     *
+     * @return A left-aligned {@link JPanel} using {@link GridBagLayout}.
      */
     public static JPanel grid2(Component... kvPairs) {
         JPanel g = new JPanel(new GridBagLayout());
@@ -113,8 +219,19 @@ public final class FormUI {
     }
 
     /**
-     * Compact two-column grid where the right column does NOT stretch.
-     * Great for keeping spinners or small combos tight to their labels.
+     * Similar to {@link #grid2(Component...)}, but the right column
+     * does NOT stretch horizontally.
+     *
+     * <p>
+     * This is useful for spinners, short combos, etc. where you want label and control
+     * snug together without the control expanding.
+     * </p>
+     *
+     * @param kvPairs
+     *        Even-length list of components, label then value.
+     *
+     * @return A left-aligned {@link JPanel} using {@link GridBagLayout}
+     *         with {@code fill=NONE} and {@code weightx=0} on the right column.
      */
     public static JPanel grid2Compact(Component... kvPairs) {
         JPanel g = new JPanel(new GridBagLayout());
@@ -131,7 +248,21 @@ public final class FormUI {
         return g;
     }
 
-    /** Keep a control left-aligned even inside a wider BoxLayout container. */
+    /**
+     * Wrap a component in a tiny, left-aligned container so that
+     * BoxLayout won't center it or stretch it oddly.
+     *
+     * <p>
+     * This is handy for single checkboxes or buttons you want visually
+     * pinned to the left edge in a vertical column.
+     * </p>
+     *
+     * @param c
+     *        The component to wrap.
+     *
+     * @return A transparent {@link JPanel} with {@link FlowLayout}(LEFT,0,0)
+     *         containing {@code c}, also left-aligned.
+     */
     public static JComponent leftWrap(JComponent c) {
         JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         p.setOpaque(false);
@@ -141,8 +272,22 @@ public final class FormUI {
     }
 
     /**
-     * Hard-limit the width of a control (e.g., spinner to 56px, combo to 180px).
-     * Returns a tiny wrapper so BoxLayout respects the exact size.
+     * Constrain a component to a fixed max width and return a wrapper panel
+     * suitable for use in BoxLayout.
+     *
+     * <p>
+     * We clamp the component's preferred / min / max size to the given width,
+     * then return a small left-aligned wrapper so layouts respect it.
+     * Common use: make a spinner or combo box not sprawl across the entire row.
+     * </p>
+     *
+     * @param c
+     *        The control to clamp (e.g. a {@link JSpinner}).
+     *
+     * @param width
+     *        Maximum width in pixels.
+     *
+     * @return A transparent wrapper panel containing {@code c}.
      */
     public static JComponent limitWidth(JComponent c, int width) {
         Dimension d = c.getPreferredSize();
@@ -154,9 +299,24 @@ public final class FormUI {
         return p;
     }
 
-    // ------------------ Info badge + tooltip ------------------
-
-    /** Small cyan “i” icon with a wrapped tooltip. */
+    /**
+     * Create a small "info" badge label (ⓘ-style icon) with a wrapped tooltip.
+     *
+     * <p>
+     * Behavior:
+     * </p>
+     * <ul>
+     *   <li>Scales the standard LAF information icon (or uses a fallback vector icon).</li>
+     *   <li>Sets an HTML tooltip produced by {@link #wrapTooltip(String, int)} so text wraps.</li>
+     *   <li>Sets pointer cursor to hint interactivity, and marks accessible name "More info".</li>
+     * </ul>
+     *
+     * @param helpHtml
+     *        Short HTML snippet explaining the associated setting/section.
+     *        This is embedded into the tooltip body.
+     *
+     * @return A {@link JLabel} containing only the icon, no text.
+     */
     public static JLabel createInfoBadge(String helpHtml) {
         JLabel b = new JLabel(getInfoIcon(14)); // 14px icon
         b.setText(null);
@@ -168,12 +328,47 @@ public final class FormUI {
         return b;
     }
 
-    /** Wrap HTML so Swing tooltips line-wrap instead of one long line. */
+    /**
+     * Wrap arbitrary HTML content with a fixed-width body so Swing tooltips
+     * line-break nicely instead of running in one long line.
+     *
+     * <p>
+     * This is used by {@link #createInfoBadge(String)} to generate tooltips that
+     * are actually readable.
+     * </p>
+     *
+     * @param innerHtml
+     *        Raw HTML snippet (no outer &lt;html&gt; required).
+     *
+     * @param widthPx
+     *        Max width in pixels for the tooltip body.
+     *
+     * @return A full {@code <html><body style='width:...'>...</body></html>} string.
+     */
     public static String wrapTooltip(String innerHtml, int widthPx) {
         return "<html><body style='width:" + widthPx + "px; padding:6px;'>" + innerHtml + "</body></html>";
     }
 
-    /** Get a scaled info icon (falls back to a vector draw if LAF icon missing). */
+    /**
+     * Return a scaled "info" icon of the requested pixel size.
+     *
+     * <p>
+     * We try in order:
+     * </p>
+     * <ol>
+     *   <li>UIManager's {@code "OptionPane.informationIcon"} as an {@link ImageIcon},
+     *       scaled smoothly to {@code sizePx}.</li>
+     *   <li>If the LAF icon isn't an {@link ImageIcon} (but is still an {@link Icon}),
+     *       we paint it into a {@link BufferedImage} then scale.</li>
+     *   <li>If all else fails, we return a fallback vector icon
+     *       {@link MiniInfoIcon} that draws a small ⓘ.</li>
+     * </ol>
+     *
+     * @param sizePx
+     *        Desired icon size (width = height = {@code sizePx}).
+     *
+     * @return A non-null {@link Icon} approximately {@code sizePx}×{@code sizePx}.
+     */
     public static Icon getInfoIcon(int sizePx) {
         Icon ui = UIManager.getIcon("OptionPane.informationIcon");
         if (ui instanceof ImageIcon) {
@@ -192,12 +387,55 @@ public final class FormUI {
         return new MiniInfoIcon(sizePx); // fallback vector
     }
 
-    /** Minimal vector “i in a circle” for when the LAF icon isn't available. */
+    /**
+     * Small vector-drawn fallback "ⓘ" icon.
+     *
+     * <p>
+     * Drawn dynamically if no suitable LAF icon is available.
+     * Paints a translucent circle outline plus a vertical "i" stem and dot.
+     * </p>
+     */
     static final class MiniInfoIcon implements Icon {
         private final int sz;
+        /**
+         * Create a new fallback info icon with the given size.
+         *
+         * @param size
+         *        Icon width/height in pixels.
+         */
         MiniInfoIcon(int size) { this.sz = size; }
+        /**
+         * @return The width of this icon in pixels.
+         */
         public int getIconWidth()  { return sz; }
+        /**
+         * @return The height of this icon in pixels.
+         */
         public int getIconHeight() { return sz; }
+        /**
+         * Paint the "ⓘ" badge.
+         *
+         * <p>
+         * We:
+         * </p>
+         * <ul>
+         *   <li>Enable antialiasing for smoother circles/lines.</li>
+         *   <li>Draw a soft, semi-transparent circle outline.</li>
+         *   <li>Add the "i" stem and dot in the center.</li>
+         * </ul>
+         *
+         * @param c
+         *        The component asking for the icon (not used heavily, but may inform LAF colors).
+         *
+         * @param g
+         *        The graphics context to paint into.
+         *
+         * @param x
+         *        X offset where the icon should start.
+         *
+         * @param y
+         *        Y offset where the icon should start.
+         */
         public void paintIcon(Component c, Graphics g, int x, int y) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);

@@ -15,6 +15,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+
+/**
+ * Settings panel for the Hu-gated Multiplex workflow.
+ *
+ * Tabs:
+ *  • Basic    – image, Hu channel, output, ganglia mode/chan, spatial
+ *  • Markers  – list of marker names + channels (+ optional custom ROI zips)
+ *  • Advanced – rescale, calibration requirements, Hu/subtype model zips, thresholds,
+ *               overlap fraction, DIJ ganglia model folder, config load/save
+ *
+ * The "Run Multiplex Analysis" action validates inputs and launches
+ * {@code new NeuronsMultiPipeline().run(mp)} in a background SwingWorker.
+ */
 public class MultichannelPane extends JPanel {
     public static final String Name = "Multiplex Workflow";
 
@@ -57,6 +70,10 @@ public class MultichannelPane extends JPanel {
     private JCheckBox cbRequireMicronUnits;
     private JSpinner spNeuronSegLowerUm, spNeuronSegMinUm;
 
+    /**
+     * Create the pane with tabs and action bar; wire events and inject defaults.
+     * @param owner Parent window for modal dialogs and previews.
+     */
     public MultichannelPane(Window owner) {
         super(new BorderLayout(10,10));
         this.owner = owner;
@@ -78,6 +95,7 @@ public class MultichannelPane extends JPanel {
         loadDefaults();
     }
 
+    /** Build the "Markers" tab with add/remove controls and scrollable card list. */
     private JPanel buildMarkersTab() {
         JPanel outer = new JPanel(new BorderLayout(8,8));
 
@@ -107,6 +125,7 @@ public class MultichannelPane extends JPanel {
         return outer;
     }
 
+    /** Build the "Markers" tab with add/remove controls and scrollable card list. */
     private void addMarkerRow(String name, int channel, boolean custom, File roiZip) {
         MarkerRow row = new MarkerRow(name, channel, custom, roiZip);
         markerRows.add(row);
@@ -115,6 +134,7 @@ public class MultichannelPane extends JPanel {
         markersPanel.repaint();
     }
 
+    /** Remove selected marker rows; fallback to last one if none selected. */
     private void removeSelectedMarkerRow() {
         boolean removedAny = false;
 
@@ -140,7 +160,10 @@ public class MultichannelPane extends JPanel {
         markersPanel.repaint();
     }
 
-    // ------- MarkerRow -------
+    /**
+     * Per-marker row widget for Multiplex runs (Hu-gated).
+     * Provides conversion to {@link NeuronsMultiPipeline.MarkerSpec} with validation of custom ROI zips.
+     */
     private static final class MarkerRow {
         final JPanel panel = new JPanel(new GridBagLayout());
         final JCheckBox cbSelect = new JCheckBox();
@@ -226,6 +249,9 @@ public class MultichannelPane extends JPanel {
 
 
 
+    /**
+     * Build the "Basic" tab (image, Hu channel, output, ganglia options, spatial, ROI zip chooser).
+     */
     private JPanel buildBasic() {
 
         JPanel outer = new JPanel(new BorderLayout());
@@ -353,6 +379,10 @@ public class MultichannelPane extends JPanel {
         return outer;
     }
 
+    /**
+     * Build the "Advanced" tab (rescale, calibration, size filters, DIJ folder, model zips,
+     * subtype thresholds, overlap fraction, config load/save).
+     */
     private JPanel buildAdvanced() {
         JPanel outer = new JPanel(new BorderLayout());
         JPanel p = new JPanel();
@@ -443,6 +473,15 @@ public class MultichannelPane extends JPanel {
         return p;
     }
 
+    /**
+     * Run handler:
+     * 1) Validate output dir and required files
+     * 2) Validate ganglia resources based on selected mode
+     * 3) Build {@link Params} and {@link NeuronsMultiPipeline.MultiParams}
+     * 4) Launch the pipeline in a background SwingWorker
+     *
+     * UI is re-enabled when background work completes.
+     */
     private void onRun(JButton runBtn) {
         runBtn.setEnabled(false);
 
@@ -508,6 +547,7 @@ public class MultichannelPane extends JPanel {
         w.execute();
     }
 
+    /** Create a base {@link Params} from UI controls (Hu model, rescale, spatial, ganglia, size gates). */
     private Params buildBaseParams() {
         Params p = new Params();
         p.imagePath = emptyToNull(tfImagePath.getText());
@@ -552,6 +592,7 @@ public class MultichannelPane extends JPanel {
         return p;
     }
 
+    /** Create a base {@link Params} from UI controls (Hu model, rescale, spatial, ganglia, size gates). */
     private NeuronsMultiPipeline.MultiParams buildMultiParams(Params base) {
         NeuronsMultiPipeline.MultiParams mp = new NeuronsMultiPipeline.MultiParams();
         mp.base = base;

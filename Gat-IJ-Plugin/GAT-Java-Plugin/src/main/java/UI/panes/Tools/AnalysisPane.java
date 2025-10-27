@@ -12,7 +12,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 public class AnalysisPane extends JPanel {
-    public static final String Name = "Analysis";
+    public static final String Name = "Merge Analysis";
 
     private final JRadioButton singleRb   = new JRadioButton("Merge files matching this filename or part of it");
     private final JRadioButton multiRb    = new JRadioButton("Merge multiple CSV types (discover filenames from first subfolder)");

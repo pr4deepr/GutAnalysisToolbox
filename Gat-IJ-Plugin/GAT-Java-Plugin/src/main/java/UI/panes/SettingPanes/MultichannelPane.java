@@ -67,7 +67,6 @@ public class MultichannelPane extends JPanel {
 
     private JCheckBox cbRescaleToTrainingPx;
     private JSpinner spTrainingPxUm, spTrainingScale;
-    private JCheckBox cbSaveOverlay;
     private JCheckBox cbRequireMicronUnits;
     private JSpinner spNeuronSegLowerUm, spNeuronSegMinUm;
 
@@ -296,7 +295,6 @@ public class MultichannelPane extends JPanel {
         tfOutputDir = new JTextField(36);
         btnBrowseOutput = new JButton("Browse…");
         btnBrowseOutput.addActionListener(e -> chooseFile(tfOutputDir, JFileChooser.DIRECTORIES_ONLY));
-        cbSaveOverlay = new JCheckBox("Save flattened overlays");
 
 
         String outputHelp =
@@ -304,7 +302,7 @@ public class MultichannelPane extends JPanel {
 
         p.add(boxWithHelp(
                 "Output Location",
-                column(row(tfOutputDir, btnBrowseOutput),cbSaveOverlay),
+                column(row(tfOutputDir, btnBrowseOutput)),
                 outputHelp
         ));
 
@@ -493,7 +491,7 @@ public class MultichannelPane extends JPanel {
         }
 
         if (markerRows.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please add at least one marker in the Markers tab.",
+            JOptionPane.showMessageDialog(this, "Please add at least one\n marker in the Markers tab.",
                     "No markers", JOptionPane.ERROR_MESSAGE);
             runBtn.setEnabled(true);
             return;
@@ -562,7 +560,7 @@ public class MultichannelPane extends JPanel {
         p.trainingPixelSizeUm   = ((Number)spTrainingPxUm.getValue()).doubleValue();
         p.trainingRescaleFactor = ((Number)spTrainingScale.getValue()).doubleValue();
 
-        p.saveFlattenedOverlay = cbSaveOverlay.isSelected();
+        p.saveFlattenedOverlay = true;
 
         p.doSpatialAnalysis     = cbDoSpatial.isSelected();
         p.spatialCellTypeName   = "Hu";
@@ -656,7 +654,6 @@ public class MultichannelPane extends JPanel {
         // Make the visibility correct on first render
         updateGangliaVisibility();
 
-        cbSaveOverlay.setSelected(true);
         cbRescaleToTrainingPx.setSelected(true);
         spTrainingPxUm.setValue(0.568);
         spTrainingScale.setValue(1.0);
@@ -768,7 +765,6 @@ public class MultichannelPane extends JPanel {
         UI.util.ConfigIO.putBool(p,"rescale.enabled", cbRescaleToTrainingPx.isSelected());
         UI.util.ConfigIO.putDbl (p,"rescale.trainingPxUm", ((Number)spTrainingPxUm.getValue()).doubleValue());
         UI.util.ConfigIO.putDbl (p,"rescale.trainingScale", ((Number)spTrainingScale.getValue()).doubleValue());
-        UI.util.ConfigIO.putBool(p,"overlay.saveFlattened", cbSaveOverlay.isSelected());
         UI.util.ConfigIO.putBool(p,"cal.requireMicrons", cbRequireMicronUnits.isSelected());
         UI.util.ConfigIO.putDbl (p,"cal.neuronSegLowerUm", ((Number)spNeuronSegLowerUm.getValue()).doubleValue());
         UI.util.ConfigIO.putDbl (p,"cal.neuronSegMinUm",   ((Number)spNeuronSegMinUm.getValue()).doubleValue());
@@ -795,7 +791,6 @@ public class MultichannelPane extends JPanel {
         if (UI.util.ConfigIO.has(p,"rescale.enabled")) cbRescaleToTrainingPx.setSelected(UI.util.ConfigIO.getBool(p,"rescale.enabled", cbRescaleToTrainingPx.isSelected()));
         if (UI.util.ConfigIO.has(p,"rescale.trainingPxUm")) spTrainingPxUm.setValue(UI.util.ConfigIO.getDbl(p,"rescale.trainingPxUm", ((Number)spTrainingPxUm.getValue()).doubleValue()));
         if (UI.util.ConfigIO.has(p,"rescale.trainingScale")) spTrainingScale.setValue(UI.util.ConfigIO.getDbl(p,"rescale.trainingScale", ((Number)spTrainingScale.getValue()).doubleValue()));
-        if (UI.util.ConfigIO.has(p,"overlay.saveFlattened")) cbSaveOverlay.setSelected(UI.util.ConfigIO.getBool(p,"overlay.saveFlattened", cbSaveOverlay.isSelected()));
         if (UI.util.ConfigIO.has(p,"cal.requireMicrons"))    cbRequireMicronUnits.setSelected(UI.util.ConfigIO.getBool(p,"cal.requireMicrons", cbRequireMicronUnits.isSelected()));
         if (UI.util.ConfigIO.has(p,"cal.neuronSegLowerUm"))  spNeuronSegLowerUm.setValue(UI.util.ConfigIO.getDbl(p,"cal.neuronSegLowerUm", ((Number)spNeuronSegLowerUm.getValue()).doubleValue()));
         if (UI.util.ConfigIO.has(p,"cal.neuronSegMinUm"))    spNeuronSegMinUm.setValue(UI.util.ConfigIO.getDbl(p,"cal.neuronSegMinUm", ((Number)spNeuronSegMinUm.getValue()).doubleValue()));

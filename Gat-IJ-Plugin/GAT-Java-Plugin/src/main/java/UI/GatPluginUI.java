@@ -48,16 +48,6 @@ public class GatPluginUI implements PlugIn {
     Navigator navigator = name -> cards.show(cardPanel,name);
 
 
-    static {
-        // Install Material UI L&F on the EDT
-        try {
-            UIManager.setLookAndFeel(
-                    new MaterialLookAndFeel(new MaterialOceanicTheme())
-            );
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
     /**
      * Launch hook called by ImageJ/Fiji.
@@ -81,16 +71,41 @@ public class GatPluginUI implements PlugIn {
      */
     @Override
     public void run(String arg){
-        String expectedNeuronModel  = "2D_enteric_neuron_V4_1.zip"; // e.g.
-        String expectedSubtypeModel = "2D_enteric_neuron_subtype_V4.zip" ;
+        String expectedNeuronModel  = "2D_enteric_neuron_V4_1.zip";
+        String expectedSubtypeModel = "2D_enteric_neuron_subtype_V4.zip";
 
-        // Run preflight; bail out if anything critical is missing.
         if (!UI.Preflight.runAll(expectedNeuronModel, expectedSubtypeModel)) {
             return;
         }
 
-        SwingUtilities.invokeLater(this::buildAndShow);
+        SwingUtilities.invokeLater(() -> {
+            // Remember Fiji's current design so we restore on close
+            final String prevLafClass = UIManager.getLookAndFeel().getClass().getName();
 
+            // Install Material globally for the plugin lifetime until we close it
+            try {
+                UIManager.setLookAndFeel(new MaterialLookAndFeel(new MaterialOceanicTheme()));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            // Build the UI under Material
+            JDialog dialog = buildAndShow();
+
+            // When the plugin window closes, restore previous L&F
+            dialog.addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override public void windowClosed(java.awt.event.WindowEvent e) {
+                    try {
+                        UIManager.setLookAndFeel(prevLafClass);
+                    } catch (Exception ignore) {}
+
+                    // Refresh currently open windows so they repaint with the restored L&F
+                    for (java.awt.Window w : java.awt.Window.getWindows()) {
+                        SwingUtilities.updateComponentTreeUI(w);
+                    }
+                }
+            });
+        });
     }
 
     /**
@@ -115,7 +130,8 @@ public class GatPluginUI implements PlugIn {
      * so layout is predictable.
      * </p>
      */
-    private void buildAndShow(){
+    private JDialog buildAndShow(){
+
 
 
 
@@ -154,12 +170,12 @@ public class GatPluginUI implements PlugIn {
         //Register each of our panes in the card panel
         Map<String, JPanel> panes = new LinkedHashMap<>();
         panes.put(HomePane.Name, new HomePane(navigator));
-        panes.put(AnalysisPane.Name,        new AnalysisPane(navigator));
         panes.put(AnalyseNeuronsPane.Name,  new AnalyseNeuronsPane(navigator));
-        panes.put(CalciumImagingPane.Name,  new CalciumImagingPane(navigator));        panes.put(MultiplexPane.Name,       new MultiplexPane(navigator));
-        panes.put(ToolsPane.Name,           new ToolsPane(navigator));
+        panes.put(CalciumImagingPane.Name,  new CalciumImagingPane(navigator));
         panes.put(SpatialAnalysisPane.Name, new SpatialAnalysisPane(navigator, dialog));
-
+        panes.put(MultiplexPane.Name,       new MultiplexPane(navigator));
+        panes.put(AnalysisPane.Name,        new AnalysisPane(navigator));
+        panes.put(ToolsPane.Name,           new ToolsPane(navigator));
 
 
         //Register the panes in the card panel and create the button
@@ -192,6 +208,8 @@ public class GatPluginUI implements PlugIn {
         dialog.setLocationRelativeTo(null);
         dialog.setVisible(true);
         navigator.show(HomePane.Name);
+
+        return dialog;
 
     }
 

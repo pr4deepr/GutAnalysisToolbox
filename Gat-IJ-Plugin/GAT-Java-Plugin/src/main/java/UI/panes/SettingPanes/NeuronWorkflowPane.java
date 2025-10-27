@@ -54,7 +54,6 @@ public class NeuronWorkflowPane extends JPanel {
     private JSpinner   spTrainingPixelSizeUm;   // double
     private JSpinner   spProbThresh;            // 0..1
     private JSpinner   spNmsThresh;             // 0..1
-    private JCheckBox  cbSaveFlattenedOverlay;
     private JTextField tfOutputDir;
     private JButton    btnBrowseOutput;
 
@@ -160,14 +159,13 @@ public class NeuronWorkflowPane extends JPanel {
         tfOutputDir = new JTextField(36);
         btnBrowseOutput = new JButton("Browse…");
         btnBrowseOutput.addActionListener(e -> chooseFile(tfOutputDir, JFileChooser.DIRECTORIES_ONLY));
-        cbSaveFlattenedOverlay = new JCheckBox("Save flattened overlay");
 
         String outputHelp =
                 "<b>Output:</b> Choose where you want your images to be saved to (optional; default: Analysis/<basename> at your image location) , and optionally choose to save a flattened image.<br/>";
 
         p.add(boxWithHelp(
                 "Output Location",
-                column(row(tfOutputDir, btnBrowseOutput),cbSaveFlattenedOverlay),
+                column(row(tfOutputDir, btnBrowseOutput)),
                 outputHelp
         ));
 
@@ -411,7 +409,7 @@ public class NeuronWorkflowPane extends JPanel {
         p.probThresh = ((Number) spProbThresh.getValue()).doubleValue();
         p.nmsThresh  = ((Number) spNmsThresh.getValue()).doubleValue();
 
-        p.saveFlattenedOverlay = cbSaveFlattenedOverlay.isSelected();
+        p.saveFlattenedOverlay = true;
 
         p.requireMicronUnits = cbRequireMicronUnits.isSelected();
         p.neuronSegLowerLimitUm = ((Number) spNeuronSegLowerLimitUm.getValue()).doubleValue();
@@ -477,7 +475,7 @@ public class NeuronWorkflowPane extends JPanel {
         spProbThresh.setValue(0.5);
         spNmsThresh.setValue(0.3);
 
-        cbSaveFlattenedOverlay.setSelected(true);
+
 
         cbRequireMicronUnits.setSelected(true);
         spNeuronSegLowerLimitUm.setValue(70.0);
@@ -604,7 +602,6 @@ public class NeuronWorkflowPane extends JPanel {
         UI.util.ConfigIO.putDbl(p,  "rescale.trainingPxUm", ((Number)spTrainingPixelSizeUm.getValue()).doubleValue());
         UI.util.ConfigIO.putDbl(p,  "rescale.trainingScale", ((Number)spTrainingRescaleFactor.getValue()).doubleValue());
 
-        UI.util.ConfigIO.putBool(p, "overlay.saveFlattened", cbSaveFlattenedOverlay.isSelected());
 
         UI.util.ConfigIO.putBool(p, "cal.requireMicrons", cbRequireMicronUnits.isSelected());
         UI.util.ConfigIO.putDbl(p,  "cal.neuronSegLowerUm", ((Number)spNeuronSegLowerLimitUm.getValue()).doubleValue());
@@ -635,7 +632,7 @@ public class NeuronWorkflowPane extends JPanel {
         if (UI.util.ConfigIO.has(p, "rescale.trainingPxUm")) spTrainingPixelSizeUm.setValue(UI.util.ConfigIO.getDbl(p,"rescale.trainingPxUm", ((Number)spTrainingPixelSizeUm.getValue()).doubleValue()));
         if (UI.util.ConfigIO.has(p, "rescale.trainingScale")) spTrainingRescaleFactor.setValue(UI.util.ConfigIO.getDbl(p,"rescale.trainingScale", ((Number)spTrainingRescaleFactor.getValue()).doubleValue()));
 
-        if (UI.util.ConfigIO.has(p, "overlay.saveFlattened")) cbSaveFlattenedOverlay.setSelected(UI.util.ConfigIO.getBool(p,"overlay.saveFlattened", cbSaveFlattenedOverlay.isSelected()));
+
 
         if (UI.util.ConfigIO.has(p, "cal.requireMicrons")) cbRequireMicronUnits.setSelected(UI.util.ConfigIO.getBool(p,"cal.requireMicrons", cbRequireMicronUnits.isSelected()));
         if (UI.util.ConfigIO.has(p, "cal.neuronSegLowerUm")) spNeuronSegLowerLimitUm.setValue(UI.util.ConfigIO.getDbl(p,"cal.neuronSegLowerUm", ((Number)spNeuronSegLowerLimitUm.getValue()).doubleValue()));

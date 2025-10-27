@@ -67,7 +67,7 @@ public class MultiChannelNoHuPane extends JPanel {
 
     private JSpinner   spMinMarkerSizeUm;       // double (like neuronSegMinMicron)
 
-    private JCheckBox  cbSaveFlattenedOverlay;
+
 
     private JTextField tfOutputDir;
     private JButton    btnBrowseOutput;
@@ -151,7 +151,6 @@ public class MultiChannelNoHuPane extends JPanel {
         tfOutputDir = new JTextField(36);
         btnBrowseOutput = new JButton("Browse…");
         btnBrowseOutput.addActionListener(e -> chooseFile(tfOutputDir, JFileChooser.DIRECTORIES_ONLY));
-        cbSaveFlattenedOverlay = new JCheckBox("Save flattened overlays");
 
 
         String outputHelp =
@@ -159,7 +158,7 @@ public class MultiChannelNoHuPane extends JPanel {
 
         p.add(boxWithHelp(
                 "Output Location",
-                column(row(tfOutputDir, btnBrowseOutput),cbSaveFlattenedOverlay),
+                column(row(tfOutputDir, btnBrowseOutput)),
                 outputHelp
         ));
 
@@ -549,7 +548,7 @@ public class MultiChannelNoHuPane extends JPanel {
         base.trainingRescaleFactor = ((Number) spTrainingRescaleFactor.getValue()).doubleValue();
 
         base.neuronSegMinMicron    = ((Number) spMinMarkerSizeUm.getValue()).doubleValue(); // reuse field name
-        base.saveFlattenedOverlay  = cbSaveFlattenedOverlay.isSelected();
+        base.saveFlattenedOverlay  = true;
 
         // ganglia options (optional)
         base.cellCountsPerGanglia = cbGangliaAnalysis.isSelected();
@@ -662,7 +661,7 @@ public class MultiChannelNoHuPane extends JPanel {
         spOverlapFrac.setValue(0.40);
         spMinMarkerSizeUm.setValue(160.0);
 
-        cbSaveFlattenedOverlay.setSelected(true);
+
 
         cbGangliaAnalysis.setSelected(false);
         cbGangliaMode.setSelectedItem(Params.GangliaMode.DEEPIMAGEJ);
@@ -711,7 +710,6 @@ public class MultiChannelNoHuPane extends JPanel {
         UI.util.ConfigIO.putBool(p,"rescale.enabled", cbRescaleToTrainingPx.isSelected());
         UI.util.ConfigIO.putDbl (p,"rescale.trainingPxUm", ((Number)spTrainingPixelSizeUm.getValue()).doubleValue());
         UI.util.ConfigIO.putDbl (p,"rescale.trainingScale", ((Number)spTrainingRescaleFactor.getValue()).doubleValue());
-        UI.util.ConfigIO.putBool(p,"overlay.saveFlattened", cbSaveFlattenedOverlay.isSelected());
         UI.util.ConfigIO.putBool(p,"spatial.enabled", cbDoSpatial.isSelected());
 
         // ganglia (no-Hu variant)
@@ -733,7 +731,6 @@ public class MultiChannelNoHuPane extends JPanel {
         if (UI.util.ConfigIO.has(p,"rescale.enabled")) cbRescaleToTrainingPx.setSelected(UI.util.ConfigIO.getBool(p,"rescale.enabled", cbRescaleToTrainingPx.isSelected()));
         if (UI.util.ConfigIO.has(p,"rescale.trainingPxUm")) spTrainingPixelSizeUm.setValue(UI.util.ConfigIO.getDbl(p,"rescale.trainingPxUm", ((Number)spTrainingPixelSizeUm.getValue()).doubleValue()));
         if (UI.util.ConfigIO.has(p,"rescale.trainingScale")) spTrainingRescaleFactor.setValue(UI.util.ConfigIO.getDbl(p,"rescale.trainingScale", ((Number)spTrainingRescaleFactor.getValue()).doubleValue()));
-        if (UI.util.ConfigIO.has(p,"overlay.saveFlattened")) cbSaveFlattenedOverlay.setSelected(UI.util.ConfigIO.getBool(p,"overlay.saveFlattened", cbSaveFlattenedOverlay.isSelected()));
         if (UI.util.ConfigIO.has(p,"spatial.enabled")) cbDoSpatial.setSelected(UI.util.ConfigIO.getBool(p,"spatial.enabled", cbDoSpatial.isSelected()));
 
         if (UI.util.ConfigIO.has(p,"ganglia.enabled")) cbGangliaAnalysis.setSelected(UI.util.ConfigIO.getBool(p,"ganglia.enabled", cbGangliaAnalysis.isSelected()));

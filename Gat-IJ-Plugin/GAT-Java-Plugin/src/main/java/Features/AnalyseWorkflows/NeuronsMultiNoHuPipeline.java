@@ -223,7 +223,7 @@ public class NeuronsMultiNoHuPipeline {
             ProgressUI progress = new ProgressUI("No-Hu multi-channel");
             progress.start(estimateSteps(mp));
 
-            // 1) Open image & make MAX
+            // Open image & make MAX
             progress.step("Open image");
             ImagePlus imp = (mp.base.imagePath == null || mp.base.imagePath.isEmpty())
                     ? IJ.getImage()
@@ -242,7 +242,7 @@ public class NeuronsMultiNoHuPipeline {
             //create our global roi manager
             RmHandle rmh = ensureGlobalRM();
 
-            // 2) Rescale math
+            // Rescale math
             progress.step("Rescale math");
             final double pxUm = (max.getCalibration() != null && max.getCalibration().pixelWidth > 0)
                     ? max.getCalibration().pixelWidth : 1.0;
@@ -258,19 +258,19 @@ public class NeuronsMultiNoHuPipeline {
             }
 
 
-            // 2.5) Ganglia (once)
+            //  Ganglia (once)
             ImagePlus gangliaLabels = null;
             double[] gangliaAreaUm2 = null;
             int nGanglia = 0;
 
             if (mp.base.cellCountsPerGanglia) {
                 progress.pulse("Ganglia: segment (" + mp.base.gangliaMode + ")");
-                // No Hu labels in this pipeline → pass null for neuronLabels
+                // No Hu labels in this pipeline,  if not then pass null for neuronLabels
                 ImagePlus gangliaOut = GangliaOps.segment(mp.base, max, /*neuronLabels=*/null, progress);
                 progress.stopPulse("Ganglia: segmentation done");
 
                 progress.step("Ganglia: label/export/areas");
-                // If segment() returned binary, convert; if it returned labels, this is quick no-op
+                // If segment() returned binary, convert; if it returned labels dont do
                 // Ensure we end with a label map either way
                 ImagePlus glabels = (gangliaOut.getBitDepth() == 8)
                         ? PluginCalls.binaryToLabels(gangliaOut)
@@ -304,12 +304,12 @@ public class NeuronsMultiNoHuPipeline {
             }
 
 
-            // 3) Results stores
+            // Results stores
             LinkedHashMap<String, Integer> totals = new LinkedHashMap<>();
             LinkedHashMap<String, int[]> perGanglia = new LinkedHashMap<>();
             Map<String, ImagePlus> labelsByMarker = new LinkedHashMap<>();
 
-            // 4) Per-marker: segment → review → save
+            //  Per-marker: segment then review then save
             for (MarkerSpec m : mp.markers) {
                 progress.step("Prep: " + m.name);
 
@@ -334,11 +334,11 @@ public class NeuronsMultiNoHuPipeline {
                         throw new IllegalArgumentException("ROI zip '" + m.customRoisZip.getName() + "' contains no ROIs.");
                     }
 
-                    // 2) ROI Manager macro commands need batch mode OFF so the mask has a canvas
+                    // ROI Manager macro commands need batch mode OFF so the mask has a canvas
                     boolean prevBatch = ij.macro.Interpreter.batchMode;
                     ij.macro.Interpreter.batchMode = false;
                     try {
-                        // Paint ROIs -> binary -> labels (your original helpers)
+                        // Paint ROIs then binary then labels (original helpers)
                         ImagePlus bin = Features.Core.PluginCalls.roisToBinary(max, tmp);
                         ImagePlus lab = Features.Core.PluginCalls.binaryToLabels(bin);
                         lab.setCalibration(max.getCalibration());
@@ -365,7 +365,7 @@ public class NeuronsMultiNoHuPipeline {
                 progress.stopPulse("Segment done: " + m.name);
 
                 progress.step("Review: " + m.name);
-                // ---- Review (seed RM, pass fallback) ----
+                // Review (seed RM, pass fallback)
                 RoiManager rmRev = rmh.rm;
                 rmRev.reset();
                 PluginCalls.labelsToRois(markerLabels);        // seed with current call
@@ -414,7 +414,7 @@ public class NeuronsMultiNoHuPipeline {
                 markerLabels.close();
             }
 
-            // 5) Pairwise combos (AND)
+            // Pairwise combos (AND)
             List<String> names = new ArrayList<>(labelsByMarker.keySet());
             for (int i = 0; i < names.size(); i++) {
                 for (int j = i + 1; j < names.size(); j++) {
@@ -463,7 +463,7 @@ public class NeuronsMultiNoHuPipeline {
             );
 
             progress.step("Save MAX & cleanup");
-            // 7) Save MAX and clean up
+            //  Save MAX and clean up
             OutputIO.saveTiff(max, new File(outDir, "MAX_" + baseName + ".tif"));
             for (ImagePlus keep : labelsByMarker.values()) keep.close();
             if (gangliaLabels != null) {

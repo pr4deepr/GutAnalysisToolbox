@@ -255,7 +255,7 @@ public final class PluginCalls {
         if (modelZip == null || !new File(modelZip).isFile())
             throw new IllegalArgumentException("StarDist ZIP not found: " + modelZip);
 
-        // Stable, safe title for macro binding
+        // Stable, safe title for binding
         String uniq = input.getTitle();
         if (uniq == null || uniq.isEmpty() || uniq.contains(".")) {
             uniq = "SDIN_" + System.nanoTime();
@@ -384,15 +384,15 @@ public final class PluginCalls {
      * @return           GangliaPrep bundle (both images hidden in memory).
      */
     public static GangliaPrep prepareGangliaInputs(ImagePlus maxProj, int gangliaCh1, int huCh1) {
-        // 1) Extract the two source channels (grayscale, no UI)
+        // Extract the two source channels (grayscale, no UI)
         ImagePlus g  = Features.Tools.ImageOps.extractChannel(maxProj, gangliaCh1); // ganglia marker
         ImagePlus hu = Features.Tools.ImageOps.extractChannel(maxProj, huCh1);      // Hu (cells)
         IJ.resetMinAndMax(g);  IJ.resetMinAndMax(hu);  // define display ranges
 
         final int w = maxProj.getWidth(), h = maxProj.getHeight();
 
-        // 2) Build the review RGB image: R=Hu, G=Ganglia, B=Hu  → Hu appears magenta, ganglia green
-        //    Use convertToByte(true) so display range is respected (matches macro look).
+        // Build the review RGB image: R=Hu, G=Ganglia, B=Hu  → Hu appears magenta, ganglia green
+        //    Use convertToByte(true) so display range is respected.
         ij.process.ByteProcessor r8 = (ij.process.ByteProcessor) hu.getProcessor().convertToByte(true);
         ij.process.ByteProcessor g8 = (ij.process.ByteProcessor) g .getProcessor().convertToByte(true);
         ij.process.ByteProcessor b8 = (ij.process.ByteProcessor) hu.getProcessor().convertToByte(true);
@@ -404,12 +404,12 @@ public final class PluginCalls {
         rgb.setCalibration(maxProj.getCalibration());
         rgb.hide();
 
-        // Optional: keep a hidden copy with the old helper name if any code still expects it.
+        // keep a hidden copy with the old helper name if any code still expects it.
         ImagePlus rgb2 = new ImagePlus("ganglia_rgb_2", (ij.process.ColorProcessor) cp.duplicate());
         rgb2.setCalibration(maxProj.getCalibration());
         rgb2.hide();
 
-        // 3) Build DeepImageJ input: 3 slices of float 0..1, exposed as C=3 hyperstack
+        // Build DeepImageJ input: 3 slices of float 0..1, exposed as C=3 hyperstack
         ij.process.FloatProcessor rf = r8.convertToFloatProcessor(); rf.multiply(1.0/255.0);
         ij.process.FloatProcessor gf = g8.convertToFloatProcessor(); gf.multiply(1.0/255.0);
         ij.process.FloatProcessor bf = b8.convertToFloatProcessor(); bf.multiply(1.0/255.0);
@@ -489,11 +489,11 @@ public final class PluginCalls {
             out = probToBinary(out, p.gangliaProbThresh01);
         }
 
-        // Binary Open (same as macro "Options..." with do=Open)
+        // Binary Open
         int it = (p != null ? Math.max(0, p.gangliaOpenIterations) : 3);
         IJ.run(out, "Options...", "iterations=" + it + " count=2 black do=Open");
 
-        // Size Opening in µm² -> px using MAX calibration
+        // Size Opening in µm² to px using MAX calibration
         double px = (maxProj.getCalibration() != null && maxProj.getCalibration().pixelWidth > 0)
                 ? maxProj.getCalibration().pixelWidth : 1.0;
         double areaUm2 = (minAreaUm2 > 0 ? minAreaUm2
@@ -501,8 +501,8 @@ public final class PluginCalls {
         int minAreaPx = (int)Math.ceil(areaUm2 / (px * px));
         SilentRun.runAndGrab(out, "Size Opening 2D/3D", "min=" + Math.max(1, minAreaPx));
 
-        // Optional interactive review
-        // --- Interactive review ---
+
+        // Interactive review
         if (p != null && p.gangliaInteractiveReview) {
             ij.macro.Interpreter.batchMode = false;
             progress.setVisible(false);
@@ -530,9 +530,8 @@ public final class PluginCalls {
             IJ.setForegroundColor(255, 255, 255);   // WHITE = add
             IJ.setBackgroundColor(0, 0, 0);         // BLACK = remove
 
-            // the caption you liked before
             showPaintPalette(
-                    out.getWindow(),                       // owner; use GatWindows.owner() if you prefer
+                    out.getWindow(),
                     "Ganglia overlay",
                     "Paint on 'ganglia_mask'. WHITE adds, BLACK removes."
             );

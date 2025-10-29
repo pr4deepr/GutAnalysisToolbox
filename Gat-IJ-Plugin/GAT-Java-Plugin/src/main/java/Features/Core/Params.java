@@ -40,10 +40,10 @@ public class Params {
     /** StarDist 2D model (.zip) for neurons. */
     public String stardistModelZip;
 
-    // Rescaling to model training resolution (faithful to macro)
+    // Rescaling to model training resolution
     public boolean rescaleToTrainingPx = true;
-    public double trainingPixelSizeUm = 0.568; // matches your settings
-    public double trainingRescaleFactor = 1.0;                 // macro “Rescaling Factor” knob (default 1.0)
+    public double trainingPixelSizeUm = 0.568;
+    public double trainingRescaleFactor = 1.0;  //  “Rescaling Factor” knob (default 1.0)
 
     // DeepImageJ model dir (folder)
     public String neuronDeepImageJModelDir; // e.g. <Fiji>/models/2D_enteric_neuron.bioimage.io.model
@@ -55,12 +55,12 @@ public class Params {
     /** Require microns/um calibration. */
     public boolean requireMicronUnits = true;
 
-    // Post-processing knobs (macro names: prob_neuron, overlap_neuron)
+    // Post-processing knobs
     public double probThresh = 0.5;
     public double nmsThresh = 0.3;
 
     // Size filtering (pixel-area threshold derived from microns)
-    public Double neuronSegLowerLimitUm = 70.0;   // from settings (in microns)
+    public Double neuronSegLowerLimitUm = 70.0;
 
     /** Save flattened overlay image with ROIs. */
     public boolean saveFlattenedOverlay = true;
@@ -68,7 +68,7 @@ public class Params {
     /** For labels/CSVs. */
     public String cellTypeName = "Neuron";
 
-    // Size filter (faithful to macro’s conversion: microns ÷ pixelWidth)
+    // Size filter
     public Double neuronSegMinMicron = 70.0; // “neuron_seg_lower_limit” in microns
 
 

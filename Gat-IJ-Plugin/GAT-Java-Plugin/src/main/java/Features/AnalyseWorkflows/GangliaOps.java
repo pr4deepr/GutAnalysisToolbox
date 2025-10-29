@@ -185,7 +185,6 @@ public final class GangliaOps {
      * @throws IllegalStateException if the image is not calibrated in microns and
      *                               {@code p.huDilationMicron} can't be converted.
      */
-
     private static ImagePlus defineFromHu(Params p, ImagePlus neuronLabels, ImagePlus ref) {
         // labels -> binary (inline)
         ImagePlus bin = neuronLabels.duplicate();

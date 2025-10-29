@@ -99,7 +99,7 @@ public class NeuronsMultiPipeline {
      */
 
     public static final class MultiParams {
-        public Params base;                          // your existing Params (Hu + ganglia config)
+        public Params base;                          // existing Params (Hu + ganglia config)
         public String subtypeModelZip;               // StarDist model zip for subtype channels
         public double multiProb   = 0.50;            // default StarDist thresholds for subtype
         public double multiNms    = 0.30;
@@ -154,10 +154,10 @@ public class NeuronsMultiPipeline {
         public final double[] gangliaAreaUm2;       // may be null
         public final ImagePlus gangliaLabels;       // may be null
 
-        // marker or combo name -> total Hu-gated neuron count
+        // marker or combo name to total Hu-gated neuron count
         public final LinkedHashMap<String,Integer> totals;
 
-        // marker or combo name -> neurons-per-ganglion array (1..G)
+        // marker or combo name to neurons-per-ganglion array (1..G)
         public final LinkedHashMap<String,int[]> perGanglia;
         public final Boolean doSpatialAnalysis;
         public final int[]   neuronsPerGanglion; // Hu-only, index 1..n (0 unused)
@@ -256,7 +256,7 @@ public class NeuronsMultiPipeline {
             ProgressUI progress = new ProgressUI("Hu + Multi-channel");
             progress.start(totalSteps);
 
-            // 1) Run Hu once (returns MAX, Hu labels, ganglia info)
+            //  Run Hu once (returns MAX, Hu labels, ganglia info)
             NeuronsHuPipeline.HuResult hu = new NeuronsHuPipeline().run(mp.base, /*huReturn=*/true, progress);
             Interpreter.batchMode = true;
             ImagePlus max = hu.max;
@@ -264,7 +264,7 @@ public class NeuronsMultiPipeline {
             int totalHu = hu.totalNeuronCount;
 
 
-            // 2) Common bits for rescale math
+            //  Common bits for rescale math
             double pxUm = max.getCalibration().pixelWidth;
             double scale = (mp.base.trainingRescaleFactor > 0) ? mp.base.trainingRescaleFactor : 1.0;
             double targetPxUm = mp.base.trainingPixelSizeUm / scale;
@@ -278,7 +278,7 @@ public class NeuronsMultiPipeline {
                 subtypeMinPx = (int) Math.max(1, Math.round(mp.base.neuronSegMinMicron / eff));
             }
 
-            // 3) Collect results
+            //  Collect results
             File outDir = hu.outDir;
             String baseName = hu.baseName;
             LinkedHashMap<String, Integer> totals = new LinkedHashMap<>();
@@ -294,7 +294,7 @@ public class NeuronsMultiPipeline {
             RoiManager rm = rmh.rm;
             rm.setVisible(false);
 
-            // 4) Loop each marker
+            //  Loop each marker
 
             for (MarkerSpec m : mp.markers) {
                 ij.macro.Interpreter.batchMode = true;
@@ -319,11 +319,11 @@ public class NeuronsMultiPipeline {
                         throw new IllegalArgumentException("ROI zip '" + m.customRoisZip.getName() + "' contains no ROIs.");
                     }
 
-                    // 2) ROI Manager macro commands need batch mode OFF so the mask has a canvas
+                    // ROI Manager macro commands need batch mode OFF so the mask has a canvas
                     boolean prevBatch = ij.macro.Interpreter.batchMode;
                     ij.macro.Interpreter.batchMode = false;
                     try {
-                        // Paint ROIs -> binary -> labels (your original helpers)
+                        // Paint ROIs then binary then labels (original helpers)
                         ImagePlus bin = Features.Core.PluginCalls.roisToBinary(max, tmp);
                         ImagePlus lab = Features.Core.PluginCalls.binaryToLabels(bin);
                         lab.setCalibration(max.getCalibration());
@@ -547,9 +547,6 @@ public class NeuronsMultiPipeline {
      */
     private void runSpatialFromHu(MultiResult mr, MultiParams p) {
         if (mr == null || p == null) return;
-
-        // if you gate this with a checkbox:
-        // if (!Boolean.TRUE.equals(p.base.doSpatialAnalysis)) return;
 
         if (p.markers.size() < 2) {
             IJ.log("Spatial analysis skipped (need ≥ 2 markers).");

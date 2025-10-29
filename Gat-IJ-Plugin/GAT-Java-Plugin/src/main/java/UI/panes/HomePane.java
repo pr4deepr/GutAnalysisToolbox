@@ -103,7 +103,7 @@ public class HomePane extends JPanel {
 
         setBorder(BorderFactory.createEmptyBorder(16,16,16,16));
 
-        // ----- Top bar: greeting | title | clock+help -----
+        //  Top bar: greeting | title | clock+help
         JPanel top = new JPanel(new BorderLayout(8,8));
         top.setOpaque(false);
 
@@ -130,7 +130,7 @@ public class HomePane extends JPanel {
         clockTimer.setInitialDelay(0);
         clockTimer.start();
 
-        // ----- Main column -----
+        //  Main column
         JPanel col = new JPanel();
         col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
         col.setOpaque(false);

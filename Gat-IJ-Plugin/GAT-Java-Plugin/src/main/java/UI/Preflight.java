@@ -79,16 +79,16 @@ public final class Preflight {
         logHeader();
 
 
-        // 1) First-run sentinel + DeepImageJ engines check
+        // First-run sentinel + DeepImageJ engines check
         if (!firstRunAndDeepImageJ()) return false;
 
-        // 2) System / GPU / RAM report (best-effort)
+        //  System / GPU / RAM report (best-effort)
         reportSystem();
 
-        // 3) Check models in <Fiji>/models (no macros or IJM tables)
+        //  Check models in <Fiji>/models (no macros or IJM tables)
         if (!checkModels(expectedNeuronModel, expectedSubtypeModel)) return false;
 
-        // 4) Check required commands/plugins are present
+        // Check required commands/plugins are present
         if (!checkPlugins()) return false;
 
         IJ.log("****** DONE – environment looks good. ******");
@@ -147,7 +147,7 @@ public final class Preflight {
             }
         }
 
-        // DeepImageJ initialized? (engines folder)
+        // DeepImageJ initialised? (engines folder)
         File engines = new File(fijiDir, "engines");
         if (!engines.isDirectory()) {
             String msg =

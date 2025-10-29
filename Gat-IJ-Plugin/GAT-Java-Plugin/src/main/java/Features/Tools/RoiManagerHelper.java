@@ -48,7 +48,7 @@ public final class RoiManagerHelper {
         RoiManager rm = RoiManager.getInstance2();
         boolean weOpened = false;
         if (rm == null) { rm = new RoiManager(); weOpened = true; } // becomes the singleton
-        rm.setVisible(false); // keep hidden; let your UI show it as needed
+        rm.setVisible(false); // keep hidden; let the UI show it as needed
         return new RmHandle(rm, weOpened);
     }
 

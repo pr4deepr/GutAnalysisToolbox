@@ -99,7 +99,7 @@ public final class SegCommon {
         if (p == null)  throw new IllegalArgumentException("Params cannot be null");
         if (p.stardistModelZip == null) throw new IllegalArgumentException("Params.stardistModelZip is null");
 
-        // --- compute scale factor like your pipelines ---
+        // compute scale factor
         double pxUm = max.getCalibration() != null ? max.getCalibration().pixelWidth : 0.0;
         double scale = (p.trainingRescaleFactor > 0) ? p.trainingRescaleFactor : 1.0;
         double targetPxUm = (p.trainingPixelSizeUm > 0) ? (p.trainingPixelSizeUm / scale) : 0.0;
@@ -115,11 +115,11 @@ public final class SegCommon {
                     : (p.probThresh > 0 ? p.probThresh : 0.50);
             double nms  = (p.nmsThresh  > 0 ? p.nmsThresh  : 0.30);
 
-            // --- StarDist label map on segInput scale ---
+            // StarDist label map on segInput scale
             ImagePlus labels = Features.Core.PluginCalls.runStarDist2DLabel(segInput, p.stardistModelZip, prob, nms);
             labels = Features.Core.PluginCalls.removeBorderLabels(labels);
 
-            // --- size filter in pixels, using effective pixel size at segInput scale ---
+            //  size filter in pixels, using effective pixel size at segInput scale
             Double minMicron = (p.neuronSegLowerLimitUm != null) ? p.neuronSegLowerLimitUm : p.neuronSegMinMicron;
             int minPx = 0;
             if (minMicron != null && pxUm > 0) {
@@ -130,13 +130,13 @@ public final class SegCommon {
                 labels = Features.Core.PluginCalls.labelMinSizeFilterPx(labels, minPx);
             }
 
-            // --- back to MAX size if needed ---
+            //  back to MAX size if needed
             if (labels.getWidth() != max.getWidth() || labels.getHeight() != max.getHeight()) {
                 labels = ImageOps.resizeTo(labels, max.getWidth(), max.getHeight());
                 labels.setCalibration(max.getCalibration());
             }
 
-            // --- labels → ROI Manager ---
+            //  labels to ROI Manager
             RmHandle rmh = ensureGlobalRM();
             RoiManager rm = rmh.rm;
             rm.reset(); rm.setVisible(false);
@@ -152,7 +152,7 @@ public final class SegCommon {
         }
     }
 
-    // -------------------- Subtype (single run) --------------------
+
 
     /**
      * Segment one subtype/marker channel (e.g. ChAT+, VIP+, etc.) using MultiParams.
@@ -177,7 +177,7 @@ public final class SegCommon {
         if (mp == null || mp.base == null) throw new IllegalArgumentException("MultiParams/base cannot be null");
         if (mp.subtypeModelZip == null) throw new IllegalArgumentException("MultiParams.subtypeModelZip is null");
 
-        // scale like in your multi pipeline
+        // scale like in the multi pipeline
         double pxUm = max.getCalibration() != null ? max.getCalibration().pixelWidth : 0.0;
         double scale = (mp.base.trainingRescaleFactor > 0) ? mp.base.trainingRescaleFactor : 1.0;
         double targetPxUm = (mp.base.trainingPixelSizeUm > 0) ? (mp.base.trainingPixelSizeUm / scale) : 0.0;
@@ -195,7 +195,7 @@ public final class SegCommon {
             ImagePlus labels = Features.Core.PluginCalls.runStarDist2DLabel(segInput, mp.subtypeModelZip, prob, nms);
             labels = Features.Core.PluginCalls.removeBorderLabels(labels);
 
-            // optional min-size using same logic as in your multi pipeline
+            // optional min-size using same logic as the multi pipeline
             Double minMicron = (mp.base.neuronSegLowerLimitUm != null)
                     ? mp.base.neuronSegLowerLimitUm
                     : mp.base.neuronSegMinMicron;
@@ -228,7 +228,7 @@ public final class SegCommon {
         }
     }
 
-    // ------------------- Ganglia (Hu expansion) -------------------
+    // Ganglia (Hu expansion)
 
     /**
      * Quick ganglia preview based on Hu neurons only.
@@ -255,7 +255,7 @@ public final class SegCommon {
         double pxUm = max.getCalibration() != null ? max.getCalibration().pixelWidth : 0.0;
         int iters = (pxUm > 0) ? Math.max(1, (int)Math.round(expansionUm / pxUm)) : 6;
 
-        // ROIs → binary mask (8-bit) same size as MAX
+        // ROIs to binary mask (8-bit) same size as MAX
         ImagePlus bin = Features.Core.PluginCalls.roisToBinary(max, huRm);
 
         // simple pixel dilation for 'iters' steps
@@ -263,7 +263,7 @@ public final class SegCommon {
             IJ.run(bin, "Dilate", "");
         }
 
-        // mask → labels
+        // mask to labels
         ImagePlus labels = Features.Core.PluginCalls.binaryToLabels(bin);
         labels.setCalibration(max.getCalibration());
 

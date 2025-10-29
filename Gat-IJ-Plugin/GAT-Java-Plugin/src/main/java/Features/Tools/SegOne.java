@@ -139,14 +139,14 @@ public final class SegOne {
     public static TuningTools.Row runGangliaFromHuExpansion(ImagePlus max, int huCh, Params base, double um, File outDir){
         Params p = (base != null) ? base.copy() : new Params();
 
-        // 1) segment Hu once using base
+        //  segment Hu once using base
         ImagePlus ch = ImageOps.extractChannel(max, huCh);
         SegCommon.SegResult r  = SegCommon.segmentHuOne(ch, max, p, null);
 
-        // 2) Preview labels by expansion (µm) → CC
+        //  Preview labels by expansion (µm) → CC
         ImagePlus ganglia = SegCommon.gangliaByExpansionPreview(max, r.rm, um);
 
-        // 3) Save preview; count CC
+        //  Save preview; count CC
         int cc = SegCommon.countLabels(ganglia);
         File png = SegCommon.saveMaskOverlay(max, ganglia, outDir, "tune_ganglia_"+fmt(um)+"um.png");
 

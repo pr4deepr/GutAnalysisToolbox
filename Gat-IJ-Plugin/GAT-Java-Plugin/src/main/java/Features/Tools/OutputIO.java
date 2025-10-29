@@ -41,7 +41,7 @@ public final class OutputIO {
      * @throws IllegalStateException if we fail to create the directory.
      */
     public static File prepareOutputDir(String explicitParent, ImagePlus imp, String baseName) {
-        // 1) Resolve parent dir
+        // Resolve parent dir
         File parent;
         if (explicitParent != null && !explicitParent.trim().isEmpty()) {
             parent = new File(explicitParent);
@@ -55,7 +55,7 @@ public final class OutputIO {
             }
         }
 
-        // 2) Analysis/<baseName> with mkdirs() checks
+        // Analysis/<baseName> with mkdirs() checks
         File analysis = new File(parent, "Analysis");
         if (!analysis.exists() && !analysis.mkdirs()) {
             throw new IllegalStateException("Failed to create dir: " + analysis.getAbsolutePath());
@@ -195,7 +195,7 @@ public final class OutputIO {
             for (int gid = 1; gid < n; gid++) {
                 int c = (gid < counts.length) ? counts[gid] : 0;
                 double a = (gid < areaUm2.length) ? areaUm2[gid] : 0.0;
-                // skip empty ganglia if you want
+                // skip empty ganglia
                 if (c == 0 && a == 0) continue;
                 pw.printf(java.util.Locale.US, "%d,%d,%.6f%n", gid, c, a);
             }
@@ -235,7 +235,7 @@ public final class OutputIO {
             double[] gangliaAreaUm2                       // optional (length = #ganglia)
     ) {
         try (java.io.PrintWriter pw = new java.io.PrintWriter(new java.io.FileWriter(csv))) {
-            // ----- Header -----
+            // Header
             java.util.List<String> headers = new java.util.ArrayList<>();
             headers.add("File name");
             headers.add("Total Hu");
@@ -253,7 +253,7 @@ public final class OutputIO {
             }
             pw.println(String.join(",", headers));
 
-            // ----- Rows -----
+            //  Rows
             int nRows = (nGangliaOrNull == null) ? 1 : Math.max(1, nGangliaOrNull);
 
             for (int r = 0; r < nRows; r++) {
@@ -320,7 +320,7 @@ public final class OutputIO {
     ) {
         try (java.io.PrintWriter pw = new java.io.PrintWriter(new java.io.FileWriter(csv))) {
 
-            // --- determine #ganglia from inputs (if any) ---
+            // determine #ganglia from inputs (if any)
             int nGanglia = 0;
             if (perGangliaOrNull != null) {
                 for (Map.Entry<String,int[]> e : perGangliaOrNull.entrySet()) {
@@ -333,7 +333,7 @@ public final class OutputIO {
             }
             boolean hasGanglia = nGanglia > 0;
 
-            // --- header ---
+            // header
             java.util.List<String> headers = new java.util.ArrayList<>();
             headers.add("File name");
             if (hasGanglia) headers.add("No of ganglia");
@@ -350,7 +350,7 @@ public final class OutputIO {
             }
             pw.println(String.join(",", headers));
 
-            // --- rows ---
+            // rows
             int nRows = hasGanglia ? nGanglia : 1;
 
             for (int r = 0; r < nRows; r++) {
@@ -365,7 +365,7 @@ public final class OutputIO {
                 } else {
                     // blanks under the totals on subsequent lines
                     cells.add(""); // File name
-                    if (hasGanglia) cells.add(""); // No of ganglia
+                    if (hasGanglia) cells.add(""); // No. of ganglia
                     for (int i = 0; i < totals.size(); i++) cells.add("");
                 }
 

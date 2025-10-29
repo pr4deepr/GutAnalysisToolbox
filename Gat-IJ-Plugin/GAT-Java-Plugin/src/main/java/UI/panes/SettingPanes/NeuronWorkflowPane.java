@@ -545,7 +545,7 @@ public class NeuronWorkflowPane extends JPanel {
         int rv = ch.showOpenDialog(this);
         if (rv == JFileChooser.APPROVE_OPTION) {
             File sel = ch.getSelectedFile();
-            // store only folder name relative to models dir (parity with your current Params)
+            // store only folder name relative to models dir
             String name = sel.getName();
             target.setText(name);
         }

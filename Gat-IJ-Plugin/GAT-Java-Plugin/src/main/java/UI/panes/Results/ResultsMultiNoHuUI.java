@@ -112,7 +112,7 @@ public class ResultsMultiNoHuUI {
             thumbsRow.add(makeThumbCard("Ganglia overlay", loadForThumb(gangliaOverlay, r.max), 560));
         }
 
-        // first two marker overlays (in insertion order, i.e., your run order)
+        // first two marker overlays
         int added = 0;
         for (String name : r.totals.keySet()) {
             if (name.contains("+")) continue; // skip combos for thumbnails

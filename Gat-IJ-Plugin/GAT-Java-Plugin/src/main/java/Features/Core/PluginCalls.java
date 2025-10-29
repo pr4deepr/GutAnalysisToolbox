@@ -732,7 +732,7 @@ public final class PluginCalls {
             });
         }
 
-        // Block ONLY the calling thread (not the EDT). Your pipeline should be off the EDT.
+        // Block ONLY the calling thread (not the EDT).
         if (!SwingUtilities.isEventDispatchThread()) {
             try { latch.await(); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
         }

@@ -170,7 +170,7 @@ public final class TuningTools {
         if (src == null) throw new IllegalArgumentException("Image is null");
         if (src.getNSlices() <= 1) return src.duplicate();
         if (base.useClij2EDF) {
-            // EDF path using your helper
+            // EDF path
             return Features.Core.PluginCalls.clij2EdfVariance(src);
         } else {
             src.show();

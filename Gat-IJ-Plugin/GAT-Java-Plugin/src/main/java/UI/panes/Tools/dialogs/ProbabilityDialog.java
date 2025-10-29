@@ -66,7 +66,7 @@ public final class ProbabilityDialog extends JDialog {
         // Optional model path (required when mode == SUBTYPE)
         public File   modelZip;
 
-        // NEW: where previews/CSV are saved
+        // where previews/CSV are saved
         public File   outDir;
     }
 
@@ -118,11 +118,11 @@ public final class ProbabilityDialog extends JDialog {
         setLayout(new BorderLayout(10,10));
         ((JComponent)getContentPane()).setBorder(new EmptyBorder(12,12,12,12));
 
-        // --- Image row ---
+        //  Image row
         pathTf.setColumns(30);
         JPanel imgRow = rowWithBrowse(pathTf, browseImg);
 
-        // --- Mode + channel row ---
+        // Mode + channel row
         ButtonGroup bg = new ButtonGroup(); bg.add(rbNeuron); bg.add(rbSubtype);
         JPanel modeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         modeRow.add(new JLabel("Choose mode of segmentation"));
@@ -131,33 +131,33 @@ public final class ProbabilityDialog extends JDialog {
         modeRow.add(Box.createHorizontalStrut(16));
 
 
-        // --- Sweep inputs ---
+        // Sweep inputs
         JPanel sweep = new JPanel(new GridLayout(4,2,8,8));
         sweep.add(new JLabel("Channel:"));  sweep.add(chSp);
         sweep.add(new JLabel("Enter minimum value"));             sweep.add(minSp);
         sweep.add(new JLabel("Enter maximum max value"));         sweep.add(maxSp);
         sweep.add(new JLabel("Enter size of each increment step")); sweep.add(stepSp);
 
-        // --- Fixed thresholds row ---
+        // Fixed thresholds row
         JPanel fixed = new JPanel(new GridLayout(2,2,8,8));
         fixed.add(new JLabel("Rescaling Factor"));  fixed.add(rescaleSp);
         fixed.add(new JLabel("Overlap Threshold")); fixed.add(overlapSp);
 
-        // --- Model row (for SUBTYPE) ---
+        //  Model row (for SUBTYPE)
         modelTf.setColumns(28);
         JPanel modelRow = rowWithBrowse(modelTf, browseZip);
         JPanel modelWrap = labeled("Choose the StarDist model based on celltype.", modelRow);
 
-        // --- Output row (NEW) ---
+        // Output row
         outTf.setColumns(28);
         JPanel outRow = labeled("Select output location", rowWithBrowse(outTf, browseOut));
 
-        // --- Buttons ---
+        // Buttons
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         actions.add(ok);
         actions.add(cancel);
 
-        // --- Compose ---
+        // Compose
         JPanel center = new JPanel();
         center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
         center.add(labeled("Choose the image to segment", imgRow));
@@ -183,7 +183,7 @@ public final class ProbabilityDialog extends JDialog {
         add(center, BorderLayout.CENTER);
         add(actions, BorderLayout.SOUTH);
 
-        // --- Behavior ---
+        // Behavior
         updateModelVisibility();
         rbNeuron.addActionListener(e -> updateModelVisibility());
         rbSubtype.addActionListener(e -> updateModelVisibility());

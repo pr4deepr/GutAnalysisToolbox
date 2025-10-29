@@ -62,12 +62,12 @@ public class AnalyseNeuronsPane extends JPanel {
         setLayout(new BorderLayout(10,10));
         setBorder(new EmptyBorder(10,10,10,10));
 
-        // 1) Pane title
+        // Pane title
         JLabel paneTitle = new JLabel("Neuron Analysis Options", SwingConstants.CENTER);
         paneTitle.setFont(paneTitle.getFont().deriveFont(Font.BOLD, 18f));
         add(paneTitle, BorderLayout.NORTH);
 
-        // 2) Option panels
+        // Option panels
         OptionPanel neurons = new OptionPanel(
                 "Analyse Neurons",
                 "Analyse image with hu and ganglia channel.",
@@ -96,7 +96,7 @@ public class AnalyseNeuronsPane extends JPanel {
         choices.setPreferredSize(new Dimension(choices.getPreferredSize().width, 100));
         add(choices, BorderLayout.CENTER);
 
-        // 3) Single “Go” button
+        //  Single “Go” button
         JButton go = new JButton("Go");
         go.addActionListener(e -> {
             for (OptionPanel op : all) {

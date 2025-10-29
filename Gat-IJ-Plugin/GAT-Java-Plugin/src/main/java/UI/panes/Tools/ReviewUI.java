@@ -144,7 +144,7 @@ public final class ReviewUI {
             if (r == null || !r.isArea()) continue; // skip points/lines
             ip.setRoi(r);
             ip.setValue(id & 0xFFFF);
-            ip.fill();                 // <-- KEY FIX: fill at ROI’s true position
+            ip.fill();
             id++;
         }
         ImagePlus out = new ImagePlus("labels_from_review", sp);

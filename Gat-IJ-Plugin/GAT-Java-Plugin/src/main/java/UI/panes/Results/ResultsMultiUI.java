@@ -103,7 +103,7 @@ public class ResultsMultiUI {
         f.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         f.setLayout(new BorderLayout());
 
-        // ---- header ----
+        //  header
         JPanel header = new JPanel(new GridLayout(0,1));
         header.setBorder(new EmptyBorder(6,12,2,12));
         header.add(new JLabel("Output folder: " + r.outDir.getAbsolutePath()));
@@ -111,7 +111,7 @@ public class ResultsMultiUI {
         if (r.nGanglia != null) header.add(new JLabel("Detected ganglia: " + r.nGanglia));
         f.add(header, BorderLayout.NORTH);
 
-        // ---- center ----
+        //  center
         JPanel center = new JPanel();
         center.setBorder(new EmptyBorder(4,12,4,12));
         center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
@@ -130,7 +130,7 @@ public class ResultsMultiUI {
         }
         center.add(thumbsRow);
 
-        // --- Hu ganglia table + Hu box plot (same as single-channel UI) ---
+        // Hu ganglia table + Hu box plot (same as single-channel UI)
         if (r.neuronsPerGanglion != null && r.neuronsPerGanglion.length > 1) {
             center.add(Box.createVerticalStrut(10));
             center.add(sectionTitle("Ganglia results (table)"));
@@ -180,7 +180,7 @@ public class ResultsMultiUI {
         JScrollPane tableScroll = new JScrollPane(summary);
         tableScroll.setBorder(BorderFactory.createEmptyBorder());
 
-    // --- auto-size the scroll pane to the table height (no extra white) ---
+    // auto-size the scroll pane to the table height (no extra white)
         int rows  = summary.getRowCount();
         int rowH  = summary.getRowHeight();
         int headH = summary.getTableHeader().getPreferredSize().height;
@@ -450,7 +450,7 @@ public class ResultsMultiUI {
         return new double[]{ vals.get(0), q1, med, q3, vals.get(n-1) };
     }
 
-    // ---------- misc helpers ----------
+    // misc helpers
 
     private static JPanel sectionTitle(String text) {
         JPanel p = new JPanel(new BorderLayout());
@@ -726,7 +726,7 @@ public class ResultsMultiUI {
         return new Stats(n,min,max,mean,median,stdev);
     }
 
-    // ===== Card with summary + histogram + save button =====
+    //  Card with summary + histogram + save button
     private static JPanel makeSpatialCardWithSummary(String title, int[] values, int binW, File savePath) {
         BufferedImage img = makeSpatialHistogram(values, binW);
         Stats st = stats(values);

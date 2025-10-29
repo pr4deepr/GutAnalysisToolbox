@@ -311,12 +311,9 @@ public class ToolsPane extends JPanel {
      *         {@code false} otherwise
      */
     private static boolean ensureNeuronModelZip(Params p) {
-        // Point this at your Hu (neuron) StarDist model zip.
-        // If your Hu model is "2D_enteric_neuron_V4_1.zip", use that.
         File modelsDir = new File(ij.IJ.getDirectory("imagej"), "models");
         File model = new File(modelsDir, "2D_enteric_neuron_V4_1.zip");
         if (!model.isFile()) {
-            // fallback to subtype name if that's what you actually ship
             model = new File(modelsDir, "2D_enteric_neuron_subtype_v4.zip");
         }
         p.stardistModelZip = model.getAbsolutePath();

@@ -10,16 +10,76 @@ import java.awt.datatransfer.StringSelection;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-
+/**
+ * {@code HelpAndSupportPane} is a Swing {@link JPanel} that displays a
+ * Help &amp; Support section within the UI.
+ *
+ * <p>This panel provides:
+ * <ul>
+ *   <li>A header ("Help & Support").</li>
+ *   <li>A scrollable HTML view listing useful support/resources links
+ *       such as documentation, tutorials, issue reporting, etc.</li>
+ *   <li>Clickable hyperlinks that open in the user's default browser.</li>
+ * </ul>
+ *
+ * <p>The panel is intended as a read-only reference for users who need
+ * additional guidance, want to report issues, or want to access external
+ * resources related to the application.
+ *
+ * <p>Visual notes:
+ * <ul>
+ *   <li>The body text is rendered in white on (presumably) a dark background.</li>
+ *   <li>Links use standard anchor tags in the embedded HTML.</li>
+ * </ul>
+ *
+ * <p>Usage:
+ * <pre>
+ *     Navigator nav = ...;
+ *     JPanel helpPane = new HelpAndSupportPane(nav);
+ *     someParentContainer.add(helpPane);
+ * </pre>
+ *
+ * The {@link Navigator} argument is accepted for potential future integration
+ * with the rest of the UI, but is not currently used internally.
+ */
 public class HelpAndSupportPane extends JPanel {
     public static final String Name = "Help & Support";
 
 
+    /**
+     * Immutable value object representing a support link entry.
+     *
+     * <p>Each {@code LinkItem} consists of:
+     * <ul>
+     *   <li>A human-readable label suitable for display in the UI.</li>
+     *   <li>A URL target that will be opened in the user's browser.</li>
+     * </ul>
+     *
+     * This is used by {@link #links()} and ultimately rendered in the HTML
+     * via {@link #buildHtml()}.
+     */
     private static final class LinkItem {
         final String label, url;
+        /**
+         * Constructs a new {@code LinkItem}.
+         *
+         * @param label human-readable label describing this link
+         * @param url   absolute URL associated with this link
+         */
         LinkItem(String label, String url){ this.label = label; this.url = url; }
     }
 
+    /**
+     * Builds and returns the list of external help/support resources.
+     *
+     * <p>This includes documentation, tutorials, release notes, sample
+     * datasets, issue reporting, and publication links.
+     *
+     * <p>The list order is the order they will appear in the rendered HTML.
+     *
+     * @return a {@link List} of {@link LinkItem} objects representing each
+     *         support resource link
+     */
     private static List<LinkItem> links(){
         List<LinkItem> L = new ArrayList<>();
         L.add(new LinkItem("Step-by-step tutorial (Documentation)", "https://gut-analysis-toolbox.gitbook.io/docs/"));
@@ -34,6 +94,24 @@ public class HelpAndSupportPane extends JPanel {
         return L;
     }
 
+    /**
+     * Constructs the Help &amp; Support panel.
+     *
+     * <p>This sets up:
+     * <ul>
+     *   <li>A header component created by {@link #header()} in the north region.</li>
+     *   <li>A scrollable {@link JEditorPane} in the center region that shows HTML built by {@link #buildHtml()}.</li>
+     * </ul>
+     *
+     * <p>The HTML area is non-editable and intercepts hyperlink clicks.
+     * When a link is activated, {@link #openInBrowser(String)} is called
+     * to launch the user's default browser.
+     *
+     * @param navigator a {@link Navigator} instance from the surrounding
+     *                  UI framework. It is not currently used, but is accepted
+     *                  for future extensibility (e.g. internal navigation,
+     *                  analytics, context switching).
+     */
     public HelpAndSupportPane(Navigator navigator){
         super(new BorderLayout(10,10));
         setBorder(BorderFactory.createEmptyBorder(16,16,16,16));
@@ -57,6 +135,16 @@ public class HelpAndSupportPane extends JPanel {
         add(scroll, BorderLayout.CENTER);
     }
 
+    /**
+     * Builds and returns the header component (top bar) for this pane.
+     *
+     * <p>The header currently consists of a bold "Help & Support" label,
+     * styled slightly larger than default.
+     *
+     * <p>Returned component is safe to add directly into a BorderLayout.NORTH.
+     *
+     * @return a {@link JComponent} representing the header section
+     */
     private JComponent header() {
         JPanel top = new JPanel(new BorderLayout());
         JLabel title = new JLabel("Help & Support");
@@ -66,6 +154,24 @@ public class HelpAndSupportPane extends JPanel {
         return top;
     }
 
+    /**
+     * Builds the HTML string rendered inside the {@link JEditorPane}.
+     *
+     * <p>This method:
+     * <ol>
+     *   <li>Iterates through all {@link LinkItem}s from {@link #links()}.</li>
+     *   <li>Escapes each link label via {@link #escape(String)} to avoid HTML injection.</li>
+     *   <li>Outputs an unordered list (&lt;ul&gt;) of entries, each showing:
+     *       &lt;b&gt;label&lt;/b&gt; — &lt;a href="url"&gt;url&lt;/a&gt;.</li>
+     *   <li>Wraps that list into a styled HTML template with inline CSS.</li>
+     * </ol>
+     *
+     * <p>The CSS sets a sans-serif font, white text, and disables underline
+     * on idle links.
+     *
+     * @return a complete HTML document as a {@link String} suitable for
+     *         {@code new JEditorPane("text/html", ...)}
+     */
     private static String buildHtml() {
         StringBuilder ul = new StringBuilder();
         for (LinkItem li : links()) {
@@ -93,10 +199,31 @@ public class HelpAndSupportPane extends JPanel {
                 + "</div></div></body></html>";
     }
 
+    /**
+     * Escapes a plain text string for safe embedding inside HTML.
+     *
+     * <p>This method replaces the special characters {@code &}, {@code <}, and {@code >}
+     * with their corresponding entities {@code &amp;}, {@code &lt;}, and {@code &gt;}
+     * to prevent breaking markup or accidental HTML injection.
+     *
+     * @param s the raw string to escape
+     * @return the escaped string, safe for concatenation into HTML text nodes
+     */
     private static String escape(String s){
         return s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;");
     }
 
+    /**
+     * Attempts to open the given URL in the user's default browser.
+     *
+     * <p>If desktop browsing is unsupported on the current platform or
+     * if an exception occurs (for example, malformed URL / security restriction),
+     * this method will display a {@link JOptionPane} warning or error dialog.
+     *
+     * <p>This method uses {@link java.awt.Desktop} where available.
+     *
+     * @param url the URL to open; should be an absolute URI (e.g. "https://...")
+     */
     private static void openInBrowser(String url){
         try {
             if (Desktop.isDesktopSupported()) {

@@ -124,11 +124,11 @@ public final class RescaleHuDialog extends JDialog {
         setResizable(true);
         setMinimumSize(new Dimension(720, 800));
 
-        // --- Image row ---
+        //  Image row
         imgTf.setColumns(30);
         JPanel imgRow = rowWithBrowse(imgTf, browseImg);
 
-        // --- Mode + channel ---
+        //  Mode + channel
         ButtonGroup bg = new ButtonGroup(); bg.add(rbNeuron); bg.add(rbSubtype);
         JPanel modeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         modeRow.add(new JLabel("Choose mode of segmentation"));
@@ -136,14 +136,14 @@ public final class RescaleHuDialog extends JDialog {
         modeRow.add(rbSubtype);
         modeRow.add(Box.createHorizontalStrut(16));
 
-        // --- Sweep controls ---
+        // Sweep controls
         JPanel sweep = new JPanel(new GridLayout(4,2,8,8));
         sweep.add(new JLabel("Channel:"));  sweep.add(chSp);
         sweep.add(new JLabel("Enter minimum value"));        sweep.add(minSp);
         sweep.add(new JLabel("Enter maximum max value"));    sweep.add(maxSp);
         sweep.add(new JLabel("Enter size of each increment step")); sweep.add(stepSp);
 
-        // --- Prob + Overlap sliders ---
+        //  Prob + Overlap sliders
         JPanel sliders = new JPanel();
         sliders.setLayout(new BoxLayout(sliders, BoxLayout.Y_AXIS));
         sliders.add(wrapLabelCentered(
@@ -169,19 +169,19 @@ public final class RescaleHuDialog extends JDialog {
         sliders.add(Box.createVerticalStrut(6));
         sliders.add(nmsRow);
 
-        // --- Model (SUBTYPE only) ---
+        // Model (SUBTYPE only)
         modelTf.setColumns(28);
         JPanel modelRow = labeled("Choose the StarDist model based on celltype.", rowWithBrowse(modelTf, browseZip));
 
-        // --- Output folder ---
+        // Output folder
         outTf.setColumns(28);
         JPanel outRow = labeled("Select output location", rowWithBrowse(outTf, browseOut));
 
-        // --- Buttons ---
+        //  Buttons
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         actions.add(ok); actions.add(cancel);
 
-        // --- Compose ---
+        // Compose
         JPanel center = new JPanel();
         center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
         center.add(labeled("Choose the image to segment", imgRow));
@@ -199,7 +199,7 @@ public final class RescaleHuDialog extends JDialog {
         add(center, BorderLayout.CENTER);
         add(actions, BorderLayout.SOUTH);
 
-        // --- Behavior ---
+        //  Behavior
         rbNeuron.addActionListener(e -> updateModelVisibility());
         rbSubtype.addActionListener(e -> updateModelVisibility());
         updateModelVisibility();

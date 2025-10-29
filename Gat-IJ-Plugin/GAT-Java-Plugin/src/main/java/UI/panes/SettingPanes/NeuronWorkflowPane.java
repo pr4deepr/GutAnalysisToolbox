@@ -462,7 +462,6 @@ public class NeuronWorkflowPane extends JPanel {
 
 
     private void loadDefaults() {
-        // Fill with your known-good defaults (same as your working run)
         if (tfCustomGangliaZip != null) tfCustomGangliaZip.setText("");
         tfImagePath.setText("/path/to/image");
         spHuChannel.setValue(1);
@@ -494,7 +493,7 @@ public class NeuronWorkflowPane extends JPanel {
         cbGangliaInteractiveReview.setSelected(true);
     }
 
-    // ---------------- Small helpers ----------------
+    //Small helpers
 
     private static String emptyToNull(String s) {
         if (s == null) return null;
@@ -588,7 +587,7 @@ public class NeuronWorkflowPane extends JPanel {
         return f.isFile() && name.endsWith(".zip");
     }
 
-    // ---- Config mapping (Hu pane) ----
+    //  Config mapping (Hu pane)
     private java.util.Properties toConfigHu() {
         java.util.Properties p = new java.util.Properties();
         UI.util.ConfigIO.putStr(p, "workflow", "HuWorkflow");

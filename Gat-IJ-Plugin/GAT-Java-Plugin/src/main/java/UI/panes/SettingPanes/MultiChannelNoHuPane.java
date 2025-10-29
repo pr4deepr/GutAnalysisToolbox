@@ -41,7 +41,7 @@ public class MultiChannelNoHuPane extends JPanel {
     private final Navigator navigator;
     private final Window owner;
 
-    // --- Basic ---
+    //  Basic
     private JTextField tfImagePath;
     private JButton    btnBrowseImage;
     private JButton    btnPreviewImage;
@@ -72,7 +72,7 @@ public class MultiChannelNoHuPane extends JPanel {
     private JTextField tfOutputDir;
     private JButton    btnBrowseOutput;
 
-    // --- Ganglia ---
+    // Ganglia
     private JCheckBox  cbGangliaAnalysis;
     private JComboBox<Params.GangliaMode> cbGangliaMode;
     private JSpinner   spGangliaChannel;
@@ -80,7 +80,7 @@ public class MultiChannelNoHuPane extends JPanel {
     private JButton    btnBrowseGangliaModelFolder;
     private  JSpinner spCellBodyChannel;
 
-    // --- Markers list ---
+    // Markers list
     private JPanel     markersPanel;            // holds rows
     private JButton    btnAddMarker;
     private JButton    btnRemoveMarker;
@@ -453,7 +453,7 @@ public class MultiChannelNoHuPane extends JPanel {
             panel.setAlignmentX(Component.LEFT_ALIGNMENT);
         }
 
-        // Convert row -> pipeline spec (no per-marker prob/nms)
+        // Convert row to pipeline spec (no per-marker prob/nms)
         NeuronsMultiNoHuPipeline.MarkerSpec toSpec() {
             String nm = tfName.getText().trim();
             if (nm.isEmpty()) throw new IllegalArgumentException("Marker name cannot be empty.");
@@ -615,7 +615,7 @@ public class MultiChannelNoHuPane extends JPanel {
         int rv = ch.showOpenDialog(this);
         if (rv == JFileChooser.APPROVE_OPTION) {
             File sel = ch.getSelectedFile();
-            target.setText(sel.getName()); // store folder name only (parity with your Params usage)
+            target.setText(sel.getName()); // store folder name only
         }
     }
 
@@ -627,10 +627,10 @@ public class MultiChannelNoHuPane extends JPanel {
             @Override protected Void doInBackground() {
                 try {
                     if (path.isEmpty()) {
-                        // Show the standard ImageJ file chooser (File ▸ Open…)
+                        // Show the standard ImageJ file chooser (File then Open…)
                         IJ.open();
                     } else {
-                        // Open exactly the way ImageJ would from File ▸ Open…
+                        // Open exactly the way ImageJ would from File then Open…
                         IJ.open(path);
                     }
                 } catch (Throwable ex) {
@@ -650,7 +650,7 @@ public class MultiChannelNoHuPane extends JPanel {
     }
 
     private void loadDefaults() {
-        // You can customize these defaults to your environment
+        // You can customize these defaults to the environment
         tfSubtypeModelZip.setText(new File(new File(IJ.getDirectory("imagej"), "models"), "2D_enteric_neuron_subtype_v4.zip").getAbsolutePath());
         cbRescaleToTrainingPx.setSelected(true);
         spTrainingPixelSizeUm.setValue(0.568);

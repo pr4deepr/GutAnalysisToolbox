@@ -65,7 +65,7 @@ public final class GangliaExpansionDialog extends JDialog {
         public double maxUm  = 15.0;
         public double stepUm = 0.1;
 
-        // NEW: output folder
+        // output folder
         public File outDir;
     }
 
@@ -81,7 +81,7 @@ public final class GangliaExpansionDialog extends JDialog {
     private final JSpinner maxSp  = new JSpinner(new SpinnerNumberModel(15.0, 0.1, 500.0, 0.1));
     private final JSpinner stepSp = new JSpinner(new SpinnerNumberModel(0.1, 0.01, 50.0, 0.01));
 
-    // NEW: output
+    // output
     private final JTextField outTf  = new JTextField();
     private final JButton    browseOut = new JButton("Browse");
 

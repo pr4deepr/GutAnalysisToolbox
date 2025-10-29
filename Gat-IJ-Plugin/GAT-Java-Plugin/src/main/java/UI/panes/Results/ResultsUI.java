@@ -63,7 +63,7 @@ public class ResultsUI {
         f.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         f.setLayout(new BorderLayout());
 
-        // ---- header ----
+        // header
         JPanel header = new JPanel(new GridLayout(0,1));
         header.setBorder(new EmptyBorder(6,12,2,12));
         header.add(new JLabel("Output folder: " + r.outDir.getAbsolutePath()));
@@ -71,7 +71,7 @@ public class ResultsUI {
         if (r.nGanglia != null) header.add(new JLabel("Detected ganglia: " + r.nGanglia));
         f.add(header, BorderLayout.NORTH);
 
-        // ---- center ----
+        //  center
         JPanel center = new JPanel();
         center.setBorder(new EmptyBorder(4,12,4,12));
         center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
@@ -110,7 +110,7 @@ public class ResultsUI {
             chart.setBorder(new EmptyBorder(6,0,8,0));
             chartWrap.add(chart);
 
-// Save button (saves chart(s) into the output folder)
+            // Save button (saves chart(s) into the output folder)
             JButton saveBtn = new JButton("Save plots…");
             saveBtn.addActionListener(e -> {
                 try {
@@ -155,7 +155,7 @@ public class ResultsUI {
         f.add(footer, BorderLayout.SOUTH);
 
         f.pack(); // size to preferred sizes
-// (optional) cap to a reasonable maximum so it never gets too big)
+
         Dimension scr = Toolkit.getDefaultToolkit().getScreenSize();
         f.setSize(Math.min(f.getWidth(), 900), Math.min(f.getHeight(), 800));
         f.setLocationRelativeTo(null);
@@ -198,8 +198,6 @@ public class ResultsUI {
         // background
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, W, H);
-
-        // NO internal chart title (we use the Swing section header)
 
         // Frame
         int x0 = padL, x1 = W - padR, y0 = H - padB, y1 = padT;

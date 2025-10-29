@@ -223,7 +223,7 @@ public class MultichannelPane extends JPanel {
             panel.setAlignmentX(Component.LEFT_ALIGNMENT);
         }
 
-        // Convert row -> pipeline spec (no per-marker prob/nms)
+        // Convert row to pipeline spec (no per-marker prob/nms)
         NeuronsMultiPipeline.MarkerSpec toSpec() {
             String nm = tfName.getText().trim();
             if (nm.isEmpty()) throw new IllegalArgumentException("Marker name cannot be empty.");
@@ -610,7 +610,7 @@ public class MultichannelPane extends JPanel {
         return mp;
     }
 
-    // ---- helpers ----
+    // helpers
     private static String[] splitCsv(String s) {
         if (s == null || s.trim().isEmpty()) return new String[0];
         String[] toks = s.split(",");
@@ -676,10 +676,10 @@ public class MultichannelPane extends JPanel {
             @Override protected Void doInBackground() {
                 try {
                     if (path.isEmpty()) {
-                        // Show the standard ImageJ file chooser (File ▸ Open…)
+                        // Show the standard ImageJ file chooser (File then Open…)
                         IJ.open();
                     } else {
-                        // Open exactly the way ImageJ would from File ▸ Open…
+                        // Open exactly the way ImageJ would from File then Open…
                         IJ.open(path);
                     }
                 } catch (Throwable ex) {

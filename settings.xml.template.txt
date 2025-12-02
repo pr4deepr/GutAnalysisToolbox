@@ -1,0 +1,21 @@
+<settings>
+    <profiles>
+        <profile>
+            <id>
+                fiji-app
+            </id>
+            <properties>
+                <fiji.app.directory>
+                    PATH_TO_FIJI_APP
+                </fiji.app.directory>
+            </properties>
+        </profile>
+    </profiles>
+
+    <activeProfiles>
+        <activeProfile>
+            fiji-app
+        </activeProfile>
+    </activeProfiles>
+</settings>
+

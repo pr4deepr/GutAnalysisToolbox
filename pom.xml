@@ -1,0 +1,271 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.example</groupId>
+    <artifactId>GAT-Java-Plugin</artifactId>
+    <version>1.0</version>
+
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>scijava.public</id>
+            <url>https://maven.scijava.org/content/groups/public</url>
+        </repository>
+        <repository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+    </repositories>
+
+    <!-- BOMs to manage versions -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- junit -->
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>5.11.4</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- ImageJ1 core -->
+        <dependency>
+            <groupId>net.imagej</groupId>
+            <artifactId>ij</artifactId>
+            <version>1.54p</version>
+        </dependency>
+
+        <!-- Your Swing L&F -->
+        <dependency>
+            <groupId>io.github.vincenzopalazzo</groupId>
+            <artifactId>material-ui-swing</artifactId>
+            <version>1.1.2</version>
+        </dependency>
+
+        <!-- CLIJ2 - Using correct available versions -->
+        <dependency>
+            <groupId>net.haesleinhuepf</groupId>
+            <artifactId>clij2_</artifactId>
+            <version>2.5.0.1</version>
+        </dependency>
+
+        <!-- CLIJ -->
+        <dependency>
+            <groupId>net.haesleinhuepf</groupId>
+            <artifactId>clij_</artifactId>
+            <version>1.9.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.haesleinhuepf</groupId>
+            <artifactId>clij2_</artifactId>
+            <version>2.5.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>net.haesleinhuepf</groupId>
+            <artifactId>clij-core</artifactId>
+            <version>1.8.0.6</version>
+        </dependency>
+
+        <!-- CLIJ Clear CL -->
+        <dependency>
+            <groupId>net.haesleinhuepf</groupId>
+            <artifactId>clij-clearcl</artifactId>
+            <version>2.3.0.4</version>
+        </dependency>
+
+        <!-- (Optional) plugins you call directly from code via IJ.run(...)
+             If you plan to ship a self-contained Fiji, you can skip these
+             here and let the app packager install from update sites instead. -->
+        <!-- Example: MorphoLibJ (Label Size Filtering etc.) -->
+        <!--
+        <dependency>
+          <groupId>fr.inra.ijpb</groupId>
+          <artifactId>MorphoLibJ_</artifactId>
+          <version>1.5.0</version>
+        </dependency>
+        -->
+
+        <!--
+            Testing framework
+        -->
+
+        <!-- junit-jupiter-api for most simple tests -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- junit-jupiter-engine to run the tests -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- mockito for mocking in tests -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-inline</artifactId>
+            <version>4.11.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- mockito extension for JUnit5 -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>4.11.0</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
+            </plugin>
+
+            <!-- For dev: run the DevLauncher main -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                    <mainClass>UI.DevLauncher</mainClass>
+                </configuration>
+            </plugin>
+
+
+            <plugin>
+                <groupId>org.scijava</groupId>
+                <artifactId>scijava-maven-plugin</artifactId>
+                <version>3.0.1</version>
+                <executions>
+                    <execution>
+                        <id>populate</id>
+                        <phase>package</phase>
+                        <goals><goal>populate-app</goal></goals>
+                        <configuration>
+                            <!-- Point to an existing Fiji.app -->
+                            <appDirectory>${fiji.app.directory}</appDirectory>
+                            <jars>
+                                <jar>${project.build.finalName}.jar</jar>
+                            </jars>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- For testing -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <argLine>-Djava.awt.headless=false</argLine>
+                    <argLine>${argLine}</argLine>
+                </configuration>
+            </plugin>
+            <!--Jacoco for Test Coverage-->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.10</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- Build a self-contained Fiji app with your plugin inside -->
+    <profiles>
+        <profile>
+            <id>clean-app</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-clean-plugin</artifactId>
+                        <version>3.4.0</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>clean</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>app</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.scijava</groupId>
+                        <artifactId>scijava-maven-plugin</artifactId>
+                        <version>3.0.1</version>
+                        <executions>
+                            <execution>
+                                <id>app</id>
+                                <phase>package</phase>
+                                <goals><goal>app</goal></goals>
+                                <configuration>
+                                    <appDirectory>${project.build.directory}/fiji-app</appDirectory>
+                                    <sites>
+                                        <site>Fiji</site>
+                                        <site>DeepImageJ</site>
+                                        <site>CSBDeep</site>
+                                        <site>StarDist</site>
+                                        <site>IJPB-plugins</site>
+                                        <site>clij</site>
+                                        <site>clij2</site>
+                                        <site>PTBIOP</site>
+                                    </sites>
+                                    <jars>
+                                        <jar>${project.build.finalName}.jar</jar>
+                                    </jars>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+
+</project>
+
+

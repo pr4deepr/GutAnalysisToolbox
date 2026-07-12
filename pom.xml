@@ -243,15 +243,23 @@
                                 <goals><goal>app</goal></goals>
                                 <configuration>
                                     <appDirectory>${project.build.directory}/fiji-app</appDirectory>
+                                    <!-- Update sites baked into the self-contained Fiji.
+                                         Keep this list in sync with README.md.
+                                         Note: the Template Matching site (calcium imaging)
+                                         is NOT in Fiji's list of update sites and cannot be
+                                         referenced here by name; users add it manually:
+                                         https://sites.imagej.net/Template_Matching/ -->
                                     <sites>
                                         <site>Fiji</site>
-                                        <site>DeepImageJ</site>
+                                        <site>3D ImageJ Suite</site>
+                                        <site>BIG-EPFL</site>
                                         <site>CSBDeep</site>
-                                        <site>StarDist</site>
+                                        <site>DeepImageJ</site>
                                         <site>IJPB-plugins</site>
+                                        <site>StarDist</site>
+                                        <site>PTBIOP</site>
                                         <site>clij</site>
                                         <site>clij2</site>
-                                        <site>PTBIOP</site>
                                     </sites>
                                     <jars>
                                         <jar>${project.build.finalName}.jar</jar>

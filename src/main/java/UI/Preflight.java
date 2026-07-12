@@ -359,6 +359,15 @@ public final class Preflight {
         // PTBIOP (optional but recommended)
         required.put("Label Map to ROIs", "Enable the PTBIOP update site: https://biop.epfl.ch/Fiji-Update/");
 
+        // Feature-specific commands. These are only needed for certain workflows,
+        // so a missing one is a warning (logged) rather than a launch blocker.
+        LinkedHashMap<String,String> optional = new LinkedHashMap<>();
+        // Template Matching (calcium imaging alignment). Not in Fiji's list of
+        // update sites, so it must be added manually as an unlisted site.
+        optional.put("Align slices in stack...",
+                "Calcium imaging alignment needs the Template Matching plugin. In "
+                        + "Manage update sites, add the unlisted site: https://sites.imagej.net/Template_Matching/");
+
         @SuppressWarnings("rawtypes")
         Map commands = Menus.getCommands(); // command -> class name
         Set<String> keys = new HashSet<>();
@@ -373,6 +382,16 @@ public final class Preflight {
             if (!present) {
                 missingAny = true;
                 IJ.log("Missing: " + want + "  → " + e.getValue());
+            } else {
+                IJ.log(want + " ... OK!");
+            }
+        }
+
+        // Feature-specific commands: log guidance but never block launch.
+        for (Map.Entry<String,String> e : optional.entrySet()) {
+            String want = e.getKey();
+            if (!hasCommand(keys, want)) {
+                IJ.log("Optional (not installed): " + want + "  → " + e.getValue());
             } else {
                 IJ.log(want + " ... OK!");
             }

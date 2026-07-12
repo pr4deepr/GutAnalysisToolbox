@@ -44,19 +44,31 @@ Click  on this video to watch how to install and configure FIJI and GAT
 
 [![Youtube](https://img.youtube.com/vi/GmE_lz-m0Rg/0.jpg)](https://www.youtube.com/playlist?list=PLmBt1Dumq60p4mIFT4j7TP_PVRjbO55Oi)
 
-GAT requires the following update sites:
+Once installed, launch GAT from the Fiji menu: **GATV2 › Start GAT**. On first
+launch GAT runs an environment check (models, DeepImageJ engines, required
+plugins) and tells you which update sites, if any, still need to be enabled.
+
+GAT requires the following update sites (enable them under
+*Help › Update… › Manage update sites*):
+
+* 3D ImageJ Suite
 * BIG-EPFL
 * CSBDeep
 * clij
 * clij2
 * DeepImageJ
-* IJBP-Plugins (MorphoLibJ)
+* Gut Analysis Toolbox
+* IJPB-plugins (MorphoLibJ)
 * StarDist
-* PT-BIOP
-* 3D ImageJ Suite
-
+* PTBIOP
 
 GAT update site: https://sites.imagej.net/GutAnalysisToolbox/
+
+**Calcium imaging only:** the calcium imaging alignment uses the Template
+Matching plugin, which is not in Fiji's list of update sites and must be added
+manually. In *Manage update sites* click **Add unlisted site** and enter:
+
+`https://sites.imagej.net/Template_Matching/`
 
 ***********
 

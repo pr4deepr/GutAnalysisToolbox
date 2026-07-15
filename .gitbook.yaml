@@ -1,0 +1,9 @@
+# GitBook Git Sync configuration.
+# The GitBook space is the editing surface; edits sync back here as Markdown.
+# Docs live under docs/. Dev-only notes (HANDOFF.md, architecture.md) sit in
+# docs/ too but are intentionally left out of SUMMARY.md so they don't appear
+# in the published docs navigation.
+root: ./docs/
+structure:
+  readme: README.md
+  summary: SUMMARY.md

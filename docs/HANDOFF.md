@@ -70,11 +70,23 @@ GAT v2 is now a Maven-built Fiji plugin (was ImageJ `.ijm` macros).
    values are maintainer-owned and can't be verified against the current
    published JAR name while egress is blocked.
 
-4. **Docs consolidation.** Live docs are at
-   `https://gut-analysis-toolbox.gitbook.io/docs` and show the OLD macro
-   interface. Not synced into this repo (only `wiki_images/` screenshots are
-   here). Need either GitBook→GitHub sync (repo name) or draft markdown in
-   `docs/` for import.
+4. **Docs consolidation — decided: GitBook Git Sync, GitBook stays the
+   editing surface.** Rationale: non-coders can update docs in the GitBook UI;
+   edits sync back to `docs/` as Markdown via PR. Scaffold added:
+   - `.gitbook.yaml` (root = `./docs/`, readme + summary).
+   - `docs/SUMMARY.md` (navigation) and `docs/README.md` (landing page).
+   - Stub pages under `docs/getting-started/`, `docs/fiji/`, plus
+     `docs/qupath.md`, `docs/tools-and-tuning.md`, `docs/troubleshooting.md`,
+     each mapped to its v2 UI pane and the relevant `wiki_images/` screenshots.
+   `HANDOFF.md` and `architecture.md` stay in `docs/` but are omitted from
+   `SUMMARY.md`, so they don't show in the published nav.
+   **Remaining (maintainer):** (a) connect the GitBook space to this repo via
+   *Git Sync* pointing at the working branch / `docs/` — this is a one-time
+   setup in GitBook's UI and can't be done from here; (b) rewrite the stub
+   pages, which still describe / omit the v2 interface — the actual content
+   migration is the bulk of the work; (c) decide whether to migrate
+   `wiki_images/` into the GitBook space (assets are stored under
+   `docs/.gitbook/assets/` once edited in GitBook) or keep referencing them.
 
 ## Environment / egress note
 

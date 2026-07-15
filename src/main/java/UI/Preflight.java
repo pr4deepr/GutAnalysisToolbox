@@ -262,11 +262,15 @@ public final class Preflight {
         if (files == null) files = new String[0];
         Arrays.sort(files, String.CASE_INSENSITIVE_ORDER);
 
-        // If expectations provided, verify presence
+        // If expectations provided, verify presence.
+        // Match case-insensitively: the model files come straight from the GAT
+        // update site, so their exact casing is whatever the site ships. A
+        // case-sensitive File.exists() (as on Linux/CI) would otherwise fail
+        // preflight on a pure case difference between the expected name here and
+        // the downloaded file.
         boolean ok = true;
         if (expectedNeuronModel != null && !expectedNeuronModel.trim().isEmpty()) {
-            File f = new File(modelsDir, expectedNeuronModel);
-            if (!f.exists()) {
+            if (!containsIgnoreCase(files, expectedNeuronModel)) {
                 IJ.log("Missing neuron model: " + expectedNeuronModel);
                 ok = false;
             } else {
@@ -274,8 +278,7 @@ public final class Preflight {
             }
         }
         if (expectedSubtypeModel != null && !expectedSubtypeModel.trim().isEmpty()) {
-            File f = new File(modelsDir, expectedSubtypeModel);
-            if (!f.exists()) {
+            if (!containsIgnoreCase(files, expectedSubtypeModel)) {
                 IJ.log("Missing subtype model: " + expectedSubtypeModel);
                 ok = false;
             } else {
@@ -283,8 +286,7 @@ public final class Preflight {
             }
         }
         if (expectedGangliaModel != null && !expectedGangliaModel.trim().isEmpty()){
-            File f = new File(modelsDir,expectedGangliaModel);
-            if (!f.exists()){
+            if (!containsIgnoreCase(files, expectedGangliaModel)){
                 IJ.log("Missing Ganglia Model: " + expectedGangliaModel);
                 ok = false;
             }else{
@@ -311,6 +313,15 @@ public final class Preflight {
                     "GAT – Models missing", JOptionPane.ERROR_MESSAGE);
         }
         return ok;
+    }
+
+    /** True if {@code names} contains {@code target}, ignoring case. */
+    private static boolean containsIgnoreCase(String[] names, String target) {
+        if (names == null || target == null) return false;
+        for (String name : names) {
+            if (name != null && name.equalsIgnoreCase(target)) return true;
+        }
+        return false;
     }
 
 

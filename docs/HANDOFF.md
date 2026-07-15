@@ -1,6 +1,7 @@
 # GAT v2 release — working handoff
 
-Working branch: `claude/gat-v2-update-site-dohqji` (based on `gat_v2`).
+Working branch: `claude/gat-v2-update-site-handoff-rui7sn` (continues
+`claude/gat-v2-update-site-dohqji`, which is based on `gat_v2`).
 This branch = the `gat_v2` transition (macros → Maven Java plugin) plus the
 commits described below.
 
@@ -25,19 +26,36 @@ GAT v2 is now a Maven-built Fiji plugin (was ImageJ `.ijm` macros).
   `Preflight` now warns (non-blocking) if its command ("Align slices in
   stack...") is missing; README documents the manual-add step.
 - Added `docs/architecture.md` (plain-language code map).
+- **Preflight model check is now case-insensitive** (`UI/Preflight.checkModels`).
+  It lists `Fiji/models` and compares expected names with `equalsIgnoreCase`
+  instead of a case-sensitive `File.exists()`. This removes the Linux/CI
+  failure mode from the case half of open item 1 — the check now accepts
+  whatever casing the update site actually ships. (The *version-suffix*
+  disagreement below is a separate, still-open question.)
+- **CI cache key fixed** (`.github/workflows/test.yml`): now hashes `pom.xml`
+  (repo root) instead of the stale `Gat-IJ-Plugin/GAT-Java-Plugin/pom.xml`.
+- **SonarQube config cleaned** (`.github/workflows/sonarqube.yml.txt`, still
+  disabled): project key changed from the `tophatpatrick` fork to
+  `pr4deepr_GutAnalysisToolbox`, added `-Dsonar.organization=pr4deepr`, fixed
+  the cache path, and dropped the stale `working-directory`. Enabling it still
+  requires renaming to `.yml` and adding the `SONAR_TOKEN` secret (see the
+  note in the file).
 
 ## Open items (need decisions / info)
 
-1. **Model filename case mismatch (blocks a passing preflight).**
-   `UI/GatPluginUI.java` checks exact, case-sensitive names that disagree with
-   README and the old repo copies:
+1. **Model filename version suffix (case part now handled in code).**
+   The remaining disagreement is not case — it is the version suffix on the
+   subtype model, which `equalsIgnoreCase` cannot bridge:
    | Source | Neuron | Subtype | Ganglia |
    |--------|--------|---------|---------|
    | GatPluginUI | `2D_enteric_neuron_V4_1.zip` | `2D_enteric_neuron_subtype_V4.zip` | `2D_Ganglia_RGB_v3.bioimage.io.model` |
    | README | `2D_enteric_neuron_v4_1.zip` | `2D_enteric_neuron_subtype_v4_1.zip` | `2D_Ganglia_RGB_v3` (folder) |
-   The **update site is the source of truth**. Get the exact filenames from
-   `sites.imagej.net/GutAnalysisToolbox/db.xml.gz` (or from the maintainer) and
-   make `GatPluginUI` + README match exactly.
+   GatPluginUI expects `subtype_V4`; README says `subtype_v4_1`. The
+   **update site is the source of truth**. Get the exact filenames from
+   `sites.imagej.net/GutAnalysisToolbox/db.xml.gz` (or from the maintainer),
+   then set the expected string in `GatPluginUI.run()` and the README to the
+   real name so they agree. (Egress to the update site is blocked in this
+   session — see the egress note.)
 
 2. **Old macro files on the update site.** `gat_v2` deleted all `.ijm`/`.groovy`
    from the repo; confirm they should also be removed from the update site on
@@ -45,15 +63,14 @@ GAT v2 is now a Maven-built Fiji plugin (was ImageJ `.ijm` macros).
 
 3. **pom.xml coordinates.** Still placeholder: `groupId org.example`,
    `artifactId GAT-Java-Plugin`, `version 1.0`. Also `exec-maven-plugin` points
-   at `UI.DevLauncher`, which does not exist. Decide real coordinates (the
-   artifactId becomes the published JAR name on the update site) before fixing.
+   at `UI.DevLauncher`, which does not exist (no `main` in `src/main`). Decide
+   real coordinates (the artifactId becomes the published JAR name on the
+   update site) before fixing, and decide whether to add a `DevLauncher` main
+   or drop the `exec-maven-plugin` block. Left untouched here because these
+   values are maintainer-owned and can't be verified against the current
+   published JAR name while egress is blocked.
 
-4. **CI.** `.github/workflows/test.yml` cache key hashes a wrong path
-   (`Gat-IJ-Plugin/GAT-Java-Plugin/pom.xml`; pom is at repo root).
-   `sonarqube.yml.txt` is disabled and points at the old path + the
-   `tophatpatrick` fork's project key. SonarCloud is free for this public repo.
-
-5. **Docs consolidation.** Live docs are at
+4. **Docs consolidation.** Live docs are at
    `https://gut-analysis-toolbox.gitbook.io/docs` and show the OLD macro
    interface. Not synced into this repo (only `wiki_images/` screenshots are
    here). Need either GitBook→GitHub sync (repo name) or draft markdown in

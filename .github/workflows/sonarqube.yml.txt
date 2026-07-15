@@ -28,10 +28,13 @@
 #        uses: actions/cache@v4
 #        with:
 #          path: ~/.m2
-#          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+#          key: ${{ runner.os }}-m2-${{ hashFiles('pom.xml') }}
 #          restore-keys: ${{ runner.os }}-m2
 #      - name: Build and analyze
 #        env:
 #          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-#        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.host.url=https://sonarcloud.io -Dsonar.projectKey=tophatpatrick_GutAnalysisToolbox
-#        working-directory: ./Gat-IJ-Plugin/GAT-Java-Plugin
+#        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.host.url=https://sonarcloud.io -Dsonar.projectKey=pr4deepr_GutAnalysisToolbox -Dsonar.organization=pr4deepr
+# NOTE: pom.xml is at the repo root, so no working-directory is needed.
+# To enable: rename this file to sonarqube.yml, add the SONAR_TOKEN repo secret
+# (SonarCloud is free for public repos), and confirm the projectKey/organization
+# match your SonarCloud project.

@@ -3,6 +3,9 @@ on: push
 jobs:
   run_tests:
     runs-on: ubuntu-latest
+    # Cap the job so a full maven.scijava.org outage fails in minutes instead
+    # of retrying for ~2 hours (as happened on 2026-08-27).
+    timeout-minutes: 40
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v5
@@ -13,12 +16,33 @@ jobs:
           distribution: "temurin"
           java-version: 17
 
+      # The ImageJ/SciJava dependencies (scifio, imagej-ops, mines-jtk, ...)
+      # are hosted ONLY on maven.scijava.org — they are not on Maven Central,
+      # and maven.imagej.net is the same server. So there is no alternative
+      # repository to point at; instead we cache ~/.m2/repository. Once a green
+      # run populates it, later runs restore the jars and do not need scijava at
+      # all for unchanged dependencies. restore-keys falls back to the newest
+      # cache even when pom.xml (and thus the exact key) changes.
       - name: Cache Maven packages
         uses: actions/cache@v4
         with:
-          path: ~/.m2
+          path: ~/.m2/repository
           key: ${{ runner.os }}-m2-${{ hashFiles('pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
+          restore-keys: ${{ runner.os }}-m2-
 
+      # Retry the build a few times to ride out brief scijava 503s; the
+      # retryHandler flags also retry individual transient artifact transfers.
       - name: Run tests with Maven
-        run: mvn -B test --file pom.xml
+        run: |
+          for attempt in 1 2 3; do
+            echo "::group::Maven attempt $attempt"
+            mvn -B -ntp test --file pom.xml \
+              -Daether.connector.http.retryHandler.count=5 \
+              -Dmaven.wagon.http.retryHandler.count=5 \
+              && { echo "::endgroup::"; exit 0; }
+            echo "::endgroup::"
+            echo "Attempt $attempt failed (possibly a transient scijava 503); retrying in $((attempt * 30))s"
+            sleep $((attempt * 30))
+          done
+          echo "All Maven attempts failed"
+          exit 1

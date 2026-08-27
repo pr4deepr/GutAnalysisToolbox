@@ -3,9 +3,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.example</groupId>
-    <artifactId>GAT-Java-Plugin</artifactId>
-    <version>1.0</version>
+    <groupId>io.github.pr4deepr</groupId>
+    <artifactId>GutAnalysisToolbox_</artifactId>
+    <version>2.0.0</version>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -142,17 +142,6 @@
                     <target>${maven.compiler.target}</target>
                 </configuration>
             </plugin>
-
-            <!-- For dev: run the DevLauncher main -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.5.0</version>
-                <configuration>
-                    <mainClass>UI.DevLauncher</mainClass>
-                </configuration>
-            </plugin>
-
 
             <plugin>
                 <groupId>org.scijava</groupId>

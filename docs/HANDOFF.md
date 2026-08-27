@@ -46,6 +46,16 @@ GAT v2 is now a Maven-built Fiji plugin (was ImageJ `.ijm` macros).
   the cache path, and dropped the stale `working-directory`. Enabling it still
   requires renaming to `.yml` and adding the `SONAR_TOKEN` secret (see the
   note in the file).
+- **pom coordinates + plugin menu set (open item — pom coordinates RESOLVED).**
+  `pom.xml` now uses `groupId io.github.pr4deepr`, `artifactId
+  GutAnalysisToolbox_` (ImageJ `_` convention → published JAR
+  `GutAnalysisToolbox_-2.0.0.jar`), `version 2.0.0`. Removed the broken
+  `exec-maven-plugin` block (pointed at a non-existent `UI.DevLauncher`).
+  Plugin menu changed to the conventional layout in
+  `src/main/resources/plugins.config`:
+  `Plugins>GutAnalysisToolbox, "GATV2", UI.GatPluginUI` → **Plugins ▸
+  GutAnalysisToolbox ▸ GATV2**. (No `DevLauncher` re-added; there is no dev
+  `main` — launch via Fiji or add one later if wanted.)
 
 ## Open items (need decisions / info)
 
@@ -53,16 +63,7 @@ GAT v2 is now a Maven-built Fiji plugin (was ImageJ `.ijm` macros).
    from the repo; confirm they should also be removed from the update site on
    the next upload so the site only serves the v2 JAR + models.
 
-2. **pom.xml coordinates.** Still placeholder: `groupId org.example`,
-   `artifactId GAT-Java-Plugin`, `version 1.0`. Also `exec-maven-plugin` points
-   at `UI.DevLauncher`, which does not exist (no `main` in `src/main`). Decide
-   real coordinates (the artifactId becomes the published JAR name on the
-   update site) before fixing, and decide whether to add a `DevLauncher` main
-   or drop the `exec-maven-plugin` block. Left untouched here because these
-   values are maintainer-owned and can't be verified against the current
-   published JAR name while egress is blocked.
-
-3. **Docs consolidation — leaning GitBook-only (no GitHub sync).** GitBook
+2. **Docs consolidation — leaning GitBook-only (no GitHub sync).** GitBook
    already lets non-coders edit and keeps its own version history, so a sync is
    not needed just for that. A GitBook Git Sync scaffold (`.gitbook.yaml` +
    `docs/` stub pages) was prototyped and then **reverted** to keep the repo

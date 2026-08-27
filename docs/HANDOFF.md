@@ -29,9 +29,15 @@ GAT v2 is now a Maven-built Fiji plugin (was ImageJ `.ijm` macros).
 - **Preflight model check is now case-insensitive** (`UI/Preflight.checkModels`).
   It lists `Fiji/models` and compares expected names with `equalsIgnoreCase`
   instead of a case-sensitive `File.exists()`. This removes the Linux/CI
-  failure mode from the case half of open item 1 — the check now accepts
-  whatever casing the update site actually ships. (The *version-suffix*
-  disagreement below is a separate, still-open question.)
+  failure mode where a pure case difference would fail preflight.
+- **Model filenames reconciled (open item 1 — RESOLVED).** Source of truth =
+  the repo's `Models/` folder on `main` plus the old
+  `Tools/commands/gat_settings.ijm` (master), which agree:
+  neuron `2D_enteric_neuron_v4_1.zip`, subtype
+  `2D_enteric_neuron_subtype_v4.zip` (no `_1`), ganglia
+  `2D_Ganglia_RGB_v3.bioimage.io.model`. Fixed `GatPluginUI.run()` (was
+  `..._V4_1` / `subtype_V4` casing) and the README (subtype was wrongly
+  `..._v4_1`; ganglia now shows the full `.bioimage.io.model` name) to match.
 - **CI cache key fixed** (`.github/workflows/test.yml`): now hashes `pom.xml`
   (repo root) instead of the stale `Gat-IJ-Plugin/GAT-Java-Plugin/pom.xml`.
 - **SonarQube config cleaned** (`.github/workflows/sonarqube.yml.txt`, still
@@ -43,25 +49,11 @@ GAT v2 is now a Maven-built Fiji plugin (was ImageJ `.ijm` macros).
 
 ## Open items (need decisions / info)
 
-1. **Model filename version suffix (case part now handled in code).**
-   The remaining disagreement is not case — it is the version suffix on the
-   subtype model, which `equalsIgnoreCase` cannot bridge:
-   | Source | Neuron | Subtype | Ganglia |
-   |--------|--------|---------|---------|
-   | GatPluginUI | `2D_enteric_neuron_V4_1.zip` | `2D_enteric_neuron_subtype_V4.zip` | `2D_Ganglia_RGB_v3.bioimage.io.model` |
-   | README | `2D_enteric_neuron_v4_1.zip` | `2D_enteric_neuron_subtype_v4_1.zip` | `2D_Ganglia_RGB_v3` (folder) |
-   GatPluginUI expects `subtype_V4`; README says `subtype_v4_1`. The
-   **update site is the source of truth**. Get the exact filenames from
-   `sites.imagej.net/GutAnalysisToolbox/db.xml.gz` (or from the maintainer),
-   then set the expected string in `GatPluginUI.run()` and the README to the
-   real name so they agree. (Egress to the update site is blocked in this
-   session — see the egress note.)
-
-2. **Old macro files on the update site.** `gat_v2` deleted all `.ijm`/`.groovy`
+1. **Old macro files on the update site.** `gat_v2` deleted all `.ijm`/`.groovy`
    from the repo; confirm they should also be removed from the update site on
    the next upload so the site only serves the v2 JAR + models.
 
-3. **pom.xml coordinates.** Still placeholder: `groupId org.example`,
+2. **pom.xml coordinates.** Still placeholder: `groupId org.example`,
    `artifactId GAT-Java-Plugin`, `version 1.0`. Also `exec-maven-plugin` points
    at `UI.DevLauncher`, which does not exist (no `main` in `src/main`). Decide
    real coordinates (the artifactId becomes the published JAR name on the
@@ -70,7 +62,7 @@ GAT v2 is now a Maven-built Fiji plugin (was ImageJ `.ijm` macros).
    values are maintainer-owned and can't be verified against the current
    published JAR name while egress is blocked.
 
-4. **Docs consolidation — leaning GitBook-only (no GitHub sync).** GitBook
+3. **Docs consolidation — leaning GitBook-only (no GitHub sync).** GitBook
    already lets non-coders edit and keeps its own version history, so a sync is
    not needed just for that. A GitBook Git Sync scaffold (`.gitbook.yaml` +
    `docs/` stub pages) was prototyped and then **reverted** to keep the repo

@@ -79,7 +79,7 @@ The GAT models are located in `Fiji.app/models` folder and contains 3 separate m
 - **Enteric neuron model: 2D_enteric_neuron_v4_1.zip**
   
   StarDist model to segment enteric neurons labelled with Hu, a pan-neuronal marker
-- **Enteric neuron subtype model: 2D_enteric_neuron_subtype_v4_1.zip**
+- **Enteric neuron subtype model: 2D_enteric_neuron_subtype_v4.zip**
   
   StarDist model to segment enteric neuronal subtypes. It has been trained on images with labelling for:
   * neuronal nitric oxide synthase (nNOS)
@@ -89,7 +89,7 @@ The GAT models are located in `Fiji.app/models` folder and contains 3 separate m
   * Delta-opioid receptor (DOR) reporter (GFP)
   * Choline acetyltransferase (ChAT)
   * Neurofilament (NFM)
-- **Ganglia model folder: 2D_Ganglia_RGB_v3**
+- **Ganglia model folder: 2D_Ganglia_RGB_v3.bioimage.io.model**
   
   DeepImageJ-based UNet model to segment ganglia. Needs both Hu and a neuronal/glial marker labelling the ganglia
 

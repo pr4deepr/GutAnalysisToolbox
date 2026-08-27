@@ -71,8 +71,8 @@ public class GatPluginUI implements PlugIn {
      */
     @Override
     public void run(String arg){
-        String expectedNeuronModel  = "2D_enteric_neuron_V4_1.zip";
-        String expectedSubtypeModel = "2D_enteric_neuron_subtype_V4.zip";
+        String expectedNeuronModel  = "2D_enteric_neuron_v4_1.zip";
+        String expectedSubtypeModel = "2D_enteric_neuron_subtype_v4.zip";
         String expectedGangliaModel = "2D_Ganglia_RGB_v3.bioimage.io.model";
 
         if (!UI.Preflight.runAll(expectedNeuronModel, expectedSubtypeModel,expectedGangliaModel)) {

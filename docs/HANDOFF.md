@@ -56,6 +56,77 @@ GAT v2 is now a Maven-built Fiji plugin (was ImageJ `.ijm` macros).
   `Plugins>GutAnalysisToolbox, "GATV2", UI.GatPluginUI` → **Plugins ▸
   GutAnalysisToolbox ▸ GATV2**. (No `DevLauncher` re-added; there is no dev
   `main` — launch via Fiji or add one later if wanted.)
+- **CI hardened against SciJava outages** (`.github/workflows/test.yml`). On
+  2026-08-27 a run failed purely because `maven.scijava.org` returned HTTP 503
+  for core ImageJ deps (scifio, imagej-ops, mines-jtk) — these are NOT on Maven
+  Central (verified 404), so there is no alternative repo to point at. Fix:
+  cache `~/.m2/repository` with a `restore-keys` prefix (a warm cache from one
+  green run then avoids scijava for unchanged deps), retry `mvn` 3× with
+  backoff + resolver/wagon retryHandler flags, and a 40-min job timeout so a
+  full outage fails fast instead of the ~1h43m hang it caused. Also removed a
+  duplicate `clij2_` dependency in `pom.xml` that Maven warned about.
+
+## Biggest open problem: StarDist / DeepImageJ version drift
+
+**This is the maintainer's #1 pain: new DeepImageJ / StarDist releases (and new
+Fiji releases) break GAT's segmentation.** Root cause, confirmed in the code:
+GAT drives both plugins through their **macro-command string interface**, which
+is a moving target:
+- StarDist — `PluginCalls.runStarDist2DLabel` calls
+  `IJ.run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D],
+  args=[...]")`. The command class has been stable; the usual breakage is the
+  **CSBDeep/TensorFlow backend** (note `showCsbdeepProgress` arg), not the
+  string.
+- DeepImageJ — `PluginCalls.runDeepImageJForGanglia` calls
+  `IJ.run(in3C, "DeepImageJ Run", "model_path=[...] input_path=null
+  output_folder=null display_output=all")`. These args are the **DeepImageJ 2.x**
+  API; DeepImageJ 3 changed model loading + the engine system (JDLL). The old
+  `check_plugin.ijm` already warned models are "not compatible with DeepImageJ
+  v3". This is almost certainly the "new DeepImageJ doesn't work" case.
+
+**Key constraint the maintainer raised:** you *cannot* pin or downgrade a plugin
+version in a normal user's Fiji — the Updater installs latest from each enabled
+site. So "tell users to install DIJ 2.x" is not viable. That narrows it to:
+
+- **Path A — ride latest.** Accept everyone is on latest; update GAT's calls to
+  the current DIJ 3 / StarDist API and release via GAT's own update site; add a
+  **version-aware Preflight** that reads installed StarDist/DIJ versions and
+  warns on mismatch so the next break is legible, not cryptic. Cheap, but a
+  perpetual treadmill.
+- **Path B — own the inference stack** (escape the treadmill, since you can't
+  pin in the user's Fiji): run the models yourself instead of via the
+  user-updatable plugins. Either ship a frozen self-contained Fiji (pom `app`
+  profile — you pin because you distribute it; but a user hitting "Update"
+  re-breaks it), or bundle the runtime in GAT's JAR via **JDLL**
+  (`io.bioimage:dl-modelrunner`, the library DIJ 3 uses under the hood) with a
+  pinned engine. Cleanest target = the **ganglia/DeepImageJ** path (bioimage.io
+  model + JDLL); StarDist `.zip` is harder to move off-plugin. Bigger refactor,
+  larger JAR, engine downloads, possible classpath friction.
+
+**Decision pending (maintainer):** Path A vs B (recommendation: A now — track
+latest + Preflight version guard; B for the ganglia model later via JDLL).
+
+## Resuming in Claude Code (local) — do these there, not in cloud
+
+The remaining work needs a real Fiji + Maven, which the cloud session lacks
+(egress blocked — see note below). Resume on the branch
+`claude/gat-v2-update-site-handoff-rui7sn` locally and:
+
+1. **Capture the current plugin macro API (ground truth).** In your latest
+   working Fiji: *Plugins › Macros › Record…*, run the **DeepImageJ** ganglia
+   model and **StarDist 2D** once, and copy the recorded `run(...)` lines. Those
+   give the exact current command names + arg keys to port into
+   `PluginCalls.runDeepImageJForGanglia` / `runStarDist2DLabel` (Path A).
+2. **Build & test locally:** `mvn -B test` (needs `maven.scijava.org`, which is
+   reachable from your machine). The suite is 10 mock-based unit tests
+   (GangliaOps ×7, NeuronsHuPipeline ×1, CalciumAnalysis ×2); they mock ImageJ,
+   so no models/GPU needed. None cover `Preflight` or the invocation strings —
+   consider a `PreflightTest`.
+3. **Exercise the plugin in a real Fiji** (`mvn -Papp package` builds a
+   self-contained Fiji, or drop `GutAnalysisToolbox_-2.0.0.jar` into
+   `Fiji.app/plugins`) to actually validate segmentation end-to-end — nothing so
+   far has been run in Fiji.
+4. **Decide Path A vs B** above and implement.
 
 ## Open items (need decisions / info)
 
@@ -83,6 +154,9 @@ The cloud session's egress policy currently BLOCKS (403 at proxy CONNECT):
 `sites.imagej.net` (can't read the update site), `*.gitbook.io` (can't read
 docs). To unblock: edit the `default_cloud` environment's network policy in the
 Claude Code web app (or org admin settings), then start a NEW session.
+**Running Claude Code locally has none of these blocks** — your machine reaches
+scijava/imagej and has Fiji, which is why the "Resuming in Claude Code" steps
+above belong there.
 
 ## "Can only enable GAT?" — answer
 

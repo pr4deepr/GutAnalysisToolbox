@@ -301,7 +301,7 @@ public class ToolsPane extends JPanel {
      * it to the supplied {@link Params}.
      * <p>
      * By convention this looks under ImageJ's "models" directory for a file
-     * like {@code 2D_enteric_neuron_V4_1.zip} (or a known fallback). The
+     * like {@code 2D_enteric_neuron_v4_1.zip} (or a known fallback). The
      * absolute path of the first match found is stored in
      * {@code p.stardistModelZip}.
      * </p>
@@ -312,7 +312,7 @@ public class ToolsPane extends JPanel {
      */
     private static boolean ensureNeuronModelZip(Params p) {
         File modelsDir = new File(ij.IJ.getDirectory("imagej"), "models");
-        File model = new File(modelsDir, "2D_enteric_neuron_V4_1.zip");
+        File model = new File(modelsDir, "2D_enteric_neuron_v4_1.zip");
         if (!model.isFile()) {
             model = new File(modelsDir, "2D_enteric_neuron_subtype_v4.zip");
         }

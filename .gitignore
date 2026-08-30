@@ -1,6 +1,10 @@
 gat.txt
+
+# Maven build output
+target/
 Sample Images/Analysis/
 Models/*
 in_progress/*
 QuPath_workflow/qupath_project/*
 Sample Images/2D_enteric_neuron_IF/Analysis/*
+docs/HANDOFF.md

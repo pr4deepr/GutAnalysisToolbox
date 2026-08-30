@@ -1,210 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  DRAFT — proposed pom.xml migrated onto the pom-scijava parent.
+  NOT built by Maven (only pom.xml is). Review only. See notes at bottom.
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <!-- The SciJava parent: brings a coherent, currently-published version set
+         for the whole ImageJ/SCIFIO/ImgLib2/CLIJ ecosystem, plus build config
+         (compiler, surefire, license headers, enforcer, scijava-maven-plugin). -->
+    <parent>
+        <groupId>org.scijava</groupId>
+        <artifactId>pom-scijava</artifactId>
+        <version>45.1.0</version> <!-- latest as of drafting; bump periodically -->
+        <relativePath/>
+    </parent>
+
     <groupId>io.github.pr4deepr</groupId>
     <artifactId>GutAnalysisToolbox_</artifactId>
     <version>2.0.0</version>
 
+    <!-- ===== Metadata REQUIRED by pom-scijava's enforcer / license plugin ===== -->
+    <!-- Build will fail until these are filled in to match reality.            -->
+    <name>Gut Analysis Toolbox</name>
+    <description>Semi-automated analysis of enteric neurons, subtypes and ganglia in 2D gut wholemounts (Fiji plugin).</description>
+    <url>https://github.com/pr4deepr/GutAnalysisToolbox</url>
+    <inceptionYear>2021</inceptionYear>
+
+    <organization>
+        <name>Gut Analysis Toolbox</name>
+        <url>https://github.com/pr4deepr/GutAnalysisToolbox</url>
+    </organization>
+
+    <licenses>
+        <license>
+            <name>BSD-3-Clause</name>
+            <url>https://opensource.org/licenses/BSD-3-Clause</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <!-- Sole maintainer. Student Java developers are credited as authors on
+             the paper below (contributors here), but are not maintainers. -->
+        <developer>
+            <id>pr4deepr</id>
+            <name>Pradeep Rajasekhar</name>
+            <url>https://github.com/pr4deepr</url>
+            <roles><role>lead</role><role>maintainer</role><role>developer</role></roles>
+        </developer>
+    </developers>
+    <contributors>
+        <!-- Java implementation by student developers (authors, not maintainers);
+             add individual names as confirmed. Full author list + credit:
+             Sorensen et al., J Cell Sci 2024, doi:10.1242/jcs.261950
+             (https://pmc.ncbi.nlm.nih.gov/articles/PMC11698042/). -->
+        <contributor><name>GAT paper authors — see doi:10.1242/jcs.261950</name></contributor>
+    </contributors>
+
+    <mailingLists>
+        <mailingList>
+            <name>Image.sc Forum</name>
+            <archive>https://forum.image.sc/tag/gat</archive>
+        </mailingList>
+    </mailingLists>
+
+    <scm>
+        <connection>scm:git:https://github.com/pr4deepr/GutAnalysisToolbox</connection>
+        <developerConnection>scm:git:git@github.com:pr4deepr/GutAnalysisToolbox</developerConnection>
+        <tag>HEAD</tag>
+        <url>https://github.com/pr4deepr/GutAnalysisToolbox</url>
+    </scm>
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/pr4deepr/GutAnalysisToolbox/issues</url>
+    </issueManagement>
+    <ciManagement>
+        <system>GitHub Actions</system>
+        <url>https://github.com/pr4deepr/GutAnalysisToolbox/actions</url>
+    </ciManagement>
+
     <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- license-maven-plugin (inherited) writes headers using these.
+             'bsd_3' is the plugin's key for BSD 3-Clause; verify on first
+             `mvn license:update-file-header` run. -->
+        <license.licenseName>bsd_3</license.licenseName>
+        <license.copyrightOwners>Pradeep Rajasekhar</license.copyrightOwners>
+
+        <!-- Main class metadata for the Fiji plugin menu is in
+             src/main/resources/plugins.config, unchanged. -->
+
+        <!-- If the parent's default Java target is not what you want, set e.g.:
+             <scijava.jvm.version>8</scijava.jvm.version>  (verify on first build) -->
     </properties>
 
-    <repositories>
-        <repository>
-            <id>scijava.public</id>
-            <url>https://maven.scijava.org/content/groups/public</url>
-        </repository>
-        <repository>
-            <id>central</id>
-            <url>https://repo.maven.apache.org/maven2</url>
-        </repository>
-    </repositories>
-
-    <!-- BOMs to manage versions -->
-    <dependencyManagement>
-        <dependencies>
-            <!-- junit -->
-            <dependency>
-                <groupId>org.junit</groupId>
-                <artifactId>junit-bom</artifactId>
-                <version>5.11.4</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+    <!-- pom-scijava already declares the scijava.public repository, so the
+         explicit <repositories> block is no longer needed. -->
 
     <dependencies>
-        <!-- ImageJ1 core -->
+        <!-- ImageJ1 core — version managed by the BOM (currently 1.54p) -->
         <dependency>
             <groupId>net.imagej</groupId>
             <artifactId>ij</artifactId>
-            <version>1.54p</version>
         </dependency>
 
-        <!-- Your Swing L&F -->
+        <!-- CLIJ / CLIJ2 — all managed by the BOM (versions dropped) -->
+        <dependency>
+            <groupId>net.haesleinhuepf</groupId>
+            <artifactId>clij_</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>net.haesleinhuepf</groupId>
+            <artifactId>clij2_</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>net.haesleinhuepf</groupId>
+            <artifactId>clij-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>net.haesleinhuepf</groupId>
+            <artifactId>clij-clearcl</artifactId>
+        </dependency>
+
+        <!-- Swing look & feel — NOT a SciJava artifact, so keep an explicit version -->
         <dependency>
             <groupId>io.github.vincenzopalazzo</groupId>
             <artifactId>material-ui-swing</artifactId>
             <version>1.1.2</version>
         </dependency>
 
-        <!-- CLIJ2 - Using correct available versions -->
-        <dependency>
-            <groupId>net.haesleinhuepf</groupId>
-            <artifactId>clij2_</artifactId>
-            <version>2.5.0.1</version>
-        </dependency>
-
-        <!-- CLIJ -->
-        <dependency>
-            <groupId>net.haesleinhuepf</groupId>
-            <artifactId>clij_</artifactId>
-            <version>1.9.0.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>net.haesleinhuepf</groupId>
-            <artifactId>clij-core</artifactId>
-            <version>1.8.0.6</version>
-        </dependency>
-
-        <!-- CLIJ Clear CL -->
-        <dependency>
-            <groupId>net.haesleinhuepf</groupId>
-            <artifactId>clij-clearcl</artifactId>
-            <version>2.3.0.4</version>
-        </dependency>
-
-        <!-- (Optional) plugins you call directly from code via IJ.run(...)
-             If you plan to ship a self-contained Fiji, you can skip these
-             here and let the app packager install from update sites instead. -->
-        <!-- Example: MorphoLibJ (Label Size Filtering etc.) -->
-        <!--
-        <dependency>
-          <groupId>fr.inra.ijpb</groupId>
-          <artifactId>MorphoLibJ_</artifactId>
-          <version>1.5.0</version>
-        </dependency>
-        -->
-
-        <!--
-            Testing framework
-        -->
-
-        <!-- junit-jupiter-api for most simple tests -->
+        <!-- ===== Tests (all versions managed by the BOM) ===== -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <!-- junit-jupiter-engine to run the tests -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <!-- mockito for mocking in tests -->
+        <!-- mockito 5.x: static/inline mocking is built into mockito-core, so
+             the old 'mockito-inline' artifact is gone. Switch to core. -->
         <dependency>
             <groupId>org.mockito</groupId>
-            <artifactId>mockito-inline</artifactId>
-            <version>4.11.0</version>
+            <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <!-- mockito extension for JUnit5 -->
+        <!-- mockito-junit-jupiter is not in the BOM's dependencyManagement, but
+             pom-scijava defines the mockito.version property — reuse it so this
+             stays pinned to the same mockito as mockito-core. -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
-            <version>4.11.0</version>
+            <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
-                <configuration>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
-                </configuration>
-            </plugin>
+            <!-- compiler / jar / jacoco / license / enforcer are inherited from
+                 pom-scijava. Only override what GAT actually needs: -->
 
-            <plugin>
-                <groupId>org.scijava</groupId>
-                <artifactId>scijava-maven-plugin</artifactId>
-                <version>3.0.1</version>
-                <executions>
-                    <execution>
-                        <id>populate</id>
-                        <phase>package</phase>
-                        <goals><goal>populate-app</goal></goals>
-                        <configuration>
-                            <!-- Point to an existing Fiji.app -->
-                            <appDirectory>${fiji.app.directory}</appDirectory>
-                            <jars>
-                                <jar>${project.build.finalName}.jar</jar>
-                            </jars>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <!-- For testing -->
+            <!-- GAT's Swing UI touches AWT during tests, so keep headless off -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.2.5</version>
                 <configuration>
-                    <argLine>-Djava.awt.headless=false</argLine>
-                    <argLine>${argLine}</argLine>
+                    <argLine>@{argLine} -Djava.awt.headless=false</argLine>
                 </configuration>
             </plugin>
-            <!--Jacoco for Test Coverage-->
+
+            <!-- Shade ONLY GAT's non-Fiji runtime deps into the plugin jar so the
+                 update site ships a single self-contained jar. Everything else
+                 (ij, clij*, imglib2, scijava, …) is provided by Fiji's own update
+                 sites; bundling those would put duplicate classes on the Fiji
+                 classpath. Hence an explicit include list — NOT a blanket shade.
+                 Bundled here: material-ui-swing + its jiconfont transitive jars
+                 (mdlaf.*, jiconfont.*). No relocation: these packages are unique
+                 to GAT, so there's nothing on the Fiji classpath to clash with. -->
             <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.10</version>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
                 <executions>
                     <execution>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>report</id>
-                        <phase>test</phase>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
+                        <id>shade-nonfiji-deps</id>
+                        <phase>package</phase>
+                        <goals><goal>shade</goal></goals>
+                        <configuration>
+                            <!-- keep the real pom; we only rewrite the jar -->
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <!-- replace the main artifact with the shaded jar -->
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <artifactSet>
+                                <includes>
+                                    <include>io.github.vincenzopalazzo:material-ui-swing</include>
+                                    <include>com.github.jiconfont:jiconfont-swing</include>
+                                    <include>com.github.jiconfont:jiconfont</include>
+                                </includes>
+                            </artifactSet>
+                            <filters>
+                                <!-- drop signatures/module descriptors from the
+                                     bundled jars so the merged jar stays valid -->
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>META-INF/MANIFEST.MF</exclude>
+                                        <exclude>module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
         </plugins>
     </build>
 
-    <!-- Build a self-contained Fiji app with your plugin inside -->
     <profiles>
+        <!-- Install the built jar into an existing Fiji.app:
+             mvn -Pinstall-to-fiji package -Dfiji.app.directory=/path/to/Fiji.app
+             Kept out of the default build so a plain `mvn package` just makes
+             the jar without needing a Fiji install present. -->
         <profile>
-            <id>clean-app</id>
+            <id>install-to-fiji</id>
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-clean-plugin</artifactId>
-                        <version>3.4.0</version>
+                        <groupId>org.scijava</groupId>
+                        <artifactId>scijava-maven-plugin</artifactId>
                         <executions>
                             <execution>
-                                <goals>
-                                    <goal>clean</goal>
-                                </goals>
+                                <id>populate</id>
+                                <phase>package</phase>
+                                <goals><goal>populate-app</goal></goals>
+                                <configuration>
+                                    <appDirectory>${fiji.app.directory}</appDirectory>
+                                    <jars><jar>${project.build.finalName}.jar</jar></jars>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
@@ -213,13 +252,28 @@
         </profile>
 
         <profile>
+            <id>clean-app</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-clean-plugin</artifactId>
+                        <executions>
+                            <execution><goals><goal>clean</goal></goals></execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Build a self-contained Fiji with the plugin + pinned update sites -->
+        <profile>
             <id>app</id>
             <build>
                 <plugins>
                     <plugin>
                         <groupId>org.scijava</groupId>
                         <artifactId>scijava-maven-plugin</artifactId>
-                        <version>3.0.1</version>
                         <executions>
                             <execution>
                                 <id>app</id>
@@ -227,12 +281,13 @@
                                 <goals><goal>app</goal></goals>
                                 <configuration>
                                     <appDirectory>${project.build.directory}/fiji-app</appDirectory>
-                                    <!-- Update sites baked into the self-contained Fiji.
-                                         Keep this list in sync with README.md.
-                                         Note: the Template Matching site (calcium imaging)
-                                         is NOT in Fiji's list of update sites and cannot be
-                                         referenced here by name; users add it manually:
-                                         https://sites.imagej.net/Template_Matching/ -->
+                                    <!-- Keep in sync with README. Template Matching is
+                                         unlisted and cannot be referenced by name.
+                                         NOTE: enabling the TensorFlow site is only half
+                                         the story — GAT's models are TF 1.x graphs, so the
+                                         user must also select "TensorFlow 1.15.0 CPU" via
+                                         Edit > Options > TensorFlow (StarDist crashes under
+                                         the default TF2). Preflight warns if it isn't 1.15. -->
                                     <sites>
                                         <site>Fiji</site>
                                         <site>3D ImageJ Suite</site>
@@ -242,12 +297,11 @@
                                         <site>IJPB-plugins</site>
                                         <site>StarDist</site>
                                         <site>PTBIOP</site>
+                                        <site>TensorFlow</site>
                                         <site>clij</site>
                                         <site>clij2</site>
                                     </sites>
-                                    <jars>
-                                        <jar>${project.build.finalName}.jar</jar>
-                                    </jars>
+                                    <jars><jar>${project.build.finalName}.jar</jar></jars>
                                 </configuration>
                             </execution>
                         </executions>
@@ -256,8 +310,4 @@
             </build>
         </profile>
     </profiles>
-
-
 </project>
-
-

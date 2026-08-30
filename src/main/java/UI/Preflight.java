@@ -94,6 +94,14 @@ public final class Preflight {
         // Check required commands/plugins are present
         if (!checkPlugins()) return false;
 
+        // Non-blocking: report installed StarDist / DeepImageJ / CSBDeep versions
+        // and warn (never abort) if one has drifted outside the validated range.
+        checkPluginVersions();
+
+        // Non-blocking: GAT's models are TensorFlow 1.x graphs; warn if the
+        // active TensorFlow library is not 1.15 (StarDist crashes otherwise).
+        checkTensorFlow();
+
         IJ.log("****** DONE – environment looks good. ******");
 
         if (!logWasOpen) {
@@ -451,6 +459,247 @@ public final class Preflight {
             if (kk.contains(w)) return true;
         }
         return false;
+    }
+
+    // ===================================================================
+    //  Plugin VERSION check (non-blocking) — DRAFT
+    //
+    //  Motivation: GAT drives StarDist and DeepImageJ through their macro
+    //  commands. The command strings are stable, but the plugins' deep-learning
+    //  backends and model formats change across releases (e.g. DeepImageJ must
+    //  be v3+ for the v3 ganglia model). Fiji always installs the *latest* from
+    //  each update site, and users cannot pin a version — so when an upstream
+    //  release breaks compatibility it surfaces as a cryptic runtime failure.
+    //
+    //  This check reads the installed plugin jar versions and, if one has
+    //  drifted outside a maintainer-validated range, shows a *non-blocking*
+    //  notice up front so the failure is legible. It never aborts startup.
+    //
+    //  Detected versions are always logged (useful for support). Warnings only
+    //  fire when a min/max is set below — fill those in as you validate.
+    // ===================================================================
+
+    /** One plugin's identity + the version window GAT has been validated against. */
+    private static final class PluginSpec {
+        final String label;                  // e.g. "DeepImageJ"
+        final String[] jarPrefixes;          // Fiji jar artifactId prefixes to match
+        final String minValidated;           // inclusive lower bound, or null
+        final String maxValidatedInclusive;  // inclusive upper bound, or null
+        final String note;                   // extra guidance shown if out of range
+        PluginSpec(String label, String[] jarPrefixes,
+                   String minValidated, String maxValidatedInclusive, String note) {
+            this.label = label;
+            this.jarPrefixes = jarPrefixes;
+            this.minValidated = minValidated;
+            this.maxValidatedInclusive = maxValidatedInclusive;
+            this.note = note;
+        }
+    }
+
+    /**
+     * Report installed versions of the deep-learning plugins and warn (without
+     * blocking) if any is outside the validated range.
+     */
+    private static void checkPluginVersions() {
+        IJ.log("****** Checking plugin versions (informational) ******");
+        String fijiDir = IJ.getDirectory("imagej");
+        if (fijiDir == null) {
+            IJ.log("Cannot locate Fiji directory; skipping version check.");
+            return;
+        }
+        File base = new File(fijiDir);
+        File[] scanDirs = { new File(base, "jars"), new File(base, "plugins") };
+
+        List<PluginSpec> specs = new ArrayList<>();
+        // DeepImageJ v3+ is required by the v3 ganglia model (see the v1 macro
+        // Tools/commands/Segment_Ganglia.ijm: "It should be > v3"). This bound
+        // is justified; the others are placeholders to fill in once validated.
+        specs.add(new PluginSpec("DeepImageJ", new String[]{"DeepImageJ_", "deepimagej"},
+                "3.0.0", null,
+                "The ganglia model requires DeepImageJ v3 or newer."));
+        // TODO(maintainer): set the StarDist range you have validated GAT against.
+        specs.add(new PluginSpec("StarDist", new String[]{"StarDist_"},
+                null, null,
+                "Set a validated StarDist range once confirmed."));
+        // TODO(maintainer): CSBDeep is StarDist's TensorFlow backend; pin a range.
+        specs.add(new PluginSpec("CSBDeep", new String[]{"CSBDeep_"},
+                null, null,
+                "StarDist's deep-learning backend; set a validated range once confirmed."));
+
+        for (PluginSpec s : specs) {
+            String ver = findInstalledVersion(scanDirs, s.jarPrefixes);
+            if (ver == null) {
+                // Absence is handled by checkPlugins() (command presence); here we
+                // only note we couldn't read a version to compare.
+                IJ.log(s.label + ": version not detected among installed jars.");
+                continue;
+            }
+            IJ.log(s.label + ": detected version " + ver);
+
+            String problem = null;
+            if (s.minValidated != null && compareVersionsLenient(ver, s.minValidated) < 0) {
+                problem = "older than the minimum validated " + s.minValidated;
+            } else if (s.maxValidatedInclusive != null
+                    && compareVersionsLenient(ver, s.maxValidatedInclusive) > 0) {
+                problem = "newer than the last validated " + s.maxValidatedInclusive;
+            }
+
+            if (problem != null) {
+                String msg = "GAT was validated with " + s.label + " " + rangeText(s)
+                        + ", but " + ver + " is installed (" + problem + ").\n"
+                        + s.note + "\nSegmentation may fail or behave differently.";
+                IJ.log("WARNING: " + msg.replace("\n", " "));
+                JOptionPane.showMessageDialog(null, msg,
+                        "GAT – " + s.label + " version notice", JOptionPane.WARNING_MESSAGE);
+            }
+        }
+        IJ.log("***********************************************");
+    }
+
+    /**
+     * Find the version of the first installed jar whose name matches one of
+     * {@code prefixes} (Fiji names jars {@code <artifactId>-<version>.jar}).
+     *
+     * @return the version substring, or {@code null} if no matching jar is found.
+     */
+    private static String findInstalledVersion(File[] dirs, String[] prefixes) {
+        for (File dir : dirs) {
+            if (dir == null || !dir.isDirectory()) continue;
+            String[] names = dir.list();
+            if (names == null) continue;
+            for (String name : names) {
+                String lname = name.toLowerCase(java.util.Locale.ROOT);
+                if (!lname.endsWith(".jar")) continue;
+                for (String p : prefixes) {
+                    String lp = (p + "-").toLowerCase(java.util.Locale.ROOT);
+                    if (lname.startsWith(lp)) {
+                        // strip the "<prefix>-" head and the ".jar" tail
+                        String ver = name.substring(p.length() + 1, name.length() - 4);
+                        if (!ver.isEmpty()) return ver;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Compare two version strings by their numeric components only
+     * (qualifiers like "-beta" are ignored). Lenient by design: good enough to
+     * answer "is this older/newer than the validated bound".
+     *
+     * @return negative if {@code a < b}, zero if equal, positive if {@code a > b}.
+     */
+    private static int compareVersionsLenient(String a, String b) {
+        List<Integer> na = numericParts(a);
+        List<Integer> nb = numericParts(b);
+        int n = Math.max(na.size(), nb.size());
+        for (int i = 0; i < n; i++) {
+            int ai = i < na.size() ? na.get(i) : 0;
+            int bi = i < nb.size() ? nb.get(i) : 0;
+            if (ai != bi) return Integer.compare(ai, bi);
+        }
+        return 0;
+    }
+
+    /** Extract the sequence of integer components from a version string. */
+    private static List<Integer> numericParts(String s) {
+        List<Integer> out = new ArrayList<>();
+        java.util.regex.Matcher m =
+                java.util.regex.Pattern.compile("\\d+").matcher(s == null ? "" : s);
+        while (m.find()) {
+            try { out.add(Integer.parseInt(m.group())); }
+            catch (NumberFormatException ignore) { out.add(0); }
+        }
+        return out;
+    }
+
+    /** Human-readable description of a spec's validated range. */
+    private static String rangeText(PluginSpec s) {
+        if (s.minValidated != null && s.maxValidatedInclusive != null)
+            return s.minValidated + "–" + s.maxValidatedInclusive;
+        if (s.minValidated != null) return s.minValidated + " or newer";
+        if (s.maxValidatedInclusive != null) return "up to " + s.maxValidatedInclusive;
+        return "any version";
+    }
+
+    /** The TensorFlow version GAT's bundled StarDist/DeepImageJ models need. */
+    private static final String REQUIRED_TF_VERSION_PREFIX = "1.15";
+
+    /**
+     * Non-blocking check that the active TensorFlow library is 1.15.
+     *
+     * <p>
+     * GAT's bundled StarDist and DeepImageJ models are TensorFlow 1.x graphs.
+     * Fiji ships TensorFlow 2.x by default, under which StarDist crashes. The
+     * user must enable the <b>TensorFlow</b> update site and then select
+     * <b>TensorFlow 1.15.0 CPU</b> (Edit &rsaquo; Options &rsaquo; TensorFlow…).
+     * </p>
+     *
+     * <p>
+     * We report the detected version and, if it is not 1.15 (or cannot be
+     * determined), show a non-blocking notice with the exact steps. This never
+     * aborts startup.
+     * </p>
+     */
+    private static void checkTensorFlow() {
+        IJ.log("****** Checking TensorFlow (informational) ******");
+
+        String ver = detectTensorFlowVersion();
+        if (ver == null) {
+            IJ.log("TensorFlow: version not detected.");
+        } else {
+            IJ.log("TensorFlow: detected version " + ver);
+        }
+
+        boolean ok = ver != null && ver.startsWith(REQUIRED_TF_VERSION_PREFIX);
+        if (!ok) {
+            String detected = (ver == null) ? "could not be determined" : ("is " + ver);
+            String msg =
+                    "GAT's StarDist / DeepImageJ models are TensorFlow 1.x graphs and\n"
+                    + "require TensorFlow " + REQUIRED_TF_VERSION_PREFIX + ". The active TensorFlow " + detected + ".\n"
+                    + "StarDist may crash under TensorFlow 2.x.\n\n"
+                    + "To fix:\n"
+                    + "1. Help › Update… › Manage update sites → tick 'TensorFlow', then restart.\n"
+                    + "2. Edit › Options › TensorFlow… → select 'TensorFlow 1.15.0 CPU', then restart.";
+            IJ.log("WARNING: " + msg.replace("\n", " "));
+            JOptionPane.showMessageDialog(null, msg,
+                    "GAT – TensorFlow version notice", JOptionPane.WARNING_MESSAGE);
+        } else {
+            IJ.log("TensorFlow " + ver + " ... OK!");
+        }
+        IJ.log("***********************************************");
+    }
+
+    /**
+     * Best-effort detection of the active TensorFlow version.
+     *
+     * <p>
+     * First tries the running native library via reflection
+     * ({@code org.tensorflow.TensorFlow.version()}), which reflects what the
+     * user actually selected in the TensorFlow options. If that is not loadable,
+     * falls back to scanning the installed {@code libtensorflow} / {@code tensorflow}
+     * jars.
+     * </p>
+     *
+     * @return a version string (e.g. {@code "1.15.0"}), or {@code null} if unknown.
+     */
+    private static String detectTensorFlowVersion() {
+        // 1) Active native runtime — the authoritative "what is loaded now".
+        try {
+            Class<?> tf = Class.forName("org.tensorflow.TensorFlow");
+            Object v = tf.getMethod("version").invoke(null);
+            if (v != null && !v.toString().trim().isEmpty()) return v.toString().trim();
+        } catch (Throwable ignore) {
+            // Not loadable (not selected / TF2 API / native missing) — fall back.
+        }
+
+        // 2) Fall back to the installed jar name.
+        String fijiDir = IJ.getDirectory("imagej");
+        if (fijiDir == null) return null;
+        File base = new File(fijiDir);
+        File[] scanDirs = { new File(base, "jars"), new File(base, "lib") };
+        return findInstalledVersion(scanDirs, new String[]{"libtensorflow", "tensorflow"});
     }
 
 

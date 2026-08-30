@@ -17,7 +17,7 @@ import java.util.Objects;
 
 
 /**
- * Settings panel for the Hu-gated Multiplex workflow.
+ * Settings panel for the Hu-gated Multichannel workflow.
  *
  * Tabs:
  *  • Basic    – image, Hu channel, output, ganglia mode/chan, spatial
@@ -25,11 +25,11 @@ import java.util.Objects;
  *  • Advanced – rescale, calibration requirements, Hu/subtype model zips, thresholds,
  *               overlap fraction, DIJ ganglia model folder, config load/save
  *
- * The "Run Multiplex Analysis" action validates inputs and launches
+ * The "Run Multichannel Analysis" action validates inputs and launches
  * {@code new NeuronsMultiPipeline().run(mp)} in a background SwingWorker.
  */
 public class MultichannelPane extends JPanel {
-    public static final String Name = "Multiplex Workflow";
+    public static final String Name = "Multichannel Workflow";
 
     private final Window owner;
 
@@ -87,7 +87,7 @@ public class MultichannelPane extends JPanel {
         add(tabs, BorderLayout.CENTER);
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton runBtn = new JButton("Run Multiplex Analysis");
+        JButton runBtn = new JButton("Run Multichannel Analysis");
         runBtn.addActionListener(e -> onRun(runBtn));
         actions.add(runBtn);
         add(actions, BorderLayout.SOUTH);
@@ -161,7 +161,7 @@ public class MultichannelPane extends JPanel {
     }
 
     /**
-     * Per-marker row widget for Multiplex runs (Hu-gated).
+     * Per-marker row widget for Multichannel runs (Hu-gated).
      * Provides conversion to {@link NeuronsMultiPipeline.MarkerSpec} with validation of custom ROI zips.
      */
     private static final class MarkerRow {
@@ -537,7 +537,7 @@ public class MultichannelPane extends JPanel {
                 } catch (Throwable ex) {
                     SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(
                             owner,
-                            "Multiplex failed:\n" + ex.getClass().getSimpleName() + ": " + ex.getMessage(),
+                            "Multichannel analysis failed:\n" + ex.getClass().getSimpleName() + ": " + ex.getMessage(),
                             "Error", JOptionPane.ERROR_MESSAGE));
                 }
                 return null;
